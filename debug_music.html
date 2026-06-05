@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音乐功能调试</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .waveform-container { background: #1e293b; border-radius: 12px; padding: 20px; }
+        #waveform { border-radius: 8px; background: #0f172a; }
+        .control-btn { padding: 12px 24px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+    </style>
+</head>
+<body class="bg-slate-900 min-h-screen p-8">
+    <div class="max-w-5xl mx-auto">
+        <h1 class="text-3xl font-black text-white mb-2">🎵 音乐功能调试页面</h1>
+        <p class="text-slate-400 mb-8">用于测试音频播放、波形显示和标记点功能</p>
+
+        <!-- 上传区域 -->
+        <div class="bg-slate-800 rounded-2xl p-6 mb-6">
+            <h2 class="text-xl font-bold text-white mb-4">📤 上传音乐</h2>
+            <div class="flex gap-4">
+                <input type="file" id="audioFile" accept="audio/*" class="hidden" onchange="handleFileUpload(this)">
+                <button onclick="document.getElementById('audioFile').click()" 
+                    class="control-btn bg-indigo-600 hover:bg-indigo-500 text-white">
+                    选择音频文件
+                </button>
+                <span id="fileName" class="text-slate-400 self-center">未选择文件</span>
+            </div>
+        </div>
+
+        <!-- 波形显示 -->
+        <div class="waveform-container mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-white">🌊 波形显示</h2>
+                <div class="text-slate-400 text-sm">
+                    时长: <span id="duration">0:00</span>
+                </div>
+            </div>
+            <div id="waveform"></div>
+            
+            <!-- 时间轴 -->
+            <div class="flex justify-between text-slate-400 text-sm mt-2">
+                <span id="currentTime">0:00</span>
+                <span id="totalTime">0:00</span>
+            </div>
+            
+            <!-- 进度条 -->
+            <div class="mt-4">
+                <input type="range" id="progressBar" min="0" max="100" value="0" 
+                    class="w-full accent-indigo-500 cursor-pointer"
+                    onchange="seekTo(this.value)">
+            </div>
+        </div>
+
+        <!-- 播放控制 -->
+        <div class="bg-slate-800 rounded-2xl p-6 mb-6">
+            <h2 class="text-xl font-bold text-white mb-4">▶️ 播放控制</h2>
+            <div class="flex flex-wrap gap-4">
+                <button onclick="playPause()" id="playBtn" class="control-btn bg-green-600 hover:bg-green-500 text-white">
+                    ▶ 播放
+                </button>
+                <button onclick="stop()" class="control-btn bg-red-600 hover:bg-red-500 text-white">
+                    ⏹ 停止
+                </button>
+                <button onclick="skipBackward()" class="control-btn bg-slate-700 hover:bg-slate-600 text-white">
+                    ⏪ 后退 5s
+                </button>
+                <button onclick="skipForward()" class="control-btn bg-slate-700 hover:bg-slate-600 text-white">
+                    ⏩ 前进 5s
+                </button>
+                <div class="flex items-center gap-2">
+                    <span class="text-white">音量:</span>
+                    <input type="range" id="volume" min="0" max="100" value="80" 
+                        class="w-24 accent-indigo-500" onchange="setVolume(this.value)">
+                </div>
+            </div>
+        </div>
+
+        <!-- 标记点管理 -->
+        <div class="bg-slate-800 rounded-2xl p-6 mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-white">📍 标记点管理</h2>
+                <button onclick="addMarker()" class="control-btn bg-indigo-600 hover:bg-indigo-500 text-white">
+                    ➕ 添加标记
+                </button>
+            </div>
+            <div id="markerList" class="text-slate-400">暂无标记点</div>
+        </div>
+
+        <!-- 测试标记 -->
+        <div class="bg-slate-800 rounded-2xl p-6 mb-6">
+            <h2 class="text-xl font-bold text-white mb-4">🧪 快速测试</h2>
+            <div class="flex flex-wrap gap-4">
+                <button onclick="loadTestAudio()" class="control-btn bg-amber-600 hover:bg-amber-500 text-white">
+                    📡 加载测试音频(在线)
+                </button>
+                <button onclick="clearMarkers()" class="control-btn bg-slate-700 hover:bg-slate-600 text-white">
+                    🗑️ 清空标记
+                </button>
+                <button onclick="exportMarkers()" class="control-btn bg-slate-700 hover:bg-slate-600 text-white">
+                    📤 导出标记
+                </button>
+            </div>
+        </div>
+
+        <!-- 日志 -->
+        <div class="bg-slate-800 rounded-2xl p-6">
+            <h2 class="text-xl font-bold text-white mb-4">📝 操作日志</h2>
+            <div id="log" class="text-slate-300 font-mono text-sm" style="max-height: 200px; overflow-y: auto;"></div>
+        </div>
+    </div>
+
+    <!-- 引入 Wavesurfer.js -->
+    <script src="https://unpkg.com/wavesurfer.js@7"></script>
+
+    <script>
+        let wavesurfer = null;
+        let markers = [];
+        let markerCounter = 0;
+        let isPlaying = false;
+
+        function log(msg, type = 'info') {
+            const logEl = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            const icon = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
+            logEl.innerHTML += `[${time}] ${icon} ${msg}\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function initWaveSurfer() {
+            if (wavesurfer) {
+                wavesurfer.destroy();
+            }
+
+            wavesurfer = WaveSurfer.create({
+                container: '#waveform',
+                waveColor: '#4f46e5',
+                progressColor: '#818cf8',
+                cursorColor: '#f59e0b',
+                barWidth: 2,
+                barRadius: 3,
+                cursorWidth: 2,
+                height: 128,
+                barGap: 2,
+                url: '' // 初始为空
+            });
+
+            wavesurfer.on('ready', () => {
+                const duration = wavesurfer.getDuration();
+                document.getElementById('duration').textContent = formatTime(duration);
+                document.getElementById('totalTime').textContent = formatTime(duration);
+                document.getElementById('progressBar').max = Math.floor(duration);
+                log(`音频加载完成，时长: ${formatTime(duration)}`, 'success');
+            });
+
+            wavesurfer.on('audioprocess', () => {
+                const currentTime = wavesurfer.getCurrentTime();
+                document.getElementById('currentTime').textContent = formatTime(currentTime);
+                document.getElementById('progressBar').value = currentTime;
+            });
+
+            wavesurfer.on('play', () => {
+                isPlaying = true;
+                document.getElementById('playBtn').textContent = '⏸ 暂停';
+                log('播放');
+            });
+
+            wavesurfer.on('pause', () => {
+                isPlaying = false;
+                document.getElementById('playBtn').textContent = '▶ 播放';
+                log('暂停');
+            });
+
+            wavesurfer.on('finish', () => {
+                isPlaying = false;
+                document.getElementById('playBtn').textContent = '▶ 播放';
+                log('播放结束', 'success');
+            });
+
+            wavesurfer.on('marker-click', (marker) => {
+                log(`点击标记: ${marker.text} at ${formatTime(marker.time)}`);
+            });
+
+            log('WaveSurfer 已初始化');
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function handleFileUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            document.getElementById('fileName').textContent = file.name;
+            log(`选择文件: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+
+            const url = URL.createObjectURL(file);
+            initWaveSurfer();
+            wavesurfer.load(url);
+        }
+
+        function playPause() {
+            if (!wavesurfer) {
+                log('请先加载音频', 'error');
+                return;
+            }
+            wavesurfer.playPause();
+        }
+
+        function stop() {
+            if (!wavesurfer) return;
+            wavesurfer.stop();
+            isPlaying = false;
+            document.getElementById('playBtn').textContent = '▶ 播放';
+            log('停止');
+        }
+
+        function skipBackward() {
+            if (!wavesurfer) return;
+            const newTime = Math.max(0, wavesurfer.getCurrentTime() - 5);
+            wavesurfer.seekTo(newTime / wavesurfer.getDuration());
+            log(`后退到 ${formatTime(newTime)}`);
+        }
+
+        function skipForward() {
+            if (!wavesurfer) return;
+            const newTime = Math.min(wavesurfer.getDuration(), wavesurfer.getCurrentTime() + 5);
+            wavesurfer.seekTo(newTime / wavesurfer.getDuration());
+            log(`前进到 ${formatTime(newTime)}`);
+        }
+
+        function seekTo(percent) {
+            if (!wavesurfer) return;
+            wavesurfer.seekTo(percent / wavesurfer.getDuration());
+        }
+
+        function setVolume(value) {
+            if (!wavesurfer) return;
+            wavesurfer.setVolume(value / 100);
+            log(`音量设置为 ${value}%`);
+        }
+
+        function addMarker() {
+            if (!wavesurfer) {
+                log('请先加载音频', 'error');
+                return;
+            }
+
+            const time = wavesurfer.getCurrentTime();
+            const text = prompt('输入标记名称:', `标记 ${++markerCounter}`);
+            if (!text) return;
+
+            const marker = {
+                id: `marker_${markerCounter}`,
+                time: time,
+                text: text,
+                color: '#f59e0b'
+            };
+
+            wavesurfer.addMarker(marker);
+            markers.push(marker);
+            renderMarkerList();
+            log(`添加标记: "${text}" at ${formatTime(time)}`, 'success');
+        }
+
+        function clearMarkers() {
+            if (!wavesurfer) return;
+            wavesurfer.clearMarkers();
+            markers = [];
+            renderMarkerList();
+            log('已清空所有标记');
+        }
+
+        function renderMarkerList() {
+            const container = document.getElementById('markerList');
+            if (markers.length === 0) {
+                container.innerHTML = '<span class="text-slate-500">暂无标记点</span>';
+                return;
+            }
+
+            container.innerHTML = markers.map((m, i) => `
+                <div class="flex justify-between items-center bg-slate-700 p-2 rounded mb-1">
+                    <span>
+                        <span class="text-amber-400">●</span>
+                        <span class="text-white ml-2">${m.text}</span>
+                        <span class="text-slate-400 ml-2">${formatTime(m.time)}</span>
+                    </span>
+                    <div class="flex gap-2">
+                        <button onclick="jumpToMarker(${i})" class="text-blue-400 hover:text-blue-300">跳转</button>
+                        <button onclick="deleteMarker(${i})" class="text-red-400 hover:text-red-300">删除</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function jumpToMarker(index) {
+            if (!wavesurfer || !markers[index]) return;
+            const time = markers[index].time;
+            wavesurfer.seekTo(time / wavesurfer.getDuration());
+            log(`跳转到: ${markers[index].text}`);
+        }
+
+        function deleteMarker(index) {
+            markers.splice(index, 1);
+            if (wavesurfer) wavesurfer.clearMarkers();
+            markers.forEach(m => wavesurfer.addMarker(m));
+            renderMarkerList();
+            log(`删除标记 ${index + 1}`);
+        }
+
+        function exportMarkers() {
+            if (markers.length === 0) {
+                log('暂无标记可导出', 'error');
+                return;
+            }
+            const data = JSON.stringify(markers, null, 2);
+            console.log('导出的标记:', data);
+            log(`导出了 ${markers.length} 个标记（见控制台）`, 'success');
+            alert('标记已导出到控制台');
+        }
+
+        function loadTestAudio() {
+            initWaveSurfer();
+            // 使用一个免费的测试音频
+            const testUrl = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+            log(`加载测试音频: ${testUrl}`);
+            wavesurfer.load(testUrl);
+            document.getElementById('fileName').textContent = '测试音频 (在线)';
+        }
+
+        // 初始化
+        initWaveSurfer();
+        log('音乐调试页面已加载');
+    </script>
+</body>
+</html>

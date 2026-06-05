@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D分计算器调试</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .debug-section { background: #1a1a2e; color: #eee; padding: 20px; border-radius: 12px; margin: 10px 0; }
+        .code-block { background: #0f0f23; padding: 15px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; margin: 10px 0; }
+        .btn { padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background: #6366f1; color: white; }
+        .btn-primary:hover { background: #4f46e5; }
+        .btn-success { background: #22c55e; color: white; }
+        .btn-success:hover { background: #16a34a; }
+        .skill-tag { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; margin: 2px; }
+        .skill-d1 { background: #22c55e; color: white; }
+        .skill-d2 { background: #3b82f6; color: white; }
+        .skill-d3 { background: #a855f7; color: white; }
+        .skill-d4 { background: #ef4444; color: white; }
+        .skill-d5 { background: #f97316; color: white; }
+    </style>
+</head>
+<body class="bg-slate-900 min-h-screen p-8">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-3xl font-black text-white mb-2">🧮 D分计算器调试页面</h1>
+        <p class="text-slate-400 mb-8">用于测试 D 分计算逻辑</p>
+
+        <!-- 动作库 -->
+        <div class="bg-slate-800 rounded-2xl p-6 mb-6">
+            <h2 class="text-xl font-bold text-white mb-4">📚 动作库（点击添加到当前编排）</h2>
+            <div id="skillLibrary" class="flex flex-wrap gap-2"></div>
+        </div>
+
+        <!-- 当前编排 -->
+        <div class="bg-slate-800 rounded-2xl p-6 mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-white">✏️ 当前编排</h2>
+                <button onclick="clearTracks()" class="btn btn-primary">🗑️ 清空</button>
+            </div>
+            <div id="currentTracks" class="text-slate-400">点击动作库添加动作</div>
+        </div>
+
+        <!-- 执行计算 -->
+        <div class="bg-slate-800 rounded-2xl p-6 mb-6">
+            <h2 class="text-xl font-bold text-white mb-4">▶️ 执行计算</h2>
+            <div class="flex gap-4">
+                <button onclick="runDCalculation()" class="btn btn-success">计算D分</button>
+                <button onclick="runFullCalculation()" class="btn btn-primary">完整计算（含E分）</button>
+            </div>
+        </div>
+
+        <!-- 结果展示 -->
+        <div class="debug-section">
+            <h2 class="text-xl font-bold mb-4">📊 D分计算结果</h2>
+            <div id="result" class="code-block">点击「计算D分」查看结果...</div>
+        </div>
+
+        <!-- 数据流日志 -->
+        <div class="debug-section">
+            <h2 class="text-xl font-bold mb-4">📝 数据流日志</h2>
+            <div id="log" class="code-block" style="max-height: 300px; overflow-y: auto;"></div>
+        </div>
+    </div>
+
+    <!-- 引入必要的库 -->
+    <script src="data.js"></script>
+    <script src="d_score.js"></script>
+    <script src="e_score_data.js"></script>
+    <script src="e_score.js"></script>
+
+    <script>
+        let currentTracks = [];
+        let trackIdCounter = 0;
+
+        const skillGroups = {
+            'A': [
+                { code: 'A1', name: '简单跳', dValue: 0.1 },
+                { code: 'A2', name: '小跳', dValue: 0.2 },
+            ],
+            'B': [
+                { code: 'B1', name: '并步跳', dValue: 0.3 },
+                { code: 'B2', name: '交叉步', dValue: 0.3 },
+            ],
+            'C': [
+                { code: 'C1', name: '后空翻', dValue: 0.4 },
+                { code: 'C2', name: '侧空翻', dValue: 0.4 },
+            ],
+            'D': [
+                { code: 'D1', name: '直体后空翻', dValue: 0.5 },
+                { code: 'D2', name: '团身后空翻', dValue: 0.5 },
+            ],
+            'E': [
+                { code: 'E1', name: '直体后空翻转体360', dValue: 0.6 },
+                { code: 'E2', name: '直体后空翻转体720', dValue: 0.7 },
+            ],
+        };
+
+        function log(msg, type = 'info') {
+            const logEl = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
+            logEl.innerHTML += `<span class="text-slate-500">[${timestamp}]</span> ${prefix} ${msg}\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function initSkillLibrary() {
+            const container = document.getElementById('skillLibrary');
+            let html = '';
+            for (const [group, skills] of Object.entries(skillGroups)) {
+                html += `<div class="w-full mb-2">
+                    <span class="text-slate-400 text-sm">${group}组 (${group}分起):</span>
+                    <div class="flex flex-wrap gap-1 mt-1">`;
+                skills.forEach(skill => {
+                    html += `<button onclick="addTrack('${skill.code}', '${skill.name}', ${skill.dValue})" 
+                        class="skill-tag skill-${group.toLowerCase()}">${skill.code} ${skill.name} (${skill.dValue})</button>`;
+                });
+                html += `</div></div>`;
+            }
+            container.innerHTML = html;
+            log('动作库已加载');
+        }
+
+        function addTrack(code, name, dValue) {
+            currentTracks.push({
+                id: `track_${++trackIdCounter}`,
+                code: code,
+                skillName: name,
+                dValue: dValue,
+                connectedSkills: []
+            });
+            renderTracks();
+            log(`添加动作: ${code} ${name} (D${dValue})`, 'success');
+        }
+
+        function renderTracks() {
+            const container = document.getElementById('currentTracks');
+            if (currentTracks.length === 0) {
+                container.innerHTML = '<span class="text-slate-500">点击动作库添加动作</span>';
+                return;
+            }
+            let html = '<div class="space-y-2">';
+            currentTracks.forEach((t, i) => {
+                html += `
+                    <div class="bg-slate-700 p-3 rounded-lg flex justify-between items-center">
+                        <div>
+                            <span class="text-yellow-400 font-bold">${i + 1}.</span>
+                            <span class="text-white">${t.code} ${t.skillName}</span>
+                            <span class="text-green-400 ml-2">D${t.dValue}</span>
+                        </div>
+                        <button onclick="removeTrack(${i})" class="text-red-400 hover:text-red-300">✕</button>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function removeTrack(index) {
+            currentTracks.splice(index, 1);
+            renderTracks();
+            log(`移除动作 ${index + 1}`);
+        }
+
+        function clearTracks() {
+            currentTracks = [];
+            trackIdCounter = 0;
+            renderTracks();
+            log('已清空所有动作');
+        }
+
+        function runDCalculation() {
+            document.getElementById('log').innerHTML = '';
+            log('开始D分计算...');
+            log(`动作数量: ${currentTracks.length}`);
+
+            // 转换为DScore期望的格式
+            const tracksForD = currentTracks.map(t => ({
+                id: t.id,
+                code: t.code,
+                dValue: t.dValue,
+                connectedSkills: t.connectedSkills || []
+            }));
+
+            try {
+                // 检查DScoreEngine是否存在
+                if (typeof DScoreEngine === 'undefined') {
+                    document.getElementById('result').innerHTML = '<span class="text-red-400">DScoreEngine 未定义！</span>';
+                    log('DScoreEngine 未定义', 'error');
+                    return;
+                }
+
+                const result = DScoreEngine.calculateD(tracksForD);
+
+                document.getElementById('result').innerHTML = `
+<span class="text-yellow-400">================== D分计算结果 ==================</span>
+
+<span class="text-white">连接数: ${result.connections || 0}</span>
+<span class="text-white">升组加成: ${result.connectionBonus?.toFixed(3) || 0}</span>
+
+<span class="text-green-400 text-2xl">★ 总D分: ${result.totalD?.toFixed(3) || 'N/A'}</span>
+
+${(result.details || []).map(d => `• ${d}`).join('\n') || ''}
+`;
+                log(`D分计算完成: ${result.totalD}`, 'success');
+            } catch (error) {
+                document.getElementById('result').innerHTML = `<span class="text-red-400">错误: ${error.message}</span>`;
+                log(`错误: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        function runFullCalculation() {
+            // 先执行D分计算
+            runDCalculation();
+            
+            // 然后执行真实E分计算
+            setTimeout(() => {
+                log('开始E分计算...');
+                
+                const gymnastMode = 'none'; // 默认无选手模式
+                const actualD = currentTracks.reduce((sum, t) => sum + (t.dValue || 0), 0);
+                
+                // 设置全局状态
+                window.currentPlaybackMode = 'auto_e';
+                window.currentRoutineData = {
+                    gymnastMode: gymnastMode,
+                    brand: 'gymnova'
+                };
+                
+                // 转换为E分引擎需要的格式
+                const tracksForE = currentTracks.map((t, i) => ({
+                    id: t.id,
+                    skillName: t.skillName,
+                    startTime: i * 3, // 假设每个动作3秒
+                    duration: 2.5,
+                    manualDeductions: [],
+                    manualDeductionTotal: 0
+                }));
+                
+                try {
+                    const eResult = ExecutionEngine.calculateEScore(gymnastMode, tracksForE, actualD);
+                    
+                    if (eResult) {
+                        const totalScore = actualD + (eResult.finalEScore || 0);
+                        log(`E分计算成功: ${eResult.finalEScore?.toFixed(3) || 'N/A'}`, 'success');
+                        log(`总分: ${totalScore.toFixed(3)}`, 'success');
+                        
+                        // 更新结果显示
+                        document.getElementById('result').innerHTML += `
+
+<span class="text-cyan-400">================== 完整计算结果 ==================</span>
+<span class="text-yellow-400">★ E分: ${eResult.finalEScore?.toFixed(3) || 'N/A'}</span>
+<span class="text-yellow-400">★ 总分: ${totalScore.toFixed(3)}</span>
+`;
+                    } else {
+                        log('E分计算返回 null', 'error');
+                    }
+                } catch (error) {
+                    log(`E分计算错误: ${error.message}`, 'error');
+                    console.error(error);
+                }
+            }, 200);
+        }
+
+        // 初始化
+        initSkillLibrary();
+        log('D分调试页面已加载');
+    </script>
+</body>
+</html>

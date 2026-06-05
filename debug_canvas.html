@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>画板调试</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        #debugCanvas { border: 2px solid #6366f1; border-radius: 8px; background: #fff; }
+        .control-panel { background: #1e293b; border-radius: 12px; padding: 16px; }
+        .color-btn { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; transition: transform 0.1s; }
+        .color-btn:hover { transform: scale(1.1); }
+        .color-btn.active { ring: 2px solid white; transform: scale(1.15); }
+        .tool-btn { padding: 8px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+        .tool-btn:hover { background: #334155; }
+        .tool-btn.active { background: #6366f1; color: white; }
+    </style>
+</head>
+<body class="bg-slate-900 min-h-screen p-8">
+    <div class="max-w-7xl mx-auto">
+        <h1 class="text-3xl font-black text-white mb-2">🎨 画板调试页面</h1>
+        <p class="text-slate-400 mb-8">用于单独调试画板绘制功能</p>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- 左侧控制面板 -->
+            <div class="lg:col-span-1 space-y-4">
+                <!-- 工具选择 -->
+                <div class="control-panel">
+                    <h3 class="text-white font-bold mb-3">🛠️ 工具</h3>
+                    <div class="flex flex-wrap gap-2">
+                        <button id="toolPen" class="tool-btn active" onclick="setTool('pen')">✏️ 画笔</button>
+                        <button id="toolEraser" class="tool-btn" onclick="setTool('eraser')">🧹 橡皮</button>
+                        <button id="toolSelect" class="tool-btn" onclick="setTool('select')">👆 选择</button>
+                    </div>
+                </div>
+
+                <!-- 颜色选择 -->
+                <div class="control-panel">
+                    <h3 class="text-white font-bold mb-3">🎨 颜色</h3>
+                    <div class="flex flex-wrap gap-2" id="colorPalette">
+                        <button class="color-btn active" style="background:#000" data-color="#000"></button>
+                        <button class="color-btn" style="background:#ef4444" data-color="#ef4444"></button>
+                        <button class="color-btn" style="background:#22c55e" data-color="#22c55e"></button>
+                        <button class="color-btn" style="background:#3b82f6" data-color="#3b82f6"></button>
+                        <button class="color-btn" style="background:#eab308" data-color="#eab308"></button>
+                        <button class="color-btn" style="background:#8b5cf6" data-color="#8b5cf6"></button>
+                        <button class="color-btn" style="background:#ec4899" data-color="#ec4899"></button>
+                        <button class="color-btn" style="background:#06b6d4" data-color="#06b6d4"></button>
+                    </div>
+                </div>
+
+                <!-- 线条粗细 -->
+                <div class="control-panel">
+                    <h3 class="text-white font-bold mb-3">📏 线条粗细</h3>
+                    <input type="range" id="lineWidth" min="1" max="20" value="3" 
+                        class="w-full accent-indigo-500" onchange="setLineWidth(this.value)">
+                    <div class="text-center text-white mt-1"><span id="widthDisplay">3</span>px</div>
+                </div>
+
+                <!-- 操作 -->
+                <div class="control-panel">
+                    <h3 class="text-white font-bold mb-3">📋 操作</h3>
+                    <div class="space-y-2">
+                        <button onclick="undo()" class="w-full bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg">↩️ 撤销</button>
+                        <button onclick="redo()" class="w-full bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg">↪️ 重做</button>
+                        <button onclick="clearCanvas()" class="w-full bg-red-600 hover:bg-red-500 text-white py-2 rounded-lg">🗑️ 清空</button>
+                        <button onclick="saveToHistory()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded-lg">💾 保存</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 画布区域 -->
+            <div class="lg:col-span-3">
+                <div class="control-panel h-full">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-white font-bold">🖼️ 画布 (800 x 600)</h3>
+                        <div class="text-slate-400 text-sm">
+                            坐标: <span id="coords">0, 0</span>
+                        </div>
+                    </div>
+                    <div class="flex justify-center">
+                        <canvas id="debugCanvas" width="800" height="600"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 历史记录 -->
+        <div class="control-panel mt-6">
+            <h3 class="text-white font-bold mb-3">📜 保存的历史记录</h3>
+            <div id="historyList" class="text-slate-400">暂无保存记录</div>
+        </div>
+
+        <!-- 日志 -->
+        <div class="control-panel mt-6">
+            <h3 class="text-white font-bold mb-3">📝 操作日志</h3>
+            <div id="log" class="text-slate-300 font-mono text-sm" style="max-height: 200px; overflow-y: auto;"></div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('debugCanvas');
+        const ctx = canvas.getContext('2d');
+        let currentTool = 'pen';
+        let currentColor = '#000';
+        let currentWidth = 3;
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+        let paths = [];           // 所有路径
+        let currentPath = [];     // 当前路径
+        let historyIndex = -1;   // 撤销/重做索引
+        let savedHistory = [];    // 保存的历史
+
+        function log(msg) {
+            const logEl = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            logEl.innerHTML += `[${time}] ${msg}\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function setTool(tool) {
+            currentTool = tool;
+            document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('tool' + tool.charAt(0).toUpperCase() + tool.slice(1)).classList.add('active');
+            log(`工具切换: ${tool}`);
+        }
+
+        function setLineWidth(width) {
+            currentWidth = parseInt(width);
+            document.getElementById('widthDisplay').textContent = width;
+        }
+
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            return {
+                x: (e.clientX - rect.left) * scaleX,
+                y: (e.clientY - rect.top) * scaleY
+            };
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            const pos = getPos(e);
+            lastX = pos.x;
+            lastY = pos.y;
+            currentPath = [{ x: pos.x, y: pos.y, tool: currentTool, color: currentColor, width: currentWidth }];
+            log(`开始绘制 at (${pos.x.toFixed(0)}, ${pos.y.toFixed(0)})`);
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            const pos = getPos(e);
+            document.getElementById('coords').textContent = `${pos.x.toFixed(0)}, ${pos.y.toFixed(0)}`;
+            
+            if (!isDrawing) return;
+            
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.strokeStyle = currentColor;
+            ctx.lineWidth = currentWidth;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+
+            currentPath.push({ x: pos.x, y: pos.y });
+            lastX = pos.x;
+            lastY = pos.y;
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            if (isDrawing) {
+                paths.push(currentPath);
+                historyIndex = paths.length - 1;
+                log(`路径完成，共 ${currentPath.length} 个点`);
+            }
+            isDrawing = false;
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            if (isDrawing) {
+                paths.push(currentPath);
+                historyIndex = paths.length - 1;
+            }
+            isDrawing = false;
+        });
+
+        // 颜色选择
+        document.querySelectorAll('.color-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentColor = btn.dataset.color;
+                log(`颜色切换: ${currentColor}`);
+            });
+        });
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            paths = [];
+            historyIndex = -1;
+            log('画布已清空');
+        }
+
+        function undo() {
+            if (historyIndex < 0) {
+                log('无可撤销');
+                return;
+            }
+            historyIndex--;
+            redraw();
+            log(`撤销到 ${historyIndex + 1}`);
+        }
+
+        function redo() {
+            if (historyIndex >= paths.length - 1) {
+                log('无重做');
+                return;
+            }
+            historyIndex++;
+            redraw();
+            log(`重做到 ${historyIndex + 1}`);
+        }
+
+        function redraw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i <= historyIndex; i++) {
+                const path = paths[i];
+                if (path.length < 2) continue;
+                
+                ctx.beginPath();
+                ctx.moveTo(path[0].x, path[0].y);
+                for (let j = 1; j < path.length; j++) {
+                    ctx.lineTo(path[j].x, path[j].y);
+                }
+                ctx.strokeStyle = path[0].color || currentColor;
+                ctx.lineWidth = path[0].width || currentWidth;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+            }
+        }
+
+        function saveToHistory() {
+            const snapshot = JSON.stringify(paths);
+            savedHistory.push({ time: new Date().toLocaleTimeString(), data: snapshot });
+            renderHistoryList();
+            log(`已保存第 ${savedHistory.length} 个版本`);
+        }
+
+        function renderHistoryList() {
+            const container = document.getElementById('historyList');
+            if (savedHistory.length === 0) {
+                container.innerHTML = '暂无保存记录';
+                return;
+            }
+            container.innerHTML = savedHistory.map((h, i) => `
+                <div class="flex justify-between items-center bg-slate-700 p-2 rounded mb-1">
+                    <span class="text-slate-300">版本 ${i + 1} (${h.time})</span>
+                    <button onclick="loadHistory(${i})" class="text-blue-400 hover:text-blue-300">加载</button>
+                </div>
+            `).join('');
+        }
+
+        function loadHistory(index) {
+            paths = JSON.parse(savedHistory[index].data);
+            historyIndex = paths.length - 1;
+            redraw();
+            log(`加载版本 ${index + 1}`);
+        }
+
+        log('画板调试页面已加载');
+    </script>
+</body>
+</html>

@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E分计算器调试</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .debug-section { background: #1a1a2e; color: #eee; padding: 20px; border-radius: 12px; margin: 10px 0; }
+        .code-block { background: #0f0f23; padding: 15px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; margin: 10px 0; }
+        .result-ok { color: #4ade80; font-weight: bold; }
+        .result-error { color: #f87171; font-weight: bold; }
+        .btn { padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background: #6366f1; color: white; }
+        .btn-primary:hover { background: #4f46e5; }
+        .btn-success { background: #22c55e; color: white; }
+        .btn-success:hover { background: #16a34a; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-danger:hover { background: #dc2626; }
+    </style>
+</head>
+<body class="bg-slate-900 min-h-screen p-8">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-3xl font-black text-white mb-2">🔧 E分计算器调试页面</h1>
+        <p class="text-slate-400 mb-8">用于测试 E 分计算的各种模式和数据流</p>
+
+        <!-- 选手选择 -->
+        <div class="bg-slate-800 rounded-2xl p-6 mb-6">
+            <h2 class="text-xl font-bold text-white mb-4">1. 选择选手模式</h2>
+            <div class="flex flex-wrap gap-4">
+                <label class="flex items-center gap-2 text-white">
+                    <input type="radio" name="gymnastMode" value="none" checked> none (无选手)
+                </label>
+                <label class="flex items-center gap-2 text-white">
+                    <input type="radio" name="gymnastMode" value="custom"> custom (自定义)
+                </label>
+                <label class="flex items-center gap-2 text-white">
+                    <input type="radio" name="gymnastMode" value="nemour"> Kaylia Nemour (ALG)
+                </label>
+                <label class="flex items-center gap-2 text-white">
+                    <input type="radio" name="gymnastMode" value="andrade"> Rebeca Andrade (BRA)
+                </label>
+                <label class="flex items-center gap-2 text-white">
+                    <input type="radio" name="gymnastMode" value="ou"> 欧钰珊 (CHN)
+                </label>
+            </div>
+        </div>
+
+        <!-- E分模式 -->
+        <div class="bg-slate-800 rounded-2xl p-6 mb-6">
+            <h2 class="text-xl font-bold text-white mb-4">2. 选择E分模式</h2>
+            <div class="flex flex-wrap gap-4">
+                <label class="flex items-center gap-2 text-white">
+                    <input type="radio" name="playbackMode" value="auto_e" checked> auto_e (自动打分)
+                </label>
+                <label class="flex items-center gap-2 text-white">
+                    <input type="radio" name="playbackMode" value="manual_e"> manual_e (手动打分)
+                </label>
+                <label class="flex items-center gap-2 text-white">
+                    <input type="radio" name="playbackMode" value="no_e"> no_e (无E分)
+                </label>
+            </div>
+        </div>
+
+        <!-- D分设置 -->
+        <div class="bg-slate-800 rounded-2xl p-6 mb-6">
+            <h2 class="text-xl font-bold text-white mb-4">3. 设置D分</h2>
+            <div class="flex gap-4 items-center">
+                <label class="text-white">实际D分:</label>
+                <input type="number" id="actualD" value="5.5" step="0.1" min="0" max="10"
+                    class="bg-slate-700 text-white px-4 py-2 rounded-lg w-24">
+            </div>
+        </div>
+
+        <!-- 测试动作 -->
+        <div class="bg-slate-800 rounded-2xl p-6 mb-6">
+            <h2 class="text-xl font-bold text-white mb-4">4. 动作数据</h2>
+            <div class="flex gap-4 flex-wrap">
+                <button onclick="loadRealTracks()" class="btn btn-primary">📥 从画板加载</button>
+                <button onclick="addMockTracks()" class="btn btn-warning" style="background:#f59e0b">➕ 添加模拟动作</button>
+                <button onclick="clearTracks()" class="btn btn-danger">🗑️ 清空动作</button>
+            </div>
+            <div id="tracksPreview" class="mt-4 text-slate-400">暂无动作数据</div>
+        </div>
+
+        <!-- 执行计算 -->
+        <div class="bg-slate-800 rounded-2xl p-6 mb-6">
+            <h2 class="text-xl font-bold text-white mb-4">5. 执行计算</h2>
+            <button onclick="runCalculation()" class="btn btn-success text-lg">▶️ 运行E分计算</button>
+        </div>
+
+        <!-- 结果展示 -->
+        <div class="debug-section">
+            <h2 class="text-xl font-bold mb-4">📊 计算结果</h2>
+            <div id="result" class="code-block">点击「运行E分计算」查看结果...</div>
+        </div>
+
+        <!-- 数据流日志 -->
+        <div class="debug-section">
+            <h2 class="text-xl font-bold mb-4">📝 数据流日志</h2>
+            <div id="log" class="code-block" style="max-height: 400px; overflow-y: auto;"></div>
+        </div>
+    </div>
+
+    <!-- 引入必要的库 -->
+    <script src="e_score_data.js"></script>
+    <script src="e_score.js"></script>
+
+    <script>
+        let mockTracks = [];
+
+        function log(msg, type = 'info') {
+            const logEl = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
+            logEl.innerHTML += `<span class="text-slate-500">[${timestamp}]</span> ${prefix} ${msg}\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function getSelectedValue(name) {
+            const selected = document.querySelector(`input[name="${name}"]:checked`);
+            return selected ? selected.value : null;
+        }
+
+        function addMockTracks() {
+            mockTracks = [
+                {
+                    id: 'track_1',
+                    skillName: '后空翻',
+                    startTime: 0,
+                    duration: 2.0,
+                    manualDeductions: [
+                        { faultName: '小屈膝', deduction: 0.1 },
+                        { faultName: '稍微出界', deduction: 0.3 }
+                    ],
+                    manualDeductionTotal: 0.4
+                },
+                {
+                    id: 'track_2',
+                    skillName: '直体后空翻转体720',
+                    startTime: 2.5,
+                    duration: 3.0,
+                    manualDeductions: [],
+                    manualDeductionTotal: 0
+                },
+                {
+                    id: 'track_3',
+                    skillName: '侧手翻',
+                    startTime: 6.0,
+                    duration: 2.0,
+                    manualDeductions: [
+                        { faultName: '落地稍远', deduction: 0.2 }
+                    ],
+                    manualDeductionTotal: 0.2
+                }
+            ];
+
+            document.getElementById('tracksPreview').innerHTML = `
+                <div class="text-green-400 font-bold mb-2">已添加 3 条模拟动作：</div>
+                <div class="space-y-2">
+                    ${mockTracks.map((t, i) => `
+                        <div class="bg-slate-700 p-2 rounded">
+                            <span class="text-white">${i + 1}. ${t.skillName}</span>
+                            <span class="text-slate-400 ml-2">(${t.startTime}s - ${t.startTime + t.duration}s)</span>
+                            ${t.manualDeductionTotal > 0 ? `<span class="text-red-400 ml-2">扣 ${t.manualDeductionTotal}</span>` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            log('添加了 3 条模拟动作', 'success');
+        }
+
+        function clearTracks() {
+            mockTracks = [];
+            document.getElementById('tracksPreview').innerHTML = '暂无动作数据';
+            log('已清空动作数据', 'info');
+        }
+
+        function loadRealTracks() {
+            // 从画板 (canvasManager) 加载真实数据
+            if (typeof canvasManager === 'undefined' || !canvasManager.tracks || canvasManager.tracks.length === 0) {
+                document.getElementById('tracksPreview').innerHTML = '<span class="text-red-400">画板上没有动作数据！请先在主应用中添加动作。</span>';
+                log('画板上没有动作数据', 'error');
+                return;
+            }
+
+            // 转换真实数据格式为调试页面需要的格式
+            mockTracks = canvasManager.tracks.map((track, index) => {
+                // 获取动作名称
+                let skillName = '未知动作';
+                if (track.skills && track.skills.length > 0) {
+                    skillName = track.skills.map(s => s.nameZh ? s.nameZh[0] : s.name || '未知').join(' + ');
+                }
+
+                // 获取时长
+                let duration = 2.0;
+                if (track.audioSync && track.audioSync.startTime && track.audioSync.endTime) {
+                    duration = track.audioSync.endTime - track.audioSync.startTime;
+                }
+
+                return {
+                    id: track.id || `track_${index}`,
+                    skillName: skillName,
+                    startTime: track.audioSync?.startTime || 0,
+                    duration: duration,
+                    manualDeductions: track.manualDeductions || [],
+                    manualDeductionTotal: track.manualDeductionTotal || 0,
+                    // 保留原始数据供调试
+                    _raw: track
+                };
+            });
+
+            document.getElementById('tracksPreview').innerHTML = `
+                <div class="text-green-400 font-bold mb-2">已从画板加载 ${mockTracks.length} 条真实动作：</div>
+                <div class="space-y-2">
+                    ${mockTracks.map((t, i) => `
+                        <div class="bg-slate-700 p-2 rounded">
+                            <span class="text-white">${i + 1}. ${t.skillName}</span>
+                            <span class="text-slate-400 ml-2">(${t.startTime.toFixed(1)}s, ${t.duration.toFixed(1)}s)</span>
+                            ${t.manualDeductionTotal > 0 ? `<span class="text-red-400 ml-2">扣 ${t.manualDeductionTotal}</span>` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            log(`从画板加载了 ${mockTracks.length} 条真实动作`, 'success');
+        }
+
+        function runCalculation() {
+            const gymnastMode = getSelectedValue('gymnastMode');
+            const playbackMode = getSelectedValue('playbackMode');
+            const actualD = parseFloat(document.getElementById('actualD').value) || 0;
+
+            document.getElementById('log').innerHTML = '';
+            document.getElementById('result').innerHTML = '计算中...\n';
+
+            log(`选手模式: ${gymnastMode}`);
+            log(`E分模式: ${playbackMode}`);
+            log(`D分: ${actualD}`);
+            log(`动作数量: ${mockTracks.length}`);
+
+            // 设置全局状态
+            window.currentPlaybackMode = playbackMode;
+            window.currentRoutineData = {
+                gymnastMode: gymnastMode,
+                brand: 'gymnova'
+            };
+
+            log('开始调用 ExecutionEngine.calculateEScore()...');
+
+            try {
+                const result = ExecutionEngine.calculateEScore(gymnastMode, mockTracks, actualD);
+
+                if (result === null) {
+                    document.getElementById('result').innerHTML = '<span class="result-error">返回 null！请检查选手ID是否有效</span>';
+                    log('计算返回 null！', 'error');
+                    return;
+                }
+
+                const totalScore = actualD + (result.finalEScore || 0);
+
+                document.getElementById('result').innerHTML = `
+<span class="text-yellow-400">================== E分计算结果 ==================</span>
+
+<span class="text-green-400">选手: ${gymnastMode}</span>
+<span class="text-blue-400">E分模式: ${playbackMode}</span>
+
+<span class="text-white">Base Score: ${result.baseScore || 'N/A'}</span>
+<span class="text-white">AD Mean: ${result.adMean || 'N/A'}</span>
+<span class="text-white">ED Base: ${result.edBase || 'N/A'}</span>
+
+<span class="text-red-400">扣分明细:</span>
+${(result.details || []).map(d => `  • ${d}`).join('\n') || '  无'}
+
+<span class="text-yellow-400">--- 汇总 ---</span>
+<span class="text-red-400">摔倒次数: ${result.fallCount || 0}</span>
+<span class="text-red-400">摔倒扣分: ${result.fallDeduction || 0}</span>
+<span class="text-red-400">总扣分: ${result.totalDeduction || 0}</span>
+
+<span class="text-green-400 text-2xl">★ E分: ${result.finalEScore?.toFixed(3) || 'N/A'}</span>
+<span class="text-blue-400">★ D分: ${actualD.toFixed(3)}</span>
+<span class="text-yellow-400 text-2xl">★ 总分: ${totalScore.toFixed(3)}</span>
+
+<span class="text-slate-500">${result.isFrozen ? '[已冻结]' : '[未冻结]'}</span>
+`;
+
+                log(`计算成功！E分: ${result.finalEScore?.toFixed(3)}`, 'success');
+                log(`总分: ${totalScore.toFixed(3)}`, 'success');
+
+            } catch (error) {
+                document.getElementById('result').innerHTML = `<span class="result-error">计算出错: ${error.message}</span>`;
+                log(`错误: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>
