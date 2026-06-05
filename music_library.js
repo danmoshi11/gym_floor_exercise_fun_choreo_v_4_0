@@ -16,7 +16,10 @@ const BUILTIN_MUSIC = [
     { file: '2023_Qiu.mp3', name: '邱祺缘 2023', artist: 'QIU Qiyuan', year: '2023', country: 'CHN' },
     { file: '2023_Rebeca_Andrade.mp3', name: '安德拉德 2023', artist: 'Rebeca Andrade', year: '2023', country: 'BRA' },
     { file: '2023_Zhou.mp3', name: '周雅琴 2023', artist: 'ZHOU Yaqin', year: '2023', country: 'CHN' },
-    { file: '2024_Zhou.mp3', name: '周雅琴 2024', artist: 'ZHOU Yaqin', year: '2024', country: 'CHN' }
+    { file: '2024_Zhou.mp3', name: '周雅琴 2024', artist: 'ZHOU Yaqin', year: '2024', country: 'CHN' },
+    // ✨ 2025年新增音乐
+    { file: '2025_Lia_Monica_Fontaine.mp3', name: 'Lia Monica Fontaine 2025', artist: 'Lia Monica Fontaine', year: '2025', country: 'CAN' },
+    { file: '2025_Sabrina_Maneca_Voinea.mp3', name: 'Sabrina Maneca Voinea 2025', artist: 'Sabrina Maneca Voinea', year: '2025', country: 'ROU' }
 ];
 
 // 音乐播放器
