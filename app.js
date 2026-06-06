@@ -212,6 +212,254 @@ const AppController = {
     // 在 AppController 顶部新增属性
     isViewingMode: false,
 
+    // ✨ 辅助函数：生成默认E分记录名称
+    _generateDefaultEScoreName: function() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hour = String(now.getHours()).padStart(2, '0');
+        const minute = String(now.getMinutes()).padStart(2, '0');
+        return `${year}年${month}月${day}日${hour}:${minute}的E分演示`;
+    },
+
+    // ✨ 查看E分历史记录弹窗
+    showEScoreHistoryModal: function(routineId) {
+        const history = JSON.parse(localStorage.getItem('gymChoreoHistory') || '[]');
+        const routine = history.find(r => r.id === routineId);
+        if (!routine) return;
+
+        const eScoreHistory = routine.eScoreHistory || [];
+        const hasEScore = routine.eScoreReport || eScoreHistory.length > 0;
+
+        if (!hasEScore) {
+            ToastManager.show('info', '暂无记录', '该成套还没有E分记录', 2000);
+            return;
+        }
+
+        // 创建弹窗
+        const modalHtml = `
+            <div id="escoreHistoryModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onclick="if(event.target.id==='escoreHistoryModal')AppController.closeEScoreHistoryModal()">
+                <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+                    <!-- 标题栏 -->
+                    <div class="bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-4 flex items-center justify-between">
+                        <div>
+                            <h2 class="text-xl font-black text-white">📊 E分历史记录</h2>
+                            <p class="text-emerald-100 text-xs mt-1">${routine.name}</p>
+                        </div>
+                        <button onclick="AppController.closeEScoreHistoryModal()" class="text-white/80 hover:text-white text-2xl">&times;</button>
+                    </div>
+                    
+                    <!-- 内容区 -->
+                    <div class="p-6 overflow-y-auto max-h-[60vh]">
+                        ${eScoreHistory.length === 0 ? `
+                            <div class="text-center py-8 text-slate-400">
+                                <p class="text-4xl mb-2">📭</p>
+                                <p>暂无历史E分记录</p>
+                            </div>
+                        ` : `
+                            <div class="space-y-3">
+                                ${eScoreHistory.map((record, index) => `
+                                    <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 hover:border-emerald-300 transition-colors">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <div class="flex items-center gap-2">
+                                                <span class="w-6 h-6 rounded-full bg-emerald-500 text-white text-xs font-bold flex items-center justify-center">${index + 1}</span>
+                                                <input type="text" id="escore_name_${record.id}" value="${record.name}" 
+                                                       class="text-sm font-bold text-slate-700 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-emerald-400 outline-none"
+                                                       onchange="AppController.renameEScoreRecord('${routineId}', '${record.id}', this.value)"
+                                                       title="点击修改名称">
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-xs text-slate-400">${record.date}</span>
+                                                <span class="px-2 py-0.5 rounded text-xs font-bold ${record.playbackMode === 'manual_e' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}">${record.playbackMode === 'manual_e' ? '手打' : '自动'}</span>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-4 mb-2">
+                                            <span class="text-2xl font-black text-emerald-600">E分: ${record.eScoreReport.finalEScore.toFixed(3)}</span>
+                                            <span class="text-sm text-slate-500">扣分: ${(10 - record.eScoreReport.finalEScore).toFixed(3)}</span>
+                                        </div>
+                                        <div class="flex gap-2 mt-3">
+                                            <button onclick="AppController.viewEScoreDetails('${record.id}', '${routineId}')" 
+                                                    class="flex-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 font-bold text-xs py-2 rounded-lg transition-colors">
+                                                📋 查看扣分详情
+                                            </button>
+                                            <button onclick="AppController.printEScoreDetails('${record.id}', '${routineId}')" 
+                                                    class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs py-2 rounded-lg transition-colors">
+                                                🖨️ 打印扣分清单
+                                            </button>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `}
+                    </div>
+                    
+                    <!-- 底部按钮 -->
+                    <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+                        <button onclick="AppController.closeEScoreHistoryModal()" 
+                                class="px-6 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-lg transition-colors">
+                            关闭
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // 添加到页面
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    },
+
+    // ✨ 关闭E分历史记录弹窗
+    closeEScoreHistoryModal: function() {
+        const modal = document.getElementById('escoreHistoryModal');
+        if (modal) modal.remove();
+    },
+
+    // ✨ 重命名E分记录
+    renameEScoreRecord: function(routineId, recordId, newName) {
+        let history = JSON.parse(localStorage.getItem('gymChoreoHistory') || '[]');
+        const routineIndex = history.findIndex(r => r.id === routineId);
+        if (routineIndex === -1) return;
+
+        const routine = history[routineIndex];
+        const recordIndex = routine.eScoreHistory.findIndex(r => r.id === recordId);
+        if (recordIndex === -1) return;
+
+        routine.eScoreHistory[recordIndex].name = newName.trim() || AppController._generateDefaultEScoreName();
+        
+        localStorage.setItem('gymChoreoHistory', JSON.stringify(history));
+        ToastManager.show('success', '已重命名', `记录名称已更新为: ${routine.eScoreHistory[recordIndex].name}`, 1500);
+    },
+
+    // ✨ 查看E分扣分详情
+    viewEScoreDetails: function(recordId, routineId) {
+        const history = JSON.parse(localStorage.getItem('gymChoreoHistory') || '[]');
+        const routine = history.find(r => r.id === routineId);
+        if (!routine) return;
+
+        const record = routine.eScoreHistory.find(r => r.id === recordId);
+        if (!record) return;
+
+        const eReport = record.eScoreReport;
+        const details = eReport.details || [];
+
+        // 创建详情弹窗
+        const detailsHtml = `
+            <div id="escoreDetailsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[110] flex items-center justify-center p-4" onclick="if(event.target.id==='escoreDetailsModal')document.getElementById('escoreDetailsModal').remove()">
+                <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[80vh] overflow-hidden">
+                    <div class="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4 flex items-center justify-between">
+                        <div>
+                            <h2 class="text-lg font-black text-white">📋 E分扣分详情</h2>
+                            <p class="text-amber-100 text-xs mt-1">${record.name}</p>
+                        </div>
+                        <button onclick="document.getElementById('escoreDetailsModal').remove()" class="text-white/80 hover:text-white text-2xl">&times;</button>
+                    </div>
+                    <div class="p-6 overflow-y-auto max-h-[60vh]">
+                        <div class="text-center mb-4">
+                            <p class="text-slate-400 text-sm">最终E分</p>
+                            <p class="text-5xl font-black text-emerald-600">${eReport.finalEScore.toFixed(3)}</p>
+                        </div>
+                        <div class="bg-slate-50 rounded-xl p-4 mb-4">
+                            <h3 class="font-bold text-slate-700 mb-2">📝 扣分详情</h3>
+                            ${details.length === 0 ? `
+                                <p class="text-slate-400 text-center py-4">完美完成！无扣分项</p>
+                            ` : `
+                                <ul class="space-y-2">
+                                    ${details.map(d => `
+                                        <li class="flex items-center gap-2 text-sm">
+                                            <span class="w-2 h-2 rounded-full bg-red-400"></span>
+                                            <span class="text-slate-600">${d}</span>
+                                        </li>
+                                    `).join('')}
+                                </ul>
+                            `}
+                        </div>
+                        ${eReport.fallCount > 0 ? `
+                            <div class="bg-red-50 rounded-xl p-4">
+                                <h3 class="font-bold text-red-700 mb-1">🤸 摔倒统计</h3>
+                                <p class="text-red-600">摔倒 ${eReport.fallCount} 次，扣 ${eReport.fallDeduction.toFixed(1)} 分</p>
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex gap-2">
+                        <button onclick="AppController.printEScoreDetails('${recordId}', '${routineId}')" 
+                                class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 rounded-lg transition-colors">
+                            🖨️ 打印扣分清单
+                        </button>
+                        <button onclick="document.getElementById('escoreDetailsModal').remove()" 
+                                class="px-6 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-lg transition-colors">
+                            关闭
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', detailsHtml);
+    },
+
+    // ✨ 打印E分扣分清单
+    printEScoreDetails: function(recordId, routineId) {
+        const history = JSON.parse(localStorage.getItem('gymChoreoHistory') || '[]');
+        const routine = history.find(r => r.id === routineId);
+        if (!routine) return;
+
+        const record = routine.eScoreHistory.find(r => r.id === recordId);
+        if (!record) return;
+
+        const eReport = record.eScoreReport;
+        const details = eReport.details || [];
+
+        // 生成打印内容
+        const printContent = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>${record.name}</title>
+    <style>
+        body { font-family: 'Microsoft YaHei', sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+        h1 { color: #333; border-bottom: 2px solid #10b981; padding-bottom: 10px; }
+        .info { color: #666; margin-bottom: 20px; }
+        .score { font-size: 48px; color: #10b981; text-align: center; margin: 20px 0; }
+        .details { background: #f9fafb; padding: 20px; border-radius: 8px; }
+        .detail-item { padding: 8px 0; border-bottom: 1px solid #e5e7eb; }
+        .detail-item:last-child { border-bottom: none; }
+        .fall { color: #ef4444; font-weight: bold; }
+        @media print { body { padding: 0; } }
+    </style>
+</head>
+<body>
+    <h1>${record.name}</h1>
+    <div class="info">
+        <p>成套名称: ${routine.name}</p>
+        <p>记录时间: ${record.date}</p>
+        <p>打分方式: ${record.playbackMode === 'manual_e' ? '手动打分' : '自动打分'}</p>
+    </div>
+    <div class="score">E分: ${eReport.finalEScore.toFixed(3)}</div>
+    <div class="details">
+        <h2>📋 扣分详情</h2>
+        ${details.length === 0 ? '<p>完美完成！无扣分项</p>' : ''}
+        ${details.map(d => `<div class="detail-item">${d}</div>`).join('')}
+    </div>
+    ${eReport.fallCount > 0 ? `
+    <div class="fall" style="margin-top: 20px; padding: 15px; background: #fef2f2; border-radius: 8px;">
+        <strong>🤸 摔倒统计:</strong> 摔倒 ${eReport.fallCount} 次，扣 ${eReport.fallDeduction.toFixed(1)} 分
+    </div>
+    ` : ''}
+</body>
+</html>
+        `;
+
+        // 打开新窗口进行打印
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+        setTimeout(() => {
+            printWindow.print();
+        }, 500);
+    },
+
     // 新增方法：切换观赏模式的 UI 限制
     applyViewingMode: function(isViewing) {
         this.isViewingMode = isViewing;
@@ -291,6 +539,15 @@ const AppController = {
         });
         
         document.getElementById('artistryScoreModal').remove();
+        
+        // ✨ 艺术打分完成，重新启用"完成编排并亮相"按钮
+        const finishBtn = document.getElementById('finishRoutineBtn');
+        if (finishBtn) {
+            finishBtn.disabled = false;
+            finishBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            finishBtn.classList.add('hover:-translate-y-0.5');
+        }
+        
         this.showFinalScoreBoard();
     },
 
@@ -846,9 +1103,14 @@ const AppController = {
 
             if (track.type === 'transit') {
                 html += `
-                    <div class="track-card ${isViewing ? '' : 'cursor-move'} transition-all duration-200 flex items-center justify-between p-2 border border-gray-100 bg-gray-50 rounded" ${dragAttributes}>
-                        <div class="flex-1 text-sm text-gray-400 italic">🚶‍♀️ ${index + 1}. 移动路线 (无难度)</div>
-                        <button onclick="SidebarInteraction.deleteTrack(${index})" class="text-gray-400 hover:text-red-500 p-1 ${hideControls}">🗑️</button>
+                    <div class="track-card ${isViewing ? '' : 'cursor-move'} transition-all duration-200 flex items-center justify-between p-2 border border-gray-100 bg-gray-50 rounded group" ${dragAttributes}>
+                        <div class="flex gap-2 overflow-hidden pr-2 flex-1 ${isViewing ? '' : 'cursor-pointer'}" title="${isViewing ? '' : '点击重新编辑此路线'}">
+                            <div class="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500 shrink-0" style="color: ${track.color}">${index + 1}</div>
+                            <div class="flex-1 text-sm text-gray-400 italic">🚶‍♀️ 移动路线 (无难度)</div>
+                        </div>
+                        <div class="shrink-0 flex items-center opacity-0 group-hover:opacity-100 transition-opacity mt-0.5 ${hideControls}">
+                            <button onclick="SidebarInteraction.deleteTrack(${index})" class="text-gray-400 hover:text-red-500 p-1 rounded hover:bg-red-50" title="删除路线">🗑️</button>
+                        </div>
                     </div>`;
                 return;
             }
@@ -979,43 +1241,59 @@ const AppController = {
         window.currentScoreReport = report;
     },
 
-    // ==========================================
-    // 模块四：“成套亮相”动画分发器
-    // ==========================================
     triggerFinishAnimation: function() {
-        if(canvasManager.tracks.length === 0) { ToastManager.show('warning', '操作拦截', '你还没编排动作呢！'); return; }
+        console.log("%c[雷达1] 🚀 triggerFinishAnimation 被成功触发！", "color: white; background: #3b82f6; font-size: 14px; padding: 4px;");
         
-        // 【关键】直接从全局状态里读，不再读 select 标签
-        const mode = window.currentRoutineData.gymnastMode || 'none';
+        if(canvasManager.tracks.length === 0) { 
+            console.warn("[雷达拦截] 画板上没有轨迹！");
+            ToastManager.show('warning', '操作拦截', '你还没编排动作呢！'); 
+            return; 
+        }
+
+        const mode = window.currentRoutineData?.gymnastMode || 'none';
+        console.log(`%c[雷达2] 🔍 当前读取到的模式(mode)是: [${mode}]`, "color: #f59e0b; font-weight: bold; font-size: 14px;");
+        
         const actualDScore = window.currentScoreReport ? window.currentScoreReport.totalD : 0;
-        
-        if (mode === 'none') {
-            window.currentRoutineData.gymnastName = "无";
-            // 即使是无名选手，也要走一遍引擎，这样手动打分模式才有地方存 E 分！
-            window.currentEScoreReport = ExecutionEngine.calculateEScore('none', canvasManager.tracks, actualDScore);
-            this.playShowcase();
-            
-        } else if (mode === 'custom') {
-            const customName = document.getElementById('customGymnastNameInput').value || "佚名选手";
-            window.currentRoutineData.gymnastName = customName;
-            document.getElementById('customScoreModal').classList.remove('hidden');
-            
-        } else {
-            // 数据库名将模式
-            const gymnast = gymnastsData.find(g => g.id === mode);
-            if (!gymnast) {
-                ToastManager.show('error', '错误', '未找到选手数据，请检查选手配置！');
-                console.error("⚠️ 未找到选手数据:", mode);
-                return;
+
+        try {
+            if (mode === 'none') {
+                console.log("[雷达3] 进入 'none' (无名将) 模式，准备算分...");
+                window.currentRoutineData.gymnastName = "无";
+                if (typeof ExecutionEngine !== 'undefined') {
+                    window.currentEScoreReport = ExecutionEngine.calculateEScore('none', canvasManager.tracks, actualDScore);
+                }
+                console.log("[雷达4] 准备调用 playShowcase() !");
+                this.playShowcase();
+
+            } else if (mode === 'custom') {
+                console.log("[雷达3] 进入 'custom' (自定义) 模式，弹出输入框");
+                const customName = document.getElementById('customGymnastNameInput')?.value || "佚名选手";
+                window.currentRoutineData.gymnastName = customName;
+                document.getElementById('customScoreModal')?.classList.remove('hidden');
+
+            } else {
+                console.log("[雷达3] 进入名将模式，准备在 gymnastsData 中查找...");
+                const gymnast = typeof gymnastsData !== 'undefined' ? gymnastsData.find(g => g.id === mode) : null;
+                
+                if (!gymnast) {
+                    console.error(`%c[致命错误] 找不到 id 为 ${mode} 的名将！代码将在此处静默中止！`, "color: white; background: red; font-size: 14px; padding: 4px;");
+                    ToastManager.show('error', '选手丢失', '未找到对应的名将数据，请检查配置！');
+                    return; // 🚨 这里就是最可能引发你问题的静默杀手！
+                }
+                
+                console.log(`[雷达4] 成功找到选手: ${gymnast.nameEn}，准备算分...`);
+                window.currentRoutineData.gymnastName = gymnast.nameEn;
+                if (typeof ExecutionEngine !== 'undefined') {
+                    window.currentEScoreReport = ExecutionEngine.calculateEScore(mode, canvasManager.tracks, actualDScore);
+                }
+                
+                console.log("[雷达5] 算分完毕，立刻调用 playShowcase() !");
+                this.playShowcase();
             }
-            window.currentRoutineData.gymnastName = gymnast.nameEn;
-            
-            // 【核心联动】：调用双引擎算分！
-            // 注意：如果是 manual_e 模式，这里预计算出来的是 10分满分（因为还没打分）。
-            // 真实的 E 分将在展示结束后，成绩单弹出前再次计算。
-            window.currentEScoreReport = ExecutionEngine.calculateEScore(mode, canvasManager.tracks, actualDScore);
-            
-            this.playShowcase();
+        } catch (error) {
+            console.error("%c[雷达异常] 算分引擎崩溃，触发降级保护！", "background: red; color: white;", error);
+            window.currentEScoreReport = { fallTrackIds: [], finalEScore: 10, details: ["安全模式"] };
+            this.playShowcase(); 
         }
     },
     
@@ -1097,15 +1375,12 @@ const AppController = {
         // 以下拼接弹窗 DOM 结构
         // ==========================================
         let eScoreHtml = '';
-        let totalHtml = `<div class="text-5xl font-black text-slate-900 mb-8 border-b pb-8">难度分: ${dReport.totalD.toFixed(1)}</div>`;
-        
         if (playbackMode !== 'no_e') {
             eScoreHtml = `
-            <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 w-32 shadow-sm">
-                <div class="text-sm text-indigo-500 font-bold mb-1">完成分 (E)</div>
-                <div class="text-3xl font-black text-indigo-700">${eReport.finalEScore.toFixed(3)}</div>
+            <div class="bg-emerald-50 w-full py-4 rounded-xl border border-emerald-100">
+                <p class="text-[10px] font-bold text-emerald-500 uppercase">E 分 (完成)</p>
+                <p class="text-3xl font-black text-emerald-700">${eReport.finalEScore.toFixed(3)}</p>
             </div>`;
-            totalHtml = `<div class="text-5xl font-black text-slate-900 mb-8 border-b pb-8">总分: ${finalTotal.toFixed(3)}</div>`;
         }
 
         let detailsHtml = '';
@@ -1130,28 +1405,51 @@ const AppController = {
             </button>`;
         } else {
             uploadBtnHtml = `
-            <div class="flex-1 bg-slate-100 text-slate-400 font-bold py-3 rounded-xl text-xs flex justify-center items-center cursor-not-allowed border border-slate-200" title="为保证公平，仅【系统自动算E分】模式可参与全网冲榜">
+            <div class="flex-1 bg-slate-100 text-slate-400 font-bold py-3 rounded-xl text-xs flex justify-center items-center cursor-not-allowed border border-slate-200">
                 🚫 非自动打分不可冲榜
             </div>`;
         }
 
         let html = `
-        <div id="finalScoreModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[200] backdrop-blur-sm transition-opacity">
-            <div class="bg-white rounded-2xl shadow-2xl p-8 w-11/12 max-w-lg text-center transform transition-all scale-100 border-t-8 border-indigo-600">
-                ${totalHtml}
+        <div id="finalScoreModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center transition-opacity">
+            <div class="bg-white p-8 rounded-[2rem] shadow-2xl max-w-lg w-full text-center border border-slate-100">
+                <h2 class="text-3xl font-black text-slate-800 mb-6">成套已出分！🎉</h2>
+                
+                <!-- 分数卡片 -->
+                <div class="flex justify-center gap-3 mb-6">
+                    <div class="bg-blue-50 w-full py-4 rounded-xl border border-blue-100">
+                        <p class="text-[10px] font-bold text-blue-500 uppercase">D 分 (难度)</p>
+                        <p class="text-3xl font-black text-blue-700">${dReport.totalD.toFixed(3)}</p>
+                    </div>
+                    ${eScoreHtml}
+                    ${playbackMode !== 'no_e' ? `
+                    <div class="bg-slate-800 w-full py-4 rounded-xl border border-slate-900 shadow-lg transform scale-105">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase">最终总分</p>
+                        <p class="text-3xl font-black text-white">${finalTotal.toFixed(3)}</p>
+                    </div>` : ''}
+                </div>
+                
                 ${detailsHtml}
                 
-                <div class="flex flex-col sm:flex-row gap-2.5 mt-2">
-                    <button onclick="document.getElementById('finalScoreModal').remove()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 px-4 rounded-xl text-sm transition shadow-sm">
-                        关闭
+                <!-- 第一排按钮 -->
+                <div class="space-y-3">
+                    <button onclick="startNewRoutine()" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 shadow-md transition-all flex justify-center items-center gap-2">
+                        🎯 清空画板，编排下一套
                     </button>
-                    <button onclick="AppController.generateDetailImage()" class="bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 font-bold py-3 px-4 rounded-xl text-sm transition shadow-sm flex justify-center items-center gap-1.5" title="下载带每一项扣分明细的长图">
+                    <button onclick="document.getElementById('finalScoreModal').remove()" class="w-full bg-indigo-600 text-white font-bold py-3.5 rounded-xl hover:bg-indigo-700 shadow-md transition-all flex justify-center items-center gap-2">
+                        🎬 继续进行音乐编排或修改动作
+                    </button>
+                </div>
+                
+                <!-- 第二排按钮 -->
+                <div class="flex gap-3 mt-3">
+                    <button onclick="AppController.generateDetailImage()" class="flex-1 bg-slate-100 border border-slate-200 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-sm transition flex justify-center items-center gap-1.5">
                         📸 下载明细单
                     </button>
-                    <button onclick="AppController.shareRoutinePlaceholder('${routineNameForShare}', '${finalScoreText}')" class="flex-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold py-3 rounded-xl text-sm transition shadow-sm flex justify-center items-center gap-1.5">
-                        <span>🔗 复制口令</span>
-                    </button>
                     ${uploadBtnHtml}
+                    <button onclick="AppController.shareRoutinePlaceholder('${routineNameForShare}', '${finalScoreText}')" class="flex-1 bg-slate-100 border border-slate-200 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-sm transition flex justify-center items-center gap-1.5">
+                        🔗 复制口令
+                    </button>
                 </div>
             </div>
         </div>
@@ -1163,15 +1461,52 @@ const AppController = {
         const modalDiv = document.createElement('div');
         modalDiv.innerHTML = html;
         document.body.appendChild(modalDiv.firstElementChild);
-        // 显示音乐模式开关
+        
+        // ✨ 显示音乐模式开关，并添加闪烁动画
         const musicModeWrapper = document.getElementById('musicModeWrapper');
+        console.log("%c[showFinalScoreBoard 调试] 🔍 musicModeWrapper 元素:", "color: white; background: #ec4899; font-size: 12px; padding: 4px;", musicModeWrapper);
+        
         if (musicModeWrapper) {
             musicModeWrapper.classList.remove('hidden');
             musicModeWrapper.classList.remove('grayscale', 'opacity-70');
+            console.log("[showFinalScoreBoard 调试] ✅ musicModeWrapper 已显示，classList:", musicModeWrapper.classList.toString());
+            
+            // ✨ 3秒闪烁动画（熄灭→显示→熄灭→显示→熄灭→显示）
+            let blinkCount = 0;
+            const blinkInterval = setInterval(() => {
+                if (blinkCount >= 6) {
+                    clearInterval(blinkInterval);
+                    musicModeWrapper.classList.remove('opacity-0');
+                    console.log("[showFinalScoreBoard 调试] 闪烁动画结束，opacity 已恢复");
+                } else {
+                    musicModeWrapper.classList.toggle('opacity-0');
+                    blinkCount++;
+                }
+            }, 500); // 每500ms切换一次，共3秒
+            
+            // ✨ 添加悬停提示
+            musicModeWrapper.title = '点击开启音乐模式，您的编排将与音乐同步演示！\n首次使用建议查看帮助文档了解如何使用。';
+        } else {
+            console.error("%c[showFinalScoreBoard 调试] ❌ musicModeWrapper 元素不存在！", "color: white; background: red; font-size: 12px;");
         }
+        
         const musicModeLabel = document.getElementById('musicModeLabel');
+        console.log("[showFinalScoreBoard 调试] musicModeLabel 元素:", musicModeLabel);
         if (musicModeLabel) {
             musicModeLabel.innerText = '🎬 现场/音乐模式';
+        }
+        
+        console.log("%c[showFinalScoreBoard 调试] 📊 当前 window.currentScoreReport:", "color: white; background: #10b981; font-size: 12px;", window.currentScoreReport);
+        
+        // ✨ 音乐编排模式：保持画线工具隐藏，提示用户退出编排功能
+        if (window.currentRoutineData?.musicId) {
+            const drawingToolsWrapper = document.getElementById('drawingToolsWrapper');
+            const dragHintBar = document.getElementById('dragHintBar');
+            // 不恢复画线工具，保持隐藏状态
+            if (drawingToolsWrapper) drawingToolsWrapper.classList.add('hidden');
+            if (dragHintBar) dragHintBar.classList.remove('hidden'); // 显示拖拽提示
+            // 提示用户
+            ToastManager.show('warning', '请先退出编排', '⚠️ 当前正在音乐编排中，画线功能已被锁定。\n请点击"重新选择音乐"按钮退出编排模式后，才能继续画线。', 4000);
         }
     },
 
@@ -1264,6 +1599,8 @@ const AppController = {
 
     playShowcase: function() {
         const container = document.getElementById('floorContainer');
+        
+        // 动态创建亮相覆盖层
         const overlay = document.createElement('div');
         overlay.id = "showcaseOverlay";
         overlay.className = "absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm rounded-md text-white font-black tracking-widest pointer-events-none transition-opacity duration-500 opacity-0";
@@ -1282,18 +1619,17 @@ const AppController = {
 
             let fallIds = window.currentEScoreReport ? window.currentEScoreReport.fallTrackIds : [];
             
+            // 修复：添加回调函数和 fallTrackIds 参数
             canvasManager.playHighlightAnimation(() => {
                 if (overlay && overlay.parentNode) {
                     overlay.classList.add('opacity-0');
                     setTimeout(() => { if(overlay.parentNode) container.removeChild(overlay); }, 500);
                 }
                 
-                // 🟢 核心修复引流：彻底废弃旧的兜底弹窗，将播放完毕/跳过后的流程导向新版面板！
+                // 动画结束后的处理：显示分数面板
                 if (window.currentPlaybackMode === 'manual_e' && !window.AppController.isViewingMode) {
-                    // 如果是裁判自己手动打分，必定先弹全局艺术分面板！
                     AppController.showArtistryPanel();
                 } else {
-                    // 如果是观看冲榜套，或者系统自动打分，直接弹出最终 FIG 成绩单！
                     AppController.showFinalScoreBoard();
                 }
                 
@@ -1342,10 +1678,22 @@ const AppController = {
             // ✨【新增】：保存音乐配置
             musicId: window.currentRoutineData?.musicId || null,
             musicUrl: window.currentRoutineData?.musicUrl || null,
+            // ✨【新增】：保存音乐标记和编排数据
+            musicMarkers: window.currentRoutineData?.musicMarkers ? JSON.parse(JSON.stringify(window.currentRoutineData.musicMarkers)) : null,
+            placedActions: window.currentRoutineData?.placedActions ? JSON.parse(JSON.stringify(window.currentRoutineData.placedActions)) : null,
             // ✨【新增】：保存完整得分报告
             scoreReport: window.currentScoreReport ? JSON.parse(JSON.stringify(window.currentScoreReport)) : null,
             eScoreReport: window.currentEScoreReport ? JSON.parse(JSON.stringify(window.currentEScoreReport)) : null,
-            playbackMode: window.currentPlaybackMode || 'auto'
+            playbackMode: window.currentPlaybackMode || 'auto',
+            // ✨【新增】：E分历史记录数组
+            eScoreHistory: window.currentEScoreReport ? [{
+                id: 'escore_' + Date.now(),
+                name: this._generateDefaultEScoreName(),
+                date: new Date().toLocaleDateString() + " " + new Date().toLocaleTimeString().slice(0,5),
+                timestamp: Date.now(),
+                eScoreReport: JSON.parse(JSON.stringify(window.currentEScoreReport)),
+                playbackMode: window.currentPlaybackMode || 'auto'
+            }] : []
         };
         
         history.unshift(routine); 
@@ -1382,10 +1730,22 @@ const AppController = {
             // ✨【新增】：保存音乐配置
             musicId: window.currentRoutineData?.musicId || null,
             musicUrl: window.currentRoutineData?.musicUrl || null,
+            // ✨【新增】：保存音乐标记和编排数据
+            musicMarkers: window.currentRoutineData?.musicMarkers ? JSON.parse(JSON.stringify(window.currentRoutineData.musicMarkers)) : null,
+            placedActions: window.currentRoutineData?.placedActions ? JSON.parse(JSON.stringify(window.currentRoutineData.placedActions)) : null,
             // ✨【新增】：保存完整得分报告
             scoreReport: window.currentScoreReport ? JSON.parse(JSON.stringify(window.currentScoreReport)) : null,
             eScoreReport: window.currentEScoreReport ? JSON.parse(JSON.stringify(window.currentEScoreReport)) : null,
-            playbackMode: window.currentPlaybackMode || 'auto'
+            playbackMode: window.currentPlaybackMode || 'auto',
+            // ✨【新增】：E分历史记录数组
+            eScoreHistory: window.currentEScoreReport ? [{
+                id: 'escore_' + Date.now(),
+                name: AppController._generateDefaultEScoreName(),
+                date: new Date().toLocaleDateString() + " " + new Date().toLocaleTimeString().slice(0,5),
+                timestamp: Date.now(),
+                eScoreReport: JSON.parse(JSON.stringify(window.currentEScoreReport)),
+                playbackMode: window.currentPlaybackMode || 'auto'
+            }] : []
         };
         history.unshift(routine); 
         localStorage.setItem('gymChoreoHistory', JSON.stringify(history));
@@ -1415,10 +1775,22 @@ const AppController = {
             // ✨【新增】：保存音乐配置
             musicId: window.currentRoutineData?.musicId || null,
             musicUrl: window.currentRoutineData?.musicUrl || null,
+            // ✨【新增】：保存音乐标记和编排数据
+            musicMarkers: window.currentRoutineData?.musicMarkers ? JSON.parse(JSON.stringify(window.currentRoutineData.musicMarkers)) : null,
+            placedActions: window.currentRoutineData?.placedActions ? JSON.parse(JSON.stringify(window.currentRoutineData.placedActions)) : null,
             // ✨【新增】：保存完整得分报告
             scoreReport: window.currentScoreReport ? JSON.parse(JSON.stringify(window.currentScoreReport)) : null,
             eScoreReport: window.currentEScoreReport ? JSON.parse(JSON.stringify(window.currentEScoreReport)) : null,
-            playbackMode: window.currentPlaybackMode || 'auto'
+            playbackMode: window.currentPlaybackMode || 'auto',
+            // ✨【新增】：E分历史记录数组
+            eScoreHistory: window.currentEScoreReport ? [{
+                id: 'escore_' + Date.now(),
+                name: AppController._generateDefaultEScoreName(),
+                date: new Date().toLocaleDateString() + " " + new Date().toLocaleTimeString().slice(0,5),
+                timestamp: Date.now(),
+                eScoreReport: JSON.parse(JSON.stringify(window.currentEScoreReport)),
+                playbackMode: window.currentPlaybackMode || 'auto'
+            }] : []
         };
         
         history.unshift(routine); 
@@ -1511,16 +1883,27 @@ const AppController = {
             const hasMusic = !!(routine.musicId || routine.musicUrl || routine.isMusicVersion);
 
             if (hasMusic) {
-                // 🎶 如果是音乐版：屏蔽普通编辑，只保留你原有的“进入 3D 现场回放”和“删除”
+                // 🎶 如果是音乐版：保留编辑功能 + 音乐现场回放
                 actionButtonsHTML = `
-                    <button onclick="AppController.watchWithMusic('${routine.id}')" 
-                            class="flex-1 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-700 font-black text-xs py-2 rounded-lg transition-all shadow-sm flex items-center justify-center gap-1"
-                            title="加载此音乐版本，并直接进入 3D 现场模式">
-                        <span>🎵 进入 3D 现场回放</span>
+                    <button onclick="AppController.loadRoutine('${routine.id}', true)" 
+                            class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs py-2 rounded-lg transition-all shadow-sm flex items-center justify-center gap-1"
+                            title="加载此音乐版本，并进入展示模式">
+                        <span>🎵 导入与展示</span>
+                    </button>
+                    <button onclick="AppController.loadRoutine('${routine.id}', false)" 
+                            class="flex-1 bg-white border border-blue-200 hover:bg-blue-50 text-blue-600 font-black text-xs py-2 rounded-lg transition-all shadow-sm flex items-center justify-center gap-1">
+                        <span>✏️ 覆盖</span>
+                    </button>
+                    <button onclick="AppController.shareFromHistory('${routine.id}')" 
+                            class="px-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 hover:text-slate-800 font-bold text-xs py-2 rounded-lg transition-all shadow-sm">
+                        <span>🔗</span>
+                    </button>
+                    <button onclick="AppController.uploadFromHistory('${routine.id}')" 
+                            class="px-2.5 bg-purple-50 text-purple-600 hover:bg-purple-100 font-bold text-xs py-2 rounded-lg transition-all shadow-sm">
+                        <span>🚀</span>
                     </button>
                     <button onclick="AppController.deleteHistory('${routine.id}')" 
-                            class="px-3 bg-red-50 text-red-400 hover:text-red-600 hover:bg-red-100 font-bold text-xs py-2 rounded-lg transition-all flex items-center justify-center"
-                            title="永久删除">
+                            class="px-2.5 bg-red-50 text-red-400 hover:text-red-600 hover:bg-red-100 font-bold text-xs py-2 rounded-lg transition-all">
                         <span>🗑️</span>
                     </button>
                 `;
@@ -1569,7 +1952,12 @@ const AppController = {
                         }</span>` : ''}
                     </div>
                     <p class="text-[11px] text-slate-400 mb-4">保存时间: ${routine.date} | 场地: ${routine.brand.toUpperCase()}</p>
-                    
+                    ${(routine.eScoreHistory && routine.eScoreHistory.length > 0) ? `
+                        <button onclick="AppController.showEScoreHistoryModal('${routine.id}')" 
+                                class="w-full mb-3 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 font-bold text-xs rounded-lg transition-colors border border-emerald-200 flex items-center justify-center gap-1">
+                            <span>📊</span> 查看E分历史 (${routine.eScoreHistory.length}条)
+                        </button>
+                    ` : ''}
                     <div class="flex flex-wrap gap-1.5 mt-2">
                     ${actionButtonsHTML}
                 </div>
@@ -1599,37 +1987,169 @@ const AppController = {
     // ✨【新增】：逆向工程，将历史记录完全还原到工作台
     // toNewWorkspace: true = 导入到新草稿纸, false = 覆盖当前编辑
     loadRoutine: function(id, toNewWorkspace = false) {
-        // 🟢 智能执裁互斥锁：如果画板是空的，直接无视锁定放行！
-        const isBoardEmpty = typeof canvasManager === 'undefined' || !canvasManager.tracks || canvasManager.tracks.length === 0;
-        
-        if (!isBoardEmpty && (window.currentPlaybackMode === 'manual_e' || document.getElementById('manualJuryPanel') || document.getElementById('artistryScoreModal'))) {
-            ToastManager.show('error', '操作被拦截 🛑', '当前正在执裁打分中！\n请先完成打分或清空画板，再导入新成套。', 5000);
-            return; // 强制熔断
-        }  
-
         let history = JSON.parse(localStorage.getItem('gymChoreoHistory') || '[]');
         let routine = history.find(r => r.id === id);
         if (!routine) return;
-        
-        // ✨【新增】：根据参数决定导入方式
-        if (toNewWorkspace) {
-            // 导入到新草稿纸
-            this.loadRoutineToNewWorkspace(routine);
-            return;
-        }
-        
-        // ✨【新增】：检查是否是从历史导入到新草稿纸的场景（兼容旧方式）
-        if (window._pendingHistoryImport === true) {
-            this.loadRoutineToNewWorkspace(routine);
-            window._pendingHistoryImport = false;
-            return;
-        }
-        
-        if (canvasManager.tracks.length > 0) {
+
+        // 如果当前有内容，且不是导入到新草稿纸，需要确认
+        if (canvasManager.tracks.length > 0 && !toNewWorkspace) {
             if (!confirm("加载历史记录将覆盖您当前画板上的所有进度，确定要加载吗？")) return;
         }
+
+        // 导入到新草稿纸模式
+        if (toNewWorkspace) {
+            // 检查草稿纸数量上限
+            if (typeof WorkspaceManager !== 'undefined' && WorkspaceManager.workspaces.length >= WorkspaceManager.MAX_WORKSPACES) {
+                ToastManager.show('warning', '草稿纸数量已达上限', `系统最多仅支持同时开启 ${WorkspaceManager.MAX_WORKSPACES} 张草稿纸！`, 5000);
+                return;
+            }
+            
+            // ✨ 标记即将从历史导入，让 WorkspaceManager 直接创建草稿纸
+            window._pendingHistoryImport = true;
+            
+            // ✨ 创建新的草稿纸
+            if (typeof createNewWorkspace === 'function') {
+                createNewWorkspace();
+            } else if (typeof WorkspaceManager !== 'undefined' && typeof WorkspaceManager.createNewWorkspace === 'function') {
+                WorkspaceManager.createNewWorkspace();
+            }
+        }
+
+        // 1. 恢复核心轨迹数据（加上空数组兜底，防崩溃）
+        canvasManager.tracks = routine.tracks || [];
+        console.log("%c[loadRoutine 调试] ✅ 恢复轨迹数据", "color: white; background: #10b981; font-size: 12px;", `tracks 数量: ${routine.tracks?.length || 0}`);
+
+        // 2. 安全恢复全局状态与名称 (增加对旧版本没有 name 字段的防雷保护)
+        const safeName = routine.name || "未命名成套";
+        window.currentRoutineData.name = safeName.replace(" (草稿)", "");
+        window.currentRoutineData.brand = routine.brand || 'gymnova';
+        window.currentRoutineData.musicId = routine.musicId || null;
+        window.currentRoutineData.musicUrl = routine.musicUrl || null;
+        window.currentRoutineData.gymnastMode = routine.gymnastMode || 'none';
+        window.currentRoutineData.gymnastName = routine.gymnastName || "";
+        window.currentRoutineData.eScoreHistory = routine.eScoreHistory || [];
+        window.currentRoutineData.initialized = true;
         
-        this.restoreRoutineData(routine);
+        // 恢复最新的E分记录到当前E分
+        if (routine.eScoreHistory && routine.eScoreHistory.length > 0) {
+            const latestRecord = routine.eScoreHistory[routine.eScoreHistory.length - 1];
+            window.currentEScoreReport = JSON.parse(JSON.stringify(latestRecord.eScoreReport));
+            window.currentScoreReport = JSON.parse(JSON.stringify(latestRecord.eScoreReport));
+            window.currentPlaybackMode = latestRecord.playbackMode || 'auto';
+            console.log("%c[loadRoutine 调试] ✅ 从 eScoreHistory 恢复分数", "color: white; background: #10b981; font-size: 12px;", window.currentScoreReport);
+        } else {
+            window.currentEScoreReport = routine.eScoreReport ? JSON.parse(JSON.stringify(routine.eScoreReport)) : null;
+            window.currentScoreReport = routine.scoreReport ? JSON.parse(JSON.stringify(routine.scoreReport)) : null;
+            window.currentPlaybackMode = routine.playbackMode || 'auto';
+            console.log("%c[loadRoutine 调试] ✅ 从 scoreReport/eScoreReport 恢复分数", "color: white; background: #10b981; font-size: 12px;", window.currentScoreReport);
+        }
+        
+        console.log("%c[loadRoutine 调试] ✅ window.currentScoreReport 设置完成:", "color: white; background: #f59e0b; font-size: 12px;", window.currentScoreReport);
+
+        // 3. 恢复场地 UI 和颜色
+        if (typeof selectBrand === 'function') {
+            selectBrand(window.currentRoutineData.brand);
+        }
+
+        // 4. 同步顶部控制台的名字
+        const nameInput = document.getElementById('routineNameInput');
+        if (nameInput) nameInput.value = window.currentRoutineData.name;
+        const displayRoutineName = document.getElementById('displayRoutineName');
+        if (displayRoutineName) displayRoutineName.innerText = window.currentRoutineData.name;
+
+        const displayGymnastName = document.getElementById('displayGymnastName');
+        const displayGymnastFlag = document.getElementById('displayGymnastFlag');
+        const avatarEl = document.getElementById('displayGymnastAvatar');
+        const placeholderEl = document.getElementById('displayGymnastPlaceholder');
+
+        if (displayGymnastName) displayGymnastName.innerText = window.currentRoutineData.gymnastName || "纯排位测试";
+        if (displayGymnastFlag) displayGymnastFlag.innerHTML = "";
+        if (avatarEl) avatarEl.classList.add('hidden');
+        if (placeholderEl) {
+            placeholderEl.innerText = "🙈";
+            placeholderEl.classList.remove('hidden');
+        }
+
+        // 6. 暴力唤醒重绘与侧边栏算分 (加入 try-catch 防止旧数据的脏数据报错阻断切页)
+        try {
+            canvasManager.redraw();
+            this.updateUIRoutineList();
+        } catch (error) {
+            console.error("🚨 历史数据渲染遇到瑕疵，但不阻碍进入画板:", error);
+        }
+
+        // 8. 强行切回战术板
+        isRoutineInitialized = true;
+        switchTab('builder');
+
+        // ✨【新增】：如果成套已有分数，直接显示音乐模式开关，不需要重新打分
+        console.log("%c[loadRoutine 调试] 检查分数状态", "color: white; background: #3b82f6; font-size: 12px;");
+        console.log("[loadRoutine 调试] window.currentScoreReport:", window.currentScoreReport);
+        console.log("[loadRoutine 调试] window.currentEScoreReport:", window.currentEScoreReport);
+        console.log("[loadRoutine 调试] window.currentRoutineData.musicId:", window.currentRoutineData.musicId);
+        
+        if (window.currentScoreReport || window.currentEScoreReport || window.currentRoutineData.musicId) {
+            const musicModeWrapper = document.getElementById('musicModeWrapper');
+            const musicModeLabel = document.getElementById('musicModeLabel');
+            if (musicModeWrapper) {
+                musicModeWrapper.classList.remove('hidden');
+                musicModeWrapper.classList.remove('grayscale', 'opacity-70');
+                console.log("[loadRoutine 调试] ✅ 已显示音乐模式开关");
+            }
+            if (musicModeLabel) {
+                musicModeLabel.innerText = '🎬 现场/音乐模式';
+            }
+            
+            // ✨【新增】：如果有音乐数据，显示音乐编辑界面
+            if (window.currentRoutineData.musicId && window.currentRoutineData.musicMarkers) {
+                console.log("[loadRoutine 调试] ✅ 发现音乐数据，恢复音乐编辑界面");
+                
+                // 隐藏曲库列表，显示重新选择按钮
+                const libraryList = document.getElementById('musicLibraryList');
+                const reselectBtn = document.getElementById('reselectMusicBtn');
+                const libraryTitle = document.getElementById('libraryTitle');
+                const musicActionButtons = document.getElementById('musicActionButtons');
+                const timelineEditor = document.getElementById('timelineEditor');
+                const routineEditorBox = document.getElementById('routineEditorBox');
+                const confirmBtn = document.getElementById('musicConfirmBtn');
+                
+                if (libraryList) libraryList.classList.add('hidden');
+                if (reselectBtn) reselectBtn.classList.remove('hidden');
+                if (libraryTitle) libraryTitle.innerText = '🎵 可用曲库中心';
+                if (musicActionButtons) musicActionButtons.classList.remove('hidden');
+                if (timelineEditor) timelineEditor.classList.remove('hidden');
+                if (routineEditorBox) routineEditorBox.classList.remove('hidden');
+                if (confirmBtn) confirmBtn.classList.add('hidden');
+                
+                // 更新时间轴UI
+                if (typeof updateTimelineUI === 'function') {
+                    updateTimelineUI();
+                }
+                if (typeof updateRoutineSlots === 'function') {
+                    updateRoutineSlots();
+                }
+                
+                // 隐藏画线工具，显示拖拽提示栏
+                const drawingToolsWrapper = document.getElementById('drawingToolsWrapper');
+                const dragHintBar = document.getElementById('dragHintBar');
+                if (drawingToolsWrapper) drawingToolsWrapper.classList.add('hidden');
+                if (dragHintBar) dragHintBar.classList.remove('hidden');
+                
+                // 显示"确认编排完毕"按钮
+                const confirmMusicArrangeBtn = document.getElementById('confirmMusicArrangeBtn');
+                if (confirmMusicArrangeBtn) confirmMusicArrangeBtn.classList.remove('hidden');
+                
+                ToastManager.show('success', '数据加载完毕', `进度已成功还原到画板！\n🎵 已恢复您的音乐编排，可直接点击音乐模式开关进行展示！`, 4000);
+            } else {
+                ToastManager.show('success', '数据加载完毕', `进度已成功还原到画板！\n已为您保留原有的分数，可直接开启音乐模式。`, 4000);
+            }
+        } else {
+            // 延迟给一个小弹窗，让用户感到安心
+            const eScoreInfo = routine.eScoreHistory && routine.eScoreHistory.length > 0 
+                ? `\n该成套有 ${routine.eScoreHistory.length} 条E分历史记录。` 
+                : '';
+            setTimeout(() => ToastManager.show('success', '还原成功', `进度已成功还原到画板！您可以继续编辑了。${eScoreInfo}`), 100);
+        }
     },
 
     // ✨【新增】：将历史记录导入到新草稿纸（切换到设置面板）
@@ -1683,6 +2203,17 @@ const AppController = {
         // ✨【新增】：恢复全局音乐记忆
         window.currentRoutineData.musicId = routine.musicId || null;
         window.currentRoutineData.musicUrl = routine.musicUrl || null;
+        
+        // ✨【新增】：恢复音乐标记
+        if (routine.musicMarkers) {
+            window.currentRoutineData.musicMarkers = JSON.parse(JSON.stringify(routine.musicMarkers));
+            window.musicMarkers = JSON.parse(JSON.stringify(routine.musicMarkers));
+        }
+        
+        // ✨【新增】：恢复音乐编排数据
+        if (routine.placedActions) {
+            window.currentRoutineData.placedActions = JSON.parse(JSON.stringify(routine.placedActions));
+        }
         
         // ✨【新增】：恢复得分报告
         if (routine.scoreReport) {
@@ -1782,43 +2313,6 @@ const AppController = {
             if (typeof window.startPlayback === 'function') {
                 window.startPlayback('no_e');
             }
-        }, 600);
-    },
-
-    // ✨【新增】：音乐观赏模式 (自动呼出抽屉并加载音乐)
-    watchWithMusic: function(id) {
-        // ✨【FlowStateManager】退出历史查看模式
-        if (window.FlowStateManager) {
-            window.FlowStateManager.exitFlow('history_viewing', true);
-        }
-
-        // 静默加载数据
-        this.loadRoutine(id, true);
-        
-        ToastManager.show('info', '正在准备观赏模式', '正在为您准备 3D 舞台与音乐...', 2000);
-        
-        // 延迟等待数据就绪
-        setTimeout(() => {
-            // 自动拨动音乐开关！
-            const toggle = document.getElementById('musicModeToggle');
-            if (toggle && !toggle.checked) {
-                toggle.checked = true;
-                if (typeof window.toggleMusicMode === 'function') {
-                    window.toggleMusicMode(toggle);
-                }
-            }
-            
-            // 再次延迟等待音乐抽屉升起，然后自动加载当时保存的音乐
-            setTimeout(() => {
-                let history = JSON.parse(localStorage.getItem('gymChoreoHistory') || '[]');
-                let routine = history.find(r => r.id === id);
-                if (routine && routine.musicId) {
-                    if (typeof window.selectMusic === 'function') {
-                        window.selectMusic(routine.musicId, routine.musicUrl);
-                        ToastManager.show('success', '音乐就绪', '🎧 请点击波形图左侧的【⏯️ 播放】按钮开始观赏！', 3000);
-                    }
-                }
-            }, 800);
         }, 600);
     },
 
@@ -1985,6 +2479,8 @@ window.saveRoutine = function() {
 };
 
 window.startPlayback = function(mode) {
+    console.log("%c[startPlayback 调试] 🚀 startPlayback 被调用，mode:", "color: white; background: #f59e0b; font-size: 12px; padding: 4px;", mode);
+    
     document.getElementById('playbackOptionsModal').classList.add('hidden');
     // ✨【Bug 修复】：重新播放时，强制将可能未收回的 E裁判 面板踢回底部！
     const deck = document.getElementById('juryCardDeck');
@@ -1994,19 +2490,26 @@ window.startPlayback = function(mode) {
     }
     window.currentPlaybackMode = mode;
     
+    // ✨ 关键修复：无论哪种模式，都需要先确保 currentScoreReport 被设置
+    console.log("[startPlayback 调试] 调用 AppController.updateUIRoutineList()...");
+    AppController.updateUIRoutineList(); // 确保 D 分最新
+    console.log("[startPlayback 调试] updateUIRoutineList 执行后，window.currentScoreReport:", window.currentScoreReport);
+    
     if (mode === 'skip_to_d') {
         // 【秒结算模式】：跳过所有动画，直接弹成绩单！
-        AppController.updateUIRoutineList(); // 确保 D 分最新
+        console.log("[startPlayback 调试] 进入 skip_to_d 模式");
         const gymnastMode = window.currentRoutineData.gymnastMode || 'none';
         const actualDScore = window.currentScoreReport ? window.currentScoreReport.totalD : 0;
         
         // 即便是跳过，也跑一遍引擎算出结果
         window.currentEScoreReport = ExecutionEngine.calculateEScore(gymnastMode, canvasManager.tracks, actualDScore);
         
+        console.log("[startPlayback 调试] 调用 showFinalScoreBoard()...");
         // 直接弹窗！
         AppController.showFinalScoreBoard(); 
     } else {
         // 启动 Canvas 动画系统，老老实实看表演/打分
+        console.log("[startPlayback 调试] 调用 triggerFinishAnimation()...");
         AppController.triggerFinishAnimation(); 
     }
 };
@@ -2154,21 +2657,23 @@ document.addEventListener('DOMContentLoaded', () => {
 // 🎵 音乐同步引擎：曲库资产配置与综合渲染
 // ==========================================
 
-// 1. 系统内置曲库资产 (严格匹配你提供的 13 首专业名将名单，全部归为体操)
+// 1. 系统内置曲库资产 (严格匹配你提供的音乐文件，全部归为体操)
 const SYSTEM_MUSIC_PRESETS = [
-    { id: 'sys_Alice_D_Amato_2023', name: '2023 Alice_D_Amato', genre: 'gymnastics', url: 'music/2023_Alice_D_Amato.mp3' },
-    { id: 'sys_Alice_Kinsella_2023', name: '2023 Alice_Kinsella', genre: 'gymnastics', url: 'music/2023_Alice_Kinsella.mp3' },
-    { id: 'sys_Rebeca_Andrade_2023', name: '2023 Rebeca_Andrade', genre: 'gymnastics', url: 'music/2023_Rebeca_Andrade.mp3' },
-    { id: 'sys_Zhou_2023', name: '2023 Zhou', genre: 'gymnastics', url: 'music/2023_Zhou.mp3' },
-    { id: 'sys_Ou_2023', name: '2023 Ou', genre: 'gymnastics', url: 'music/2023_Ou.mp3' },
-    { id: 'sys_Qiu_2023', name: '2023 Qiu', genre: 'gymnastics', url: 'music/2023_Qiu.mp3' },
-    { id: 'sys_Ou_2019', name: '2019 Ou', genre: 'gymnastics', url: 'music/2019_Ou.mp3' },
-    { id: 'sys_Angelina_Melnikova_2021', name: '2021 Angelina_Melnikova', genre: 'gymnastics', url: 'music/2021_Angelina_Melnikova.mp3' },
-    { id: 'sys_Lu_2021', name: '2021 Lu', genre: 'gymnastics', url: 'music/2021_Lu.mp3' },
-    { id: 'sys_Rebeca_Andrade_2021', name: '2021 Rebeca_Andrade', genre: 'gymnastics', url: 'music/2021_Rebeca_Andrade.mp3' },
-    { id: 'sys_Simone_Biles_2021', name: '2021 Simone_Biles', genre: 'gymnastics', url: 'music/2021_Simone_Biles.mp3' },
-    { id: 'sys_Tang_2021', name: '2021 Tang', genre: 'gymnastics', url: 'music/2021_Tang.mp3' },
-    { id: 'sys_Zhou_2024', name: '2024 Zhou', genre: 'gymnastics', url: 'music/2024_Zhou.mp3' }
+    { id: 'sys_Ou_2019', name: '欧钰珊 2019', genre: 'gymnastics', url: './music/gym/2019_Ou.mp3' },
+    { id: 'sys_Angelina_Melnikova_2021', name: '梅尔尼科娃 2021', genre: 'gymnastics', url: './music/gym/2021_Angelina_Melnikova.mp3' },
+    { id: 'sys_Lu_2021', name: '芦玉菲 2021', genre: 'gymnastics', url: './music/gym/2021_Lu.mp3' },
+    { id: 'sys_Rebeca_Andrade_2021', name: '安德拉德 2021', genre: 'gymnastics', url: './music/gym/2021_Rebeca_Andrade.mp3' },
+    { id: 'sys_Simone_Biles_2021', name: '拜尔斯 2021', genre: 'gymnastics', url: './music/gym/2021_Simone_Biles.mp3' },
+    { id: 'sys_Tang_2021', name: '唐茜靖 2021', genre: 'gymnastics', url: './music/gym/2021_Tang.mp3' },
+    { id: 'sys_Alice_D_Amato_2023', name: '达马托 2023', genre: 'gymnastics', url: './music/gym/2023_Alice_D_Amato.mp3' },
+    { id: 'sys_Alice_Kinsella_2023', name: '金塞拉 2023', genre: 'gymnastics', url: './music/gym/2023_Alice_Kinsella.mp3' },
+    { id: 'sys_Ou_2023', name: '欧钰珊 2023', genre: 'gymnastics', url: './music/gym/2023_Ou.mp3' },
+    { id: 'sys_Qiu_2023', name: '邱祺缘 2023', genre: 'gymnastics', url: './music/gym/2023_Qiu.mp3' },
+    { id: 'sys_Rebeca_Andrade_2023', name: '安德拉德 2023', genre: 'gymnastics', url: './music/gym/2023_Rebeca_Andrade.mp3' },
+    { id: 'sys_Zhou_2023', name: '周雅琴 2023', genre: 'gymnastics', url: './music/gym/2023_Zhou.mp3' },
+    { id: 'sys_Zhou_2024', name: '周雅琴 2024', genre: 'gymnastics', url: './music/gym/2024_Zhou.mp3' },
+    { id: 'sys_Lia_Monica_Fontaine_2025', name: 'Lia Monica Fontaine 2025', genre: 'gymnastics', url: './music/gym/2025_Lia_Monica_Fontaine.mp3' },
+    { id: 'sys_Sabrina_Maneca_Voinea_2025', name: 'Sabrina Maneca Voinea 2025', genre: 'gymnastics', url: './music/gym/2025_Sabrina_Maneca_Voinea.mp3' }
 ];
 
 // 音乐模式流转控制器已拆分到 music_flow_controller.js

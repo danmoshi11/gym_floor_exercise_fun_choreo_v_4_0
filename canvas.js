@@ -44,7 +44,14 @@ const canvasManager = {
         e.preventDefault(); this.startDraw(e.touches[0]); },
     handleTouchMove: function(e) { e.preventDefault(); this.drawing(e.touches[0]); },
     handleTouchEnd: function(e) { e.preventDefault(); this.endDraw(); },
-    setTool: function(toolName) { this.currentTool = toolName; },
+    setTool: function(toolName) {
+        // ✨ 音乐编排模式：只允许拖拽工具
+        if (window.currentRoutineData?.musicId && toolName !== 'move') {
+            ToastManager.show('info', '提示', '音乐编排模式下只能使用拖拽工具！', 1500);
+            toolName = 'move';
+        }
+        this.currentTool = toolName;
+    },
 
     clearAll: function() {
         this.tracks = [];
@@ -169,6 +176,24 @@ const canvasManager = {
         if (window.FlowStateManager && window.FlowStateManager.isAnyFlowActive() && window.FlowStateManager.getCurrentFlow() !== 'canvas_editing') {
             window.FlowStateManager.showInterception('画板编辑');
             return;
+        }
+
+        // ✨ 检测：如果已经有E分，修改画线将成为新成套
+        if (this.currentTool !== 'move' && window.currentEScoreReport) {
+            // ✨ 标记为"预画线"状态，暂缓清除E分
+            this._pendingNewDraft = true;
+            if (!confirm("⚠️ 当前成套已经有E分记录。\n\n修改动作后，这将成为新的草稿，需要重新计算E分。\n\n确定要继续画线吗？")) {
+                // 用户取消，恢复状态
+                this._pendingNewDraft = false;
+                return;
+            }
+            // 用户确认，清除E分记录
+            this._pendingNewDraft = false;
+            window.currentEScoreReport = null;
+            window.currentScoreReport = null;
+            ToastManager.show('info', '新草稿', '已重置为新草稿，修改后将重新计算E分', 2000);
+        } else {
+            this._pendingNewDraft = false;
         }
 
         if (this.tracks.length === 0 && !window.currentRoutineData?.initialized) {
@@ -615,6 +640,24 @@ const canvasManager = {
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(index + 1, startX, startY + 1);
+        } else {
+            // 过渡舞蹈也要显示编号
+            let startX = track.points[0].x;
+            let startY = track.points[0].y;
+            
+            ctx.beginPath();
+            ctx.arc(startX, startY, 12, 0, Math.PI * 2);
+            ctx.fillStyle = isDimmed ? '#e5e7eb' : '#9ca3af';
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.font = 'bold 12px Arial';
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(index + 1, startX, startY + 1);
         }
 
         if (isHighlighted && progress >= 0 && progress <= 1) {
@@ -898,6 +941,102 @@ const canvasManager = {
         }
         this.currentAnimIndex = -1;
         this.redraw();
+    },
+
+    // ==========================================
+    // ✨【音乐编排展示函数】：按段落依次亮起，匀速光点
+    // ==========================================
+    playMusicSyncShowcase: function(callback) {
+        const placedActions = window.currentRoutineData?.placedActions || [];
+        const markers = window.musicMarkers || [];
+        
+        // 检查是否有编排数据
+        if (placedActions.length === 0 || markers.length < 2) {
+            console.warn('[音乐展示] 没有编排数据，跳过音乐同步展示');
+            if (callback) callback();
+            return;
+        }
+        
+        // 构建段落数据
+        const segments = [];
+        for (let i = 0; i < markers.length - 1; i++) {
+            const startTime = markers[i].time;
+            const endTime = markers[i + 1].time;
+            const action = placedActions[i];
+            segments.push({
+                index: i,
+                startTime: startTime,
+                endTime: endTime,
+                duration: endTime - startTime,
+                action: action
+            });
+        }
+        
+        console.log('[音乐展示] 开始播放，共', segments.length, '个段落');
+        
+        this.isAnimating = true;
+        let currentSegmentIndex = 0;
+        const _this = this;
+        
+        // 播放单个段落
+        function playSegment(segment) {
+            if (!_this.isAnimating) return;
+            
+            console.log('[音乐展示] 播放段落', segment.index + 1, '/', segments.length, 
+                        segment.action ? `(${segment.action.icon} 路线${segment.action.trackIndex + 1})` : '(空段落)');
+            
+            // 跳转到该段落起始时间
+            if (AudioEngine && AudioEngine.wavesurfer) {
+                const duration = AudioEngine.wavesurfer.getDuration();
+                AudioEngine.wavesurfer.seekTo(segment.startTime / duration);
+            }
+            
+            const segmentStartTime = Date.now();
+            const segmentDuration = segment.duration * 1000; // 转换为毫秒
+            
+            // 段落内动画
+            function animateSegment() {
+                if (!_this.isAnimating) return;
+                
+                const elapsed = Date.now() - segmentStartTime;
+                let progress = Math.min(elapsed / segmentDuration, 1);
+                
+                // 如果该段落有动作，播放该动作
+                if (segment.action) {
+                    const trackIndex = segment.action.trackIndex;
+                    _this.currentAnimIndex = trackIndex;
+                    _this.animationProgress = progress;
+                } else {
+                    _this.currentAnimIndex = -1;
+                    _this.animationProgress = 0;
+                }
+                
+                _this.redraw();
+                
+                if (progress < 1) {
+                    _this.animationFrameId = requestAnimationFrame(animateSegment);
+                } else {
+                    // 段落结束，播放下一个
+                    currentSegmentIndex++;
+                    if (currentSegmentIndex < segments.length) {
+                        setTimeout(() => playSegment(segments[currentSegmentIndex]), 300);
+                    } else {
+                        // 全部段落播放完毕
+                        console.log('[音乐展示] 所有段落播放完毕');
+                        _this.isAnimating = false;
+                        _this.currentAnimIndex = -1;
+                        _this.animationProgress = -1;
+                        _this.redraw();
+                        if (callback) callback();
+                    }
+                }
+            }
+            
+            animateSegment();
+        }
+        
+        // 开始播放第一个段落
+        playSegment(segments[0]);
     }
 };
 
