@@ -4,6 +4,57 @@
 
 let uploadedFiles = [];
 
+window.customPasswordPrompt = function(message) {
+    return new Promise((resolve) => {
+        const modalHtml = `
+            <div id="customPromptModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+                <div class="bg-white rounded-[2rem] p-8 w-full max-w-sm shadow-2xl transform scale-95 transition-all duration-300" id="customPromptBox">
+                    <div class="text-center mb-6">
+                        <div class="text-5xl mb-3">🔒</div>
+                        <div class="text-sm font-bold text-slate-700 leading-relaxed">${message.replace(/\n/g, '<br>')}</div>
+                    </div>
+                    <input type="password" id="customPromptInput" class="w-full p-4 bg-slate-50 border-2 border-slate-200 rounded-xl mb-6 outline-none focus:border-indigo-500 focus:bg-white font-bold text-center tracking-widest text-lg transition-all" placeholder="请输入密码...">
+                    <div class="flex gap-3">
+                        <button id="customPromptCancel" class="flex-1 py-3.5 rounded-xl font-black bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">取消</button>
+                        <button id="customPromptConfirm" class="flex-1 py-3.5 rounded-xl font-black bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-lg hover:shadow-indigo-500/30">确认</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        const modal = document.getElementById('customPromptModal');
+        const box = document.getElementById('customPromptBox');
+        const input = document.getElementById('customPromptInput');
+        const cancelBtn = document.getElementById('customPromptCancel');
+        const confirmBtn = document.getElementById('customPromptConfirm');
+
+        // 触发丝滑的入场动画
+        requestAnimationFrame(() => {
+            modal.classList.remove('opacity-0');
+            box.classList.remove('scale-95');
+        });
+        input.focus();
+
+        const closeAndResolve = (value) => {
+            modal.classList.add('opacity-0');
+            box.classList.add('scale-95');
+            setTimeout(() => {
+                modal.remove();
+                resolve(value);
+            }, 300);
+        };
+
+        cancelBtn.onclick = () => closeAndResolve(null);
+        confirmBtn.onclick = () => closeAndResolve(input.value);
+        input.onkeydown = (e) => {
+            if (e.key === 'Enter') closeAndResolve(input.value);
+            if (e.key === 'Escape') closeAndResolve(null);
+        };
+    });
+};
+
 // 处理图片选择
 window.handleImageSelect = function(input) {
     const files = Array.from(input.files);
@@ -80,6 +131,7 @@ window.clearUploadFiles = function() {
     updateFileList();
 };
 
+
 // 确认上传
 window.confirmUpload = async function() {
     if (uploadedFiles.length === 0) {
@@ -87,18 +139,17 @@ window.confirmUpload = async function() {
         return;
     }
     
-    // 确保 Supabase 引擎已加载且连接成功
     if (typeof SupabaseEngine === 'undefined' || !SupabaseEngine.client) {
         ToastManager.show('error', '云端未连接', '无法连接到服务器，请刷新页面重试。');
         return;
     }
 
-    // 🔒 专属上传密码拦截大门
+    // 🔒 专属上传密码拦截大门 (使用全新自定义弹窗，注意前面的 await 关键字)
     const UPLOAD_SECRET = Config.homeMediaUploadPassword;
-    const userInput = prompt("🔒 此功能为内部专属通道。靴靴\n这个邀请码请在某宝上面购买哈。\n请输入【夹带私货】的上传密码：");
+    const userInput = await window.customPasswordPrompt("此功能为内部专属通道。靴靴\n这个邀请码请在某宝上面购买哈。\n请输入【夹带私货】的上传密码：");
 
     if (userInput === null) {
-        return; 
+        return; // 用户点击了取消
     }
     
     if (userInput !== UPLOAD_SECRET) {
@@ -116,31 +167,26 @@ window.confirmUpload = async function() {
     
     try {
         let successCount = 0;
-        const uploaderName = localStorage.getItem('gymUsername') || '匿名用户';
-        
-        // 🚨 请确保你在 Supabase Storage 中创建了名为 'user_media' 的存储桶
-        const BUCKET_NAME = 'user_media';
+        const BUCKET_NAME = 'user_media'; // 锁定首页专用桶
 
         for (const fileInfo of uploadedFiles) {
             const file = fileInfo.file;
-            const fileExt = file.name.split('.').pop();
+            const fileExt = file.name.split('.').pop().toLowerCase();
             
-            // 分类存入对应的文件夹 (images/ 或 videos/)，并用时间戳生成唯一文件名防冲突
+            // 纯粹的路由：如果是图片进 images，否则进 videos
             const folder = fileInfo.type === 'image' ? 'images' : 'videos';
+            
+            // 生成干净的文件名，防止中文或特殊字符导致云端报错
             const uniqueFileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-            const filePath = `${folder}/${uniqueFileName}`;
+            const targetPath = `${folder}/${uniqueFileName}`;
 
-            // 将文件实体推送到 Supabase Storage
+            // 推送到云端
             const { data: storageData, error: storageError } = await supabase.storage
                 .from(BUCKET_NAME)
-                .upload(filePath, file);
+                .upload(targetPath, file);
 
             if (storageError) throw storageError;
 
-            // 获取刚刚上传文件的公共访问链接
-            const { data: publicUrlData } = supabase.storage
-                .from(BUCKET_NAME)
-                .getPublicUrl(filePath);
 
             successCount++;
         }

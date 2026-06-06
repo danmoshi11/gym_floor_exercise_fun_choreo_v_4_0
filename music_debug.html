@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎵 音乐编排调试系统</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/wavesurfer.js/7.7.3/wavesurfer.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="music_manager.js"></script>
+    <style>
+        .breathing { animation: breathe 2s ease-in-out infinite; }
+        @keyframes breathe { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+        .floor-gymnova { background-image: radial-gradient(circle, #2a2a4a 1px, transparent 1px); background-size: 20px 20px; }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
+    <!-- 顶部导航栏 -->
+    <nav class="bg-slate-800/80 border-b border-slate-700 px-4 py-2 sticky top-0 z-50">
+        <div class="flex justify-between items-center">
+            <h1 class="text-xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                🎵 音乐编排调试系统
+            </h1>
+            <div class="flex gap-2">
+                <button onclick="saveToFile()" class="px-3 py-1 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-bold">
+                    💾 保存为文件
+                </button>
+                <button onclick="loadFromFile()" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-bold">
+                    📂 加载文件
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="p-4 max-w-7xl mx-auto">
+        <!-- 状态显示区 -->
+        <div class="bg-slate-800/50 rounded-xl p-4 mb-4 border border-slate-700">
+            <h2 class="text-lg font-bold mb-3 text-purple-300">📊 当前状态</h2>
+            <div class="grid grid-cols-5 gap-3 text-sm">
+                <div class="bg-slate-700/50 rounded-lg p-2 text-center">
+                    <div class="text-slate-400 text-xs">标记点</div>
+                    <div id="markerCountDisplay" class="text-xl font-black text-green-400">0</div>
+                </div>
+                <div class="bg-slate-700/50 rounded-lg p-2 text-center">
+                    <div class="text-slate-400 text-xs">分段数</div>
+                    <div id="segmentCountDisplay" class="text-xl font-black text-blue-400">0</div>
+                </div>
+                <div class="bg-slate-700/50 rounded-lg p-2 text-center">
+                    <div class="text-slate-400 text-xs">当前时间</div>
+                    <div id="currentTimeDisplay" class="text-xl font-black text-yellow-400">00:00</div>
+                </div>
+                <div class="bg-slate-700/50 rounded-lg p-2 text-center">
+                    <div class="text-slate-400 text-xs">画板动作</div>
+                    <div id="canvasActionCount" class="text-xl font-black text-pink-400">0</div>
+                </div>
+                <div class="bg-slate-700/50 rounded-lg p-2 text-center">
+                    <div class="text-slate-400 text-xs">已编排</div>
+                    <div id="placedCount" class="text-xl font-black text-orange-400">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 配置信息 -->
+        <div class="bg-slate-800/50 rounded-xl p-4 mb-4 border border-slate-700">
+            <h2 class="text-lg font-bold mb-2 text-purple-300">⚙️ 默认配置</h2>
+            <div class="grid grid-cols-2 gap-3 text-sm">
+                <div class="bg-slate-700/50 rounded-lg p-2">
+                    <span class="text-slate-400">地板类型:</span>
+                    <span class="text-green-400 font-bold ml-2">Taishan 泰山地板</span>
+                </div>
+                <div class="bg-slate-700/50 rounded-lg p-2">
+                    <span class="text-slate-400">运动员:</span>
+                    <span class="text-purple-400 font-bold ml-2">周雅琴 (Zhou Yaqin)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 音乐选择区 -->
+        <div class="bg-slate-800/50 rounded-xl p-4 mb-4 border border-slate-700">
+            <div class="flex justify-between items-center mb-2">
+                <h2 class="text-lg font-bold text-purple-300">🎧 本地音乐库</h2>
+                <div class="flex items-center gap-2">
+                    <span id="localMusicCount" class="text-xs text-slate-400">0 首</span>
+                    <button onclick="importMusicForDebug()" class="px-2 py-1 bg-purple-600 hover:bg-purple-700 rounded text-xs">
+                        📥 导入音乐
+                    </button>
+                    <button onclick="loadLocalMusicList()" class="px-2 py-1 bg-slate-600 hover:bg-slate-700 rounded text-xs">
+                        🔄 刷新
+                    </button>
+                </div>
+            </div>
+            <div id="localMusicList" class="flex flex-wrap gap-2">
+                <div class="text-slate-400 text-xs">正在加载...</div>
+            </div>
+            <div class="mt-3 pt-3 border-t border-slate-700 flex justify-between items-center">
+                <div class="text-sm">
+                    当前: <span id="currentMusicName" class="text-white font-bold">未选择</span>
+                </div>
+                <button onclick="confirmMusicInsert()" id="confirmBtn" disabled class="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-slate-600 disabled:cursor-not-allowed rounded-lg font-bold text-sm">
+                    ✅ 确认插入音乐
+                </button>
+            </div>
+        </div>
+
+        <!-- 波形播放器 -->
+        <div class="bg-slate-800/50 rounded-xl p-4 mb-4 border border-slate-700">
+            <h2 class="text-lg font-bold mb-2 text-purple-300">🎹 波形播放器</h2>
+            <div id="waveform" class="bg-slate-900 rounded-lg h-24"></div>
+            <div class="flex items-center gap-3 mt-3">
+                <button onclick="togglePlay()" id="playBtn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg font-bold text-sm">
+                    ▶️ 播放
+                </button>
+                <button onclick="stopMusic()" class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-bold text-sm">
+                    ⏹️ 停止
+                </button>
+                <input type="range" id="volumeSlider" min="0" max="100" value="50" class="w-20" onchange="setVolume(this.value/100)">
+                <span class="text-xs text-slate-400">音量</span>
+                <input type="range" id="progressSlider" min="0" max="100" value="0" class="flex-1" onchange="seekTo(this.value)">
+                <span id="durationDisplay" class="text-xs text-slate-400 w-24 text-right">00:00 / 00:00</span>
+            </div>
+            <div class="mt-2 text-xs text-slate-500 text-center">
+                ⌨️ 快捷键: [空格] 播放/暂停 | [M] 打点 | [Esc] 停止
+            </div>
+        </div>
+
+        <!-- 时间轴编排区域 -->
+        <div class="bg-slate-800/50 rounded-xl p-4 mb-4 border border-slate-700">
+            <div class="flex justify-between items-center mb-2">
+                <h2 class="text-lg font-bold text-purple-300">🎯 时间轴打点编排</h2>
+                <div class="flex gap-2">
+                    <button onclick="addTestMarkers()" class="px-3 py-1 bg-cyan-600 hover:bg-cyan-700 rounded text-xs font-bold">
+                        📌 测试标记
+                    </button>
+                    <button onclick="clearMarkers()" class="px-3 py-1 bg-orange-600 hover:bg-orange-700 rounded text-xs font-bold">
+                        🗑️ 清空标记
+                    </button>
+                </div>
+            </div>
+            <div id="timelineBackground" class="h-10 flex rounded-lg overflow-hidden bg-slate-900"></div>
+            <div id="markersContainer" class="relative h-8 bg-slate-900/50 rounded-lg mt-1"></div>
+        </div>
+
+        <!-- 画板区域 - 使用主程序的完整画板 -->
+        <div class="bg-slate-800/50 rounded-xl p-4 mb-4 border border-slate-700">
+            <div class="flex justify-between items-center mb-2">
+                <h2 class="text-lg font-bold text-purple-300">🎨 画板编辑区</h2>
+                <div class="flex gap-2">
+                    <button onclick="canvasManager.setTool('line')" id="toolLineBtn" class="px-3 py-1 bg-blue-600 rounded text-xs font-bold ring-2 ring-white">
+                        📏 线段
+                    </button>
+                    <button onclick="canvasManager.setTool('curve')" id="toolCurveBtn" class="px-3 py-1 bg-green-600 rounded text-xs font-bold">
+                        〰️ 曲线
+                    </button>
+                    <button onclick="canvasManager.setTool('point')" id="toolPointBtn" class="px-3 py-1 bg-yellow-600 rounded text-xs font-bold">
+                        ⭕ 旋转点
+                    </button>
+                    <button onclick="canvasManager.setTool('transit')" id="toolTransitBtn" class="px-3 py-1 bg-orange-600 rounded text-xs font-bold">
+                        ➡️ 过渡线
+                    </button>
+                    <button onclick="canvasManager.setTool('move')" id="toolMoveBtn" class="px-3 py-1 bg-purple-600 rounded text-xs font-bold">
+                        ✋ 移动
+                    </button>
+                    <button onclick="canvasManager.clearAll()" class="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-xs font-bold">
+                        🗑️ 清空
+                    </button>
+                </div>
+            </div>
+            <div id="floorContainer" class="rounded-lg overflow-hidden border-2 border-white/30 bg-gradient-to-br from-slate-800 to-slate-900" style="height: 400px;">
+                <canvas id="floorCanvas" width="800" height="400" class="w-full h-full cursor-crosshair"></canvas>
+            </div>
+            <div class="mt-2 text-xs text-slate-500 text-center">
+                点击绘制 | 点击线条可编辑动作 | 拖拽移动线条
+            </div>
+        </div>
+
+        <!-- 动作列表 -->
+        <div class="bg-slate-800/50 rounded-xl p-4 mb-4 border border-slate-700">
+            <div class="flex justify-between items-center mb-2">
+                <h2 class="text-lg font-bold text-purple-300">📦 画板动作列表</h2>
+                <span id="slotInfo" class="text-xs text-slate-400">拖拽到编排框</span>
+            </div>
+            <div id="actionList" class="grid grid-cols-6 gap-2 min-h-[60px]">
+                <div class="text-slate-500 text-xs text-center py-4 col-span-6">画板上暂无动作，请在上方画板绘制</div>
+            </div>
+        </div>
+
+        <!-- 编排框区域 -->
+        <div class="bg-slate-800/50 rounded-xl p-4 mb-4 border border-slate-700">
+            <div class="flex justify-between items-center mb-2">
+                <h2 class="text-lg font-bold text-purple-300">🎯 音乐编排框</h2>
+                <span id="编排状态" class="text-xs text-slate-400">已放入: 0 / 最大: 0</span>
+            </div>
+            <div id="routineSlots" class="grid grid-cols-4 gap-2"></div>
+            <div id="completeHint" class="hidden mt-4 p-3 bg-green-900/30 border border-green-500/50 rounded-lg text-center">
+                <span class="text-green-400 font-bold">✅ 编排完成！所有动作已匹配音乐段落</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 动作编辑弹窗 -->
+    <div id="skillModal" class="fixed inset-0 bg-black/60 hidden z-[100] flex items-center justify-center p-4">
+        <div class="bg-slate-800 rounded-2xl p-6 w-full max-w-md border border-slate-600">
+            <h3 class="text-xl font-black text-purple-300 mb-4">🎯 编辑动作</h3>
+            <div id="skillModalContent" class="space-y-3"></div>
+            <div class="flex gap-3 mt-4">
+                <button onclick="saveSkill()" class="flex-1 bg-green-600 hover:bg-green-700 py-2 rounded-lg font-bold">保存</button>
+                <button onclick="closeSkillModal()" class="flex-1 bg-slate-600 hover:bg-slate-700 py-2 rounded-lg font-bold">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 容器 -->
+    <div id="toastContainer" class="fixed top-20 right-4 z-[200] space-y-2"></div>
+
+    <script>
+        // ==========================================
+        // 全局变量
+        // ==========================================
+        let wavesurfer = null;
+        let isPlaying = false;
+        window.musicMarkers = [{ time: 0, label: '开始' }, { time: 60, label: '结束' }];
+        window.placedActions = [];
+        
+        // 初始化 canvasManager - 完整版本
+        const canvasManager = {
+            canvas: null,
+            ctx: null,
+            isDrawing: false,
+            dragDist: 0,
+            currentTool: 'line',
+            
+            // 【新增】专门用于拖拽功能的状态锁
+            draggingTrack: null,
+            lastDragPos: null,
+            
+            tempPath: [],
+            tracks: [],
+            showcaseMarks: [],
+            morandiColors: ['#8D99AE', '#D4A373', '#A7C957', '#E5989B', '#9C89B8', '#6C7A89', '#F2CC8F', '#B5C4B1'],
+            
+            init: function() {
+                this.canvas = document.getElementById('floorCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                
+                this.canvas.addEventListener('mousedown', this.startDraw.bind(this));
+                this.canvas.addEventListener('mousemove', this.drawing.bind(this));
+                this.canvas.addEventListener('mouseup', this.endDraw.bind(this));
+                this.canvas.addEventListener('mouseleave', this.endDraw.bind(this));
+                
+                this.redraw();
+            },
+            
+            setTool: function(toolName) { 
+                this.currentTool = toolName; 
+                ['line', 'curve', 'point', 'transit', 'move'].forEach(t => {
+                    const btn = document.getElementById('tool' + t.charAt(0).toUpperCase() + t.slice(1) + 'Btn');
+                    if (btn) btn.classList.toggle('ring-2', t === toolName);
+                    if (btn) btn.classList.toggle('ring-white', t === toolName);
+                });
+            },
+            
+            clearAll: function() {
+                this.tracks = [];
+                this.tempPath = [];
+                this.showcaseMarks = [];
+                this.redraw();
+                updateCanvasDisplay();
+                updateActionList();
+                showToast('info', '画板已清空', '');
+            },
+            
+            getMousePos: function(evt) {
+                const rect = this.canvas.getBoundingClientRect();
+                return {
+                    x: (evt.clientX - rect.left) * (this.canvas.width / rect.width),
+                    y: (evt.clientY - rect.top) * (this.canvas.height / rect.height)
+                };
+            },
+            
+            pointToSegmentDist: function(px, py, x1, y1, x2, y2) {
+                let l2 = (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2);
+                if (l2 === 0) return Math.hypot(px - x1, py - y1);
+                let t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2;
+                t = Math.max(0, Math.min(1, t));
+                return Math.hypot(px - (x1 + t * (x2 - x1)), py - (y1 + t * (y2 - y1)));
+            },
+            
+            findHitTrack: function(pos) {
+                for (let i = this.tracks.length - 1; i >= 0; i--) {
+                    let t = this.tracks[i];
+                    if (t.type === 'point') {
+                        if (Math.hypot(pos.x - t.points[0].x, pos.y - t.points[0].y) < 20) return t;
+                    } else {
+                        for (let j = 0; j < t.points.length - 1; j++) {
+                            let d = this.pointToSegmentDist(pos.x, pos.y, t.points[j].x, t.points[j].y, t.points[j+1].x, t.points[j+1].y);
+                            if (d < 15) return t; 
+                        }
+                    }
+                }
+                return null;
+            },
+            
+            startDraw: function(e) {
+                const pos = this.getMousePos(e);
+                
+                // 【核心】拖拽模式入口
+                if (this.currentTool === 'move') {
+                    let hit = this.findHitTrack(pos);
+                    if (hit) {
+                        this.draggingTrack = hit;
+                        this.lastDragPos = pos;
+                        this.isDrawing = true;
+                    }
+                    return; // 成功拦截，不进入下方画线逻辑
+                }
+                
+                this.isDrawing = true;
+                this.tempPath = [pos];
+                this.dragDist = 0;
+                
+                if (this.currentTool === 'point') {
+                    this.isDrawing = false;
+                    let hit = this.findHitTrack(pos);
+                    if (hit) {
+                        this.tempPath = [];
+                        this.redraw();
+                        window.currentEditingTrack = hit;
+                        openSkillModal(hit);
+                    } else {
+                        this.finishPath();
+                    }
+                }
+            },
+            
+            drawing: function(e) {
+                if (!this.isDrawing) return;
+                
+                const pos = this.getMousePos(e);
+                
+                // 【核心】拖拽过程（矩阵平移计算）
+                if (this.currentTool === 'move' && this.draggingTrack) {
+                    const dx = pos.x - this.lastDragPos.x;
+                    const dy = pos.y - this.lastDragPos.y;
+                    
+                    // 将线上所有的点统一累加坐标偏移量
+                    this.draggingTrack.points.forEach(p => {
+                        p.x += dx;
+                        p.y += dy;
+                    });
+                    
+                    this.lastDragPos = pos;
+                    this.redraw();
+                    return;
+                }
+                
+                let lastPt = this.tempPath[this.tempPath.length - 1];
+                this.dragDist += Math.hypot(pos.x - lastPt.x, pos.y - lastPt.y);
+                
+                if (this.currentTool === 'line') this.tempPath[1] = pos;
+                else this.tempPath.push(pos);
+                this.redraw();
+            },
+            
+            endDraw: function() {
+                if (!this.isDrawing) return;
+                this.isDrawing = false;
+                
+                // 【核心】拖拽结束
+                if (this.currentTool === 'move' && this.draggingTrack) {
+                    this.draggingTrack = null;
+                    this.redraw();
+                    return;
+                }
+                
+                if (this.dragDist < 5 && this.currentTool !== 'point') {
+                    let hit = this.findHitTrack(this.tempPath[0]);
+                    if (hit) {
+                        this.tempPath = [];
+                        this.redraw();
+                        window.currentEditingTrack = hit;
+                        openSkillModal(hit);
+                        return;
+                    }
+                }
+                
+                this.finishPath();
+            },
+            
+            finishPath: function() {
+                if (this.tempPath.length < 1) return;
+                if (this.currentTool !== 'point' && this.tempPath.length < 2) {
+                    this.tempPath = [];
+                    this.redraw();
+                    return;
+                }
+                
+                if (this.currentTool === 'line') {
+                    const dx = this.tempPath[1].x - this.tempPath[0].x;
+                    const dy = this.tempPath[1].y - this.tempPath[0].y;
+                    if (Math.sqrt(dx*dx + dy*dy) < 30) {
+                        this.tempPath = [];
+                        this.redraw();
+                        return;
+                    }
+                }
+                
+                const marginX = this.canvas.width / 14; 
+                const marginY = this.canvas.height / 14; 
+                let isOOB = this.tempPath.some(p => p.x < marginX || p.x > this.canvas.width - marginX || p.y < marginY || p.y > this.canvas.height - marginY);
+                
+                const trackColor = this.currentTool === 'transit' ? '#9ca3af' : this.morandiColors[this.tracks.length % this.morandiColors.length];
+                
+                const newTrack = {
+                    id: 'track_' + Date.now() + '_' + Math.random(),
+                    type: this.currentTool,
+                    points: [...this.tempPath],
+                    color: trackColor,
+                    skills: [],
+                    connectionType: 'direct',
+                    nd: 0 
+                };
+                
+                this.tempPath = [];
+                
+                // ==========================================
+                // 【防卡死保护锁】：限制场地物理线条上限
+                // ==========================================
+                if (this.tracks.length >= 15) {
+                    showToast('warning', '达到安全上限', '⚠️ 场地线条数量已达上限 (15条)\\n请删除多余线条');
+                    this.tempPath = [];
+                    this.redraw();
+                    return;
+                }
+                
+                this.tracks.push(newTrack);
+                this.redraw();
+                updateCanvasDisplay();
+                updateActionList();
+                
+                window.currentEditingTrack = newTrack;
+                openSkillModal(newTrack);
+            },
+            
+            updateTrackSkills: function(trackId, skills, connectionType) {
+                const track = this.tracks.find(t => t.id === trackId);
+                if (track) {
+                    track.skills = skills;
+                    track.connectionType = connectionType;
+                    this.redraw();
+                    updateCanvasDisplay();
+                    updateActionList();
+                }
+            },
+            
+            redraw: function(highlightIndex = -1, progress = -1) {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                const marginX = this.canvas.width / 14;
+                const marginY = this.canvas.height / 14;
+                this.ctx.save();
+                const container = document.getElementById('floorContainer');
+                if (container) {
+                    this.ctx.strokeStyle = getComputedStyle(container).borderColor;
+                } else {
+                    this.ctx.strokeStyle = "#ffffff"; // 兜底颜色
+                }
+                this.ctx.lineWidth = 2;
+                this.ctx.setLineDash([12, 12]);
+                this.ctx.strokeRect(marginX, marginY, this.canvas.width - marginX*2, this.canvas.height - marginY*2);
+                this.ctx.restore();
+                
+                this.tracks.forEach((track, index) => {
+                    let isDimmed = (highlightIndex !== -1 && highlightIndex !== index);
+                    let isHighlighted = (highlightIndex === index);
+                    this.drawTrack(track, index, isDimmed, isHighlighted, progress);
+                });
+                
+                if (this.tempPath.length > 0) this.drawTempPath();
+                
+                // 【新增】绘制成功或失败的标记 (防崩溃渲染)
+                if (this.showcaseMarks && Array.isArray(this.showcaseMarks) && this.showcaseMarks.length > 0) {
+                    this.ctx.save();
+                    this.ctx.font = "24px sans-serif";
+                    this.ctx.textAlign = "center";
+                    this.ctx.textBaseline = "middle";
+                    this.ctx.shadowColor = "rgba(255,255,255,0.8)";
+                    this.ctx.shadowBlur = 10;
+                    
+                    this.showcaseMarks.forEach(mark => {
+                        // 确保 mark 数据完整，防止 Canvas 绘制 API 报错卡死
+                        if(mark && mark.x !== undefined && mark.y !== undefined) {
+                            this.ctx.fillText(mark.type === 'fall' ? '❌' : '✅', mark.x, mark.y);
+                        }
+                    });
+                    this.ctx.restore();
+                }    
+            },
+            
+            drawTrack: function(track, index, isDimmed, isHighlighted, progress) {
+                const ctx = this.ctx;
+                ctx.save();
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                
+                if (track.type === 'transit') {
+                    ctx.setLineDash([8, 8]);
+                    ctx.lineWidth = isHighlighted ? 4 : 2;
+                    ctx.strokeStyle = isDimmed ? 'rgba(156,163,175,0.3)' : track.color;
+                } else {
+                    ctx.setLineDash([]);
+                    ctx.lineWidth = isHighlighted ? 6 : 4;
+                    ctx.strokeStyle = track.color;
+                    if (isDimmed) {
+                        ctx.globalAlpha = 0.2;
+                        ctx.strokeStyle = '#9ca3af';
+                    } else if (isHighlighted) {
+                        ctx.shadowColor = track.color;
+                        ctx.shadowBlur = 12;
+                    }
+                }
+                
+                ctx.beginPath();
+                if (track.type === 'point') {
+                    ctx.arc(track.points[0].x, track.points[0].y, isHighlighted ? 12 : 8, 0, Math.PI * 2);
+                    ctx.fillStyle = ctx.strokeStyle;
+                    ctx.fill();
+                } else {
+                    ctx.moveTo(track.points[0].x, track.points[0].y);
+                    if (track.type === 'line') ctx.lineTo(track.points[1].x, track.points[1].y);
+                    else for (let i = 1; i < track.points.length; i++) ctx.lineTo(track.points[i].x, track.points[i].y);
+                    ctx.stroke();
+                }
+                
+                if (track.type !== 'transit') {
+                    let startX = track.points[0].x;
+                    let startY = track.points[0].y;
+                    
+                    ctx.beginPath();
+                    ctx.arc(startX, startY, 12, 0, Math.PI * 2);
+                    ctx.fillStyle = isDimmed ? '#e5e7eb' : track.color;
+                    ctx.fill();
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    
+                    ctx.font = 'bold 12px Arial';
+                    ctx.fillStyle = '#ffffff';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(index + 1, startX, startY + 1);
+                }
+                
+                if (isHighlighted && progress >= 0 && progress <= 1) {
+                    let dotX, dotY;
+                    if (track.type === 'point') {
+                        dotX = track.points[0].x; dotY = track.points[0].y;
+                    } else {
+                        let pts = track.points;
+                        let exactIndex = progress * (pts.length - 1);
+                        let idx = Math.floor(exactIndex);
+                        let nextIdx = Math.min(idx + 1, pts.length - 1);
+                        let t = exactIndex - idx;
+                        dotX = pts[idx].x + (pts[nextIdx].x - pts[idx].x) * t;
+                        dotY = pts[idx].y + (pts[nextIdx].y - pts[idx].y) * t;
+                    }
+                    
+                    ctx.beginPath();
+                    ctx.arc(dotX, dotY, 10, 0, Math.PI * 2);
+                    ctx.fillStyle = "#ffffff";
+                    ctx.shadowColor = "#ffffff";
+                    ctx.shadowBlur = 15;
+                    ctx.fill();
+                    
+                    ctx.beginPath();
+                    ctx.arc(dotX, dotY, 5, 0, Math.PI * 2);
+                    ctx.fillStyle = track.color;
+                    ctx.shadowBlur = 0;
+                    ctx.fill();
+                }
+                
+                if (track.skills && track.skills.length > 0 && track.type !== 'transit') {
+                    const connector = track.connectionType === 'direct' ? ' + ' : ' , ';
+                    const skillText = track.skills.map(s => s.nameZh ? s.nameZh[0] : (s.name || '')).join(connector);
+                    let midX, midY, angle = 0;
+                    
+                    if (track.type === 'point') {
+                        midX = track.points[0].x; midY = track.points[0].y - 20; 
+                    } else if (track.type === 'line') {
+                        midX = (track.points[0].x + track.points[1].x) / 2;
+                        midY = (track.points[0].y + track.points[1].y) / 2;
+                        angle = Math.atan2(track.points[1].y - track.points[0].y, track.points[1].x - track.points[0].x);
+                        if (angle > Math.PI / 2 || angle < -Math.PI / 2) angle += Math.PI;
+                    } else if (track.type === 'curve') {
+                        let midIndex = Math.floor(track.points.length / 2);
+                        midX = track.points[midIndex].x; midY = track.points[midIndex].y - 20;
+                    }
+                    
+                    ctx.translate(midX, midY);
+                    ctx.rotate(angle);
+                    ctx.font = isHighlighted ? "bold 18px sans-serif" : "bold 15px sans-serif";
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+                    ctx.lineWidth = 4;
+                    ctx.strokeStyle = "rgba(255,255,255,0.85)";
+                    ctx.strokeText(skillText, 0, -12);
+                    ctx.fillStyle = isDimmed ? "#9ca3af" : (isHighlighted ? "#1e3a8a" : track.color);
+                    ctx.fillText(skillText, 0, -12);
+                }
+                ctx.restore();
+            },
+            
+            drawTempPath: function() {
+                const ctx = this.ctx;
+                ctx.save();
+                ctx.beginPath();
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#3b82f6';
+                ctx.setLineDash([8, 8]); 
+                
+                if (this.currentTool === 'point') {
+                    ctx.arc(this.tempPath[0].x, this.tempPath[0].y, 6, 0, Math.PI * 2);
+                    ctx.fillStyle = '#3b82f6';
+                    ctx.fill();
+                } else {
+                    ctx.moveTo(this.tempPath[0].x, this.tempPath[0].y);
+                    if (this.currentTool === 'line' && this.tempPath.length === 2) {
+                        ctx.lineTo(this.tempPath[1].x, this.tempPath[1].y);
+                    } else {
+                        for (let i = 1; i < this.tempPath.length; i++) ctx.lineTo(this.tempPath[i].x, this.tempPath[i].y);
+                    }
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+        };
+
+        // ==========================================
+        // 初始化
+        // ==========================================
+        document.addEventListener('DOMContentLoaded', () => {
+            canvasManager.init();
+            loadLocalMusicList();
+            initKeyboardShortcuts();
+        });
+        
+        // ==========================================
+        // Toast 提示
+        // ==========================================
+        function showToast(type, title, message) {
+            const container = document.getElementById('toastContainer');
+            const colors = {
+                success: 'bg-green-600',
+                error: 'bg-red-600',
+                warning: 'bg-yellow-600',
+                info: 'bg-blue-600'
+            };
+            const icons = {
+                success: '✅',
+                error: '❌',
+                warning: '⚠️',
+                info: '💡'
+            };
+            
+            const toast = document.createElement('div');
+            toast.className = `${colors[type]} px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-pulse`;
+            toast.innerHTML = `
+                <span>${icons[type]}</span>
+                <div>
+                    <div class="font-bold">${title}</div>
+                    ${message ? `<div class="text-sm opacity-80">${message}</div>` : ''}
+                </div>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+        
+        // ==========================================
+        // 音乐库功能
+        // ==========================================
+        async function loadLocalMusicList() {
+            const container = document.getElementById('localMusicList');
+            if (!container) return;
+            
+            if (typeof MusicManager === 'undefined') {
+                await new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = 'music_manager.js';
+                    script.onload = () => {
+                        MusicManager.init().then(resolve).catch(reject);
+                    };
+                    script.onerror = reject;
+                    document.head.appendChild(script);
+                });
+            } else if (!MusicManager.db) {
+                await MusicManager.init();
+            }
+            
+            try {
+                const localAudios = await MusicManager.getAllAudios();
+                
+                if (localAudios.length === 0) {
+                    container.innerHTML = '<div class="text-slate-400 text-xs">本地音乐库为空，点击「导入音乐」添加</div>';
+                    return;
+                }
+                
+                container.innerHTML = localAudios.map((audio, index) => `
+                    <button onclick="loadLocalMusic('${audio.id}')" class="px-3 py-2 bg-cyan-600 hover:bg-cyan-700 rounded-lg font-bold text-xs transition-all whitespace-nowrap">
+                        🎵 ${audio.name}
+                    </button>
+                `).join('');
+                
+                document.getElementById('localMusicCount').textContent = localAudios.length + ' 首';
+            } catch (e) {
+                container.innerHTML = '<div class="text-red-400 text-xs">加载失败: ' + e.message + '</div>';
+            }
+        }
+        
+        window.importMusicForDebug = async function() {
+            if (typeof MusicManager === 'undefined') {
+                await new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = 'music_manager.js';
+                    script.onload = () => {
+                        MusicManager.init().then(resolve).catch(reject);
+                    };
+                    script.onerror = reject;
+                    document.head.appendChild(script);
+                });
+            } else if (!MusicManager.db) {
+                await MusicManager.init();
+            }
+            
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'audio/*';
+            input.multiple = true;
+            input.onchange = async (e) => {
+                const files = e.target.files;
+                if (!files || files.length === 0) return;
+                
+                let successCount = 0;
+                for (const file of files) {
+                    try {
+                        const audioId = 'debug_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                        const record = {
+                            id: audioId,
+                            name: file.name,
+                            blob: file,
+                            size: file.size,
+                            uploadTime: new Date().getTime()
+                        };
+                        
+                        await new Promise((resolve, reject) => {
+                            const transaction = MusicManager.db.transaction([MusicManager.storeName], 'readwrite');
+                            const store = transaction.objectStore(MusicManager.storeName);
+                            const request = store.add(record);
+                            request.onsuccess = () => resolve();
+                            request.onerror = () => reject(request.error);
+                        });
+                        
+                        successCount++;
+                    } catch (e) {
+                        console.error('导入失败:', file.name, e);
+                    }
+                }
+                
+                if (successCount > 0) {
+                    showToast('success', '导入成功', `已导入 ${successCount} 首音乐`);
+                    loadLocalMusicList();
+                }
+            };
+            input.click();
+        }
+        
+        async function loadLocalMusic(audioId) {
+            if (typeof MusicManager === 'undefined') {
+                await new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = 'music_manager.js';
+                    script.onload = () => {
+                        MusicManager.init().then(resolve).catch(reject);
+                    };
+                    script.onerror = reject;
+                    document.head.appendChild(script);
+                });
+            } else if (!MusicManager.db) {
+                await MusicManager.init();
+            }
+            
+            try {
+                const audio = await MusicManager.getAudio(audioId);
+                if (audio && audio.blob) {
+                    initWaveSurfer();
+                    const url = URL.createObjectURL(audio.blob);
+                    wavesurfer.load(url);
+                    document.getElementById('currentMusicName').textContent = audio.name + ' (本地)';
+                    document.getElementById('confirmBtn').disabled = false;
+                    showToast('success', '音乐已加载', audio.name);
+                }
+            } catch (e) {
+                showToast('error', '加载失败', e.message);
+            }
+        }
+        
+        // ==========================================
+        // WaveSurfer 播放器
+        // ==========================================
+        function initWaveSurfer() {
+            if (wavesurfer) {
+                wavesurfer.destroy();
+                wavesurfer = null;
+            }
+            
+            wavesurfer = WaveSurfer.create({
+                container: '#waveform',
+                waveColor: '#6366f1',
+                progressColor: '#a855f7',
+                cursorColor: '#fff',
+                barWidth: 2,
+                barGap: 1,
+                height: 80,
+                barRadius: 2
+            });
+            
+            wavesurfer.on('ready', () => {
+                const duration = wavesurfer.getDuration();
+                window.musicMarkers = [{ time: 0, label: '开始' }, { time: duration, label: '结束' }];
+                document.getElementById('confirmBtn').disabled = false;
+                document.getElementById('durationDisplay').textContent = `00:00 / ${formatTime(duration)}`;
+                updateTimelineUI();
+                updateRoutineSlots();
+                showToast('success', '音乐加载成功', `时长: ${formatTime(duration)}`);
+            });
+            
+            wavesurfer.on('audioprocess', () => {
+                const currentTime = wavesurfer.getCurrentTime();
+                const duration = wavesurfer.getDuration();
+                document.getElementById('currentTimeDisplay').textContent = formatTime(currentTime);
+                document.getElementById('durationDisplay').textContent = `${formatTime(currentTime)} / ${formatTime(duration)}`;
+                document.getElementById('progressSlider').value = (currentTime / duration) * 100;
+            });
+            
+            wavesurfer.on('finish', () => {
+                isPlaying = false;
+                document.getElementById('playBtn').innerHTML = '▶️ 播放';
+            });
+        }
+        
+        function togglePlay() {
+            if (!wavesurfer || !wavesurfer.isReady()) {
+                showToast('warning', '请先选择音乐', '点击上方音乐按钮加载');
+                return;
+            }
+            wavesurfer.playPause();
+            isPlaying = !isPlaying;
+            document.getElementById('playBtn').innerHTML = isPlaying ? '⏸️ 暂停' : '▶️ 播放';
+        }
+        
+        function stopMusic() {
+            if (!wavesurfer) return;
+            wavesurfer.stop();
+            isPlaying = false;
+            document.getElementById('playBtn').innerHTML = '▶️ 播放';
+            document.getElementById('progressSlider').value = 0;
+        }
+        
+        function setVolume(val) { if (wavesurfer) wavesurfer.setVolume(val); }
+        function seekTo(val) { if (!wavesurfer || !wavesurfer.isReady()) return; wavesurfer.seekTo(val / 100); }
+        
+        function formatTime(seconds) {
+            if (!seconds || isNaN(seconds)) return '00:00';
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        // ==========================================
+        // 键盘快捷键
+        // ==========================================
+        function initKeyboardShortcuts() {
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+                
+                if (e.code === 'Space') {
+                    e.preventDefault();
+                    togglePlay();
+                } else if (e.code === 'KeyM') {
+                    e.preventDefault();
+                    handleMarking();
+                } else if (e.code === 'Escape') {
+                    stopMusic();
+                }
+            });
+        }
+        
+        // ==========================================
+        // 确认插入音乐
+        // ==========================================
+        function confirmMusicInsert() {
+            if (!wavesurfer?.isReady()) {
+                showToast('warning', '请先选择音乐', '');
+                return;
+            }
+            showToast('success', '音乐已插入', '开始编排动作时间点');
+            document.getElementById('confirmBtn').innerHTML = '✅ 音乐已插入';
+            document.getElementById('confirmBtn').disabled = true;
+        }
+        
+        // ==========================================
+        // 标记点功能
+        // ==========================================
+        function handleMarking() {
+            if (!wavesurfer || !wavesurfer.isReady()) {
+                showToast('warning', '请先加载音乐', '');
+                return;
+            }
+            
+            const currentTime = wavesurfer.getCurrentTime();
+            const duration = wavesurfer.getDuration();
+            const exists = window.musicMarkers.some(m => Math.abs(m.time - currentTime) < 0.3);
+            if (exists) {
+                showToast('warning', '标记已存在', '此位置已有标记点');
+                return;
+            }
+            
+            window.musicMarkers.push({ time: currentTime, label: `标记 ${window.musicMarkers.length}` });
+            window.musicMarkers.sort((a, b) => a.time - b.time);
+            window.musicMarkers[window.musicMarkers.length - 1] = { time: duration, label: '结束' };
+            
+            updateTimelineUI();
+            updateRoutineSlots();
+            updateCanvasDisplay();
+            showToast('success', '标记已添加', `位置: ${formatTime(currentTime)}`);
+        }
+        
+        function updateTimelineUI() {
+            const markers = window.musicMarkers;
+            const duration = wavesurfer?.isReady() ? wavesurfer.getDuration() : 60;
+            
+            let bgHtml = '';
+            const colors = ['bg-blue-500/40', 'bg-purple-500/40', 'bg-pink-500/40', 'bg-green-500/40', 'bg-yellow-500/40', 'bg-orange-500/40'];
+            markers.forEach((m, i) => {
+                const percent = (m.time / duration) * 100;
+                bgHtml += `<div class="${colors[i % colors.length]} h-full" style="width: ${percent}%"></div>`;
+            });
+            document.getElementById('timelineBackground').innerHTML = bgHtml;
+            
+            let markerHtml = '';
+            markers.forEach((m, i) => {
+                const percent = (m.time / duration) * 100;
+                markerHtml += `
+                    <div class="absolute top-0 h-full flex flex-col items-center" style="left: ${percent}%">
+                        <div class="w-4 h-4 ${i === 0 || i === markers.length - 1 ? 'bg-green-500' : 'bg-yellow-400'} rounded-full -ml-2 cursor-pointer hover:scale-125 transition-transform"
+                             onclick="removeMarker(${i})" title="${m.label}: ${formatTime(m.time)}"></div>
+                        <div class="text-xs text-slate-400 -ml-4 mt-1">${formatTime(m.time)}</div>
+                    </div>
+                `;
+            });
+            document.getElementById('markersContainer').innerHTML = markerHtml;
+            document.getElementById('markerCountDisplay').textContent = markers.length;
+            document.getElementById('segmentCountDisplay').textContent = markers.length - 1;
+        }
+        
+        function removeMarker(index) {
+            if (index === 0 || index === window.musicMarkers.length - 1) {
+                showToast('warning', '无法删除', '开始和结束标记不能删除');
+                return;
+            }
+            window.musicMarkers.splice(index, 1);
+            const duration = wavesurfer?.isReady() ? wavesurfer.getDuration() : 60;
+            window.musicMarkers[window.musicMarkers.length - 1] = { time: duration, label: '结束' };
+            updateTimelineUI();
+            updateRoutineSlots();
+            updateCanvasDisplay();
+            showToast('info', '标记已删除', '');
+        }
+        
+        function addTestMarkers() {
+            if (!wavesurfer?.isReady()) {
+                showToast('warning', '请先加载音乐', '');
+                return;
+            }
+            const duration = wavesurfer.getDuration();
+            const interval = duration / 4;
+            window.musicMarkers = [
+                { time: 0, label: '开始' },
+                { time: interval, label: '标记1' },
+                { time: interval * 2, label: '标记2' },
+                { time: interval * 3, label: '标记3' },
+                { time: duration, label: '结束' }
+            ];
+            updateTimelineUI();
+            updateRoutineSlots();
+            updateCanvasDisplay();
+            showToast('success', '测试标记已添加', '已将音乐分为4段');
+        }
+        
+        function clearMarkers() {
+            if (!wavesurfer?.isReady()) return;
+            const d = wavesurfer.getDuration();
+            window.musicMarkers = [{ time: 0, label: '开始' }, { time: d, label: '结束' }];
+            window.placedActions = [];
+            updateTimelineUI();
+            updateRoutineSlots();
+            updateCanvasDisplay();
+            showToast('info', '标记已清空', '');
+        }
+        
+        // ==========================================
+        // 编排功能
+        // ==========================================
+        function updateRoutineSlots() {
+            const maxSlots = window.musicMarkers.length - 1;
+            const container = document.getElementById('routineSlots');
+            
+            let html = '';
+            for (let i = 0; i < maxSlots; i++) {
+                const action = window.placedActions[i];
+                const segmentTime = window.musicMarkers[i] && window.musicMarkers[i + 1] 
+                    ? `${formatTime(window.musicMarkers[i].time)} - ${formatTime(window.musicMarkers[i + 1].time)}`
+                    : '';
+                
+                html += `
+                    <div class="relative bg-slate-700/50 border-2 border-dashed border-slate-600 rounded-lg p-2 min-h-[60px] ${action ? 'border-solid border-indigo-500' : ''}">
+                        ${action ? `
+                            <div class="text-center">
+                                <div class="text-lg">${action.icon}</div>
+                                <div class="text-xs font-bold">${action.name}</div>
+                                <button onclick="removeFromSlot(${i})" class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-xs">×</button>
+                            </div>
+                        ` : `
+                            <div class="text-slate-500 text-xs text-center">分段 ${i + 1}<br>${segmentTime}</div>
+                        `}
+                    </div>
+                `;
+            }
+            container.innerHTML = html;
+            document.getElementById('编排状态').textContent = `已放入: ${window.placedActions.length} / 最大: ${maxSlots}`;
+            document.getElementById('placedCount').textContent = window.placedActions.length;
+            
+            const isComplete = window.placedActions.length === maxSlots && window.placedActions.length === canvasManager.tracks.length;
+            document.getElementById('completeHint').classList.toggle('hidden', !isComplete);
+        }
+        
+        function updateCanvasDisplay() {
+            document.getElementById('canvasActionCount').textContent = canvasManager.tracks.length;
+            updateRoutineSlots();
+        }
+        
+        function updateActionList() {
+            const container = document.getElementById('actionList');
+            if (canvasManager.tracks.length === 0) {
+                container.innerHTML = '<div class="text-slate-500 text-xs text-center py-4 col-span-6">画板上暂无动作，请在上方画板绘制</div>';
+                return;
+            }
+            
+            let html = '';
+            canvasManager.tracks.forEach((track, index) => {
+                const icon = track.type === 'point' ? '⭕' : track.type === 'curve' ? '〰️' : track.type === 'transit' ? '➡️' : '📏';
+                const typeName = track.type === 'point' ? '旋转点' : track.type === 'curve' ? '曲线' : track.type === 'transit' ? '过渡线' : '线段';
+                const isPlaced = window.placedActions.some(a => a.trackIndex === index);
+                
+                html += `
+                    <div class="p-2 rounded-lg text-center ${isPlaced ? 'bg-slate-600 opacity-50' : 'bg-slate-700 hover:bg-slate-600 cursor-pointer'}"
+                         style="border-left: 4px solid ${track.color}" onclick="editTrackByIndex(${index})">
+                        <div class="text-lg">${icon}</div>
+                        <div class="text-xs font-bold">${typeName} ${index + 1}</div>
+                        ${isPlaced ? '<div class="text-xs text-green-400">✓已编排</div>' : ''}
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+        
+        function editTrackByIndex(index) {
+            const track = canvasManager.tracks[index];
+            if (track) {
+                window.currentEditingTrack = track;
+                openSkillModal(track);
+            }
+        }
+        
+        function removeFromSlot(index) {
+            window.placedActions.splice(index, 1);
+            updateRoutineSlots();
+        }
+        
+        // ==========================================
+        // 动作编辑弹窗
+        // ==========================================
+        function openSkillModal(track) {
+            const modal = document.getElementById('skillModal');
+            const content = document.getElementById('skillModalContent');
+            
+            const icon = track.type === 'point' ? '⭕' : track.type === 'curve' ? '〰️' : track.type === 'transit' ? '➡️' : '📏';
+            const typeName = track.type === 'point' ? '旋转点' : track.type === 'curve' ? '曲线' : track.type === 'transit' ? '过渡线' : '线段';
+            
+            content.innerHTML = `
+                <div class="bg-slate-700 rounded-lg p-3">
+                    <div class="text-center mb-3">
+                        <span class="text-3xl">${icon}</span>
+                        <div class="font-bold">${typeName}</div>
+                    </div>
+                    <div class="text-xs text-slate-400 text-center">
+                        动作: ${track.skills?.map(s => s.name).join(', ') || '未设置'}
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-sm text-slate-400">连接类型</label>
+                    <select id="connectionTypeSelect" class="w-full bg-slate-700 rounded px-3 py-2">
+                        <option value="direct" ${track.connectionType === 'direct' ? 'selected' : ''}>直接连接</option>
+                        <option value="pause" ${track.connectionType === 'pause' ? 'selected' : ''}>停顿连接</option>
+                        <option value="jump" ${track.connectionType === 'jump' ? 'selected' : ''}>跳跃连接</option>
+                    </select>
+                </div>
+                <div class="pt-2 border-t border-slate-600">
+                    <button onclick="placeTrackInSlot()" class="w-full bg-indigo-600 hover:bg-indigo-700 py-2 rounded font-bold">
+                        📍 放入编排框
+                    </button>
+                </div>
+            `;
+            
+            modal.classList.remove('hidden');
+        }
+        
+        function closeSkillModal() {
+            document.getElementById('skillModal').classList.add('hidden');
+        }
+        
+        function saveSkill() {
+            const connectionType = document.getElementById('connectionTypeSelect').value;
+            if (window.currentEditingTrack) {
+                canvasManager.updateTrackSkills(window.currentEditingTrack.id, window.currentEditingTrack.skills, connectionType);
+            }
+            closeSkillModal();
+            updateActionList();
+        }
+        
+        function placeTrackInSlot() {
+            const track = window.currentEditingTrack;
+            if (!track) return;
+            
+            const trackIndex = canvasManager.tracks.indexOf(track);
+            const nextSlotIndex = window.placedActions.length;
+            const maxSlots = window.musicMarkers.length - 1;
+            
+            if (nextSlotIndex >= maxSlots) {
+                showToast('warning', '编排已满', '请添加更多音乐标记点');
+                closeSkillModal();
+                return;
+            }
+            
+            const icon = track.type === 'point' ? '⭕' : track.type === 'curve' ? '〰️' : track.type === 'transit' ? '➡️' : '📏';
+            const typeName = track.type === 'point' ? '旋转点' : track.type === 'curve' ? '曲线' : track.type === 'transit' ? '过渡线' : '线段';
+            
+            window.placedActions.push({
+                trackIndex: trackIndex,
+                icon: icon,
+                name: `${typeName} ${trackIndex + 1}`
+            });
+            
+            closeSkillModal();
+            updateRoutineSlots();
+            updateActionList();
+            showToast('success', '已放入编排框', `分段 ${nextSlotIndex + 1}`);
+        }
+        
+        // ==========================================
+        // 文件保存/加载
+        // ==========================================
+        function saveToFile() {
+            const data = {
+                version: '1.0',
+                type: 'gymnastics_routine',
+                floorType: 'taishan',
+                athlete: 'Zhou Yaqin',
+                musicMarkers: window.musicMarkers,
+                canvasTracks: canvasManager.tracks,
+                placedActions: window.placedActions,
+                savedAt: new Date().toISOString()
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `gymnastics_routine_${Date.now()}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('success', '文件已保存', '已下载为 JSON 文件');
+        }
+        
+        function loadFromFile() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        
+                        if (data.canvasTracks) {
+                            canvasManager.tracks = data.canvasTracks;
+                            canvasManager.redraw();
+                        }
+                        if (data.musicMarkers) {
+                            window.musicMarkers = data.musicMarkers;
+                            updateTimelineUI();
+                        }
+                        if (data.placedActions) {
+                            window.placedActions = data.placedActions;
+                        }
+                        
+                        updateCanvasDisplay();
+                        updateActionList();
+                        showToast('success', '文件已加载', '数据恢复成功');
+                    } catch (e) {
+                        showToast('error', '加载失败', '文件格式错误');
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+    </script>
+</body>
+</html>

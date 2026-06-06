@@ -1,5 +1,5 @@
 // ==========================================
-// 📋 配置文件 - 所有密码和限制参数集中管理
+// 📋 配置文件 - 所有密码、数据和限制参数集中管理
 // ==========================================
 
 const Config = {
@@ -29,5 +29,71 @@ const Config = {
 
         // 上传文件保留天数（审核队列中）
         uploadRetentionDays: 30
+    },
+
+    // ==========================================
+    // 🎵 音乐库数据
+    // ==========================================
+    musicLibrary: [
+        { file: '2019_Ou.mp3', name: '欧钰珊 2019', artist: 'OU Yushan', year: '2019', country: 'CHN' },
+        { file: '2021_Angelina_Melnikova.mp3', name: '梅尔尼科娃 2021', artist: 'Angelina Melnikova', year: '2021', country: 'RUS' },
+        { file: '2021_Lu.mp3', name: '芦玉菲 2021', artist: 'LU Yufei', year: '2021', country: 'CHN' },
+        { file: '2021_Rebeca_Andrade.mp3', name: '安德拉德 2021', artist: 'Rebeca Andrade', year: '2021', country: 'BRA' },
+        { file: '2021_Simone_Biles.mp3', name: '拜尔斯 2021', artist: 'Simone Biles', year: '2021', country: 'USA' },
+        { file: '2021_Tang.mp3', name: '唐茜靖 2021', artist: 'TANG Xijing', year: '2021', country: 'CHN' },
+        { file: '2023_Alice_D_Amato.mp3', name: '达马托 2023', artist: "Alice D'Amato", year: '2023', country: 'ITA' },
+        { file: '2023_Alice_Kinsella.mp3', name: '金塞拉 2023', artist: 'Alice Kinsella', year: '2023', country: 'GBR' },
+        { file: '2023_Ou.mp3', name: '欧钰珊 2023', artist: 'OU Yushan', year: '2023', country: 'CHN' },
+        { file: '2023_Qiu.mp3', name: '邱祺缘 2023', artist: 'QIU Qiyuan', year: '2023', country: 'CHN' },
+        { file: '2023_Rebeca_Andrade.mp3', name: '安德拉德 2023', artist: 'Rebeca Andrade', year: '2023', country: 'BRA' },
+        { file: '2023_Zhou.mp3', name: '周雅琴 2023', artist: 'ZHOU Yaqin', year: '2023', country: 'CHN' },
+        { file: '2024_Zhou.mp3', name: '周雅琴 2024', artist: 'ZHOU Yaqin', year: '2024', country: 'CHN' },
+        { file: '2025_Lia_Monica_Fontaine.mp3', name: 'Lia Monica Fontaine 2025', artist: 'Lia Monica Fontaine', year: '2025', country: 'CAN' },
+        { file: '2025_Sabrina_Maneca_Voinea.mp3', name: 'Sabrina Maneca Voinea 2025', artist: 'Sabrina Maneca Voinea', year: '2025', country: 'ROU' }
+    ],
+
+    // ==========================================
+    // 🎬 Hero引擎媒体数据
+    // ==========================================
+    heroMedia: {
+        videos: [
+            { src: './videos/vani_ferrari.mp4', duration: 15 },
+            { src: './videos/angi_mel.mp4', duration: 13 },
+            { src: './videos/sabrina_voinea.mp4', duration: 10 },
+            { src: './videos/zhou_yaqin.mp4', duration: 10 },
+            { src: './videos/mai_murakami.mp4', duration: 9 },
+            { src: './videos/zhang_jin.mp4', duration: 9 },
+            { src: './videos/ruby_evans.mp4', duration: 8 },
+            { src: './videos/vlada_ura.mp4', duration: 8 },
+            { src: './videos/jade_carey.mp4', duration: 7 },
+            { src: './videos/suni_lee.mp4', duration: 7 },
+            { src: './videos/sui_han.mp4', duration: 11 },
+            { src: './videos/rebw_and.mp4', duration: 4 },
+            { src: './videos/sui_lu.mp4', duration: 8 }
+        ],
+        classicImages: [
+            './images/classic/Simone_Biles_Showcast.jpeg', 
+            './images/classic/Rebeca_Andrade_Showcast.jpg', 
+            './images/classic/Ruby_Evans_Showcast.jpg', 
+            './images/classic/Ou_Yushan_Showcast.jpg', 
+            './images/classic/Brooklyn_Moors_Showcast.jpg'
+        ],
+        galleryImages: [
+            './images/gallery/Zhou_Yaqin_Showcast.jpg', './images/gallery/Zhou_Yaqin_Showcast2.jpg',
+            './images/gallery/Zhang_Yihan_Showcast.jpg', './images/gallery/Zhang_Yihan_Showcast2.jpg', 
+            './images/gallery/Kishi_Rina_Showcast.jpg', 
+            './images/gallery/Ou_Yushan.jpg', './images/gallery/Ke_Qinqin.jpeg',
+            './images/gallery/Chen_Xinyi.jpg', './images/gallery/Yang_Jingxi.jpg',
+            './images/gallery/Jin_Xiaoxuan.jpg', './images/gallery/Zhou_Yaqin.jpg',
+            './images/gallery/Qin_Xinyi.jpg','./images/gallery/Alice_DAmato_Showcast.png', './images/gallery/Kaylia_Nemour_Showcast.jpg',
+            './images/gallery/Angelina_Melnikova_Showcast.png', './images/gallery/Aiko_Sugihara_Showcast.jpg', 
+            './images/gallery/Maiana_Prat_Showcast.png', './images/gallery/Sabrina_Voinea_Showcast.png',
+            './images/gallery/Ellie_Black_Showcast.png', './images/gallery/Skye_Blakely_Showcast.png',
+            './images/gallery/Aiko_Sugihara_Showcast2.jpg', './images/gallery/Jordan_Chiles_Showcast.jpeg', 
+            './images/gallery/Shilese_Jones_Showcast.png', './images/gallery/Zhang_Yihan_Showcast3.jpg',
+            './images/gallery/Ana_Barbosu_Showcast.png'
+        ],
+        // 导演时间轴
+        sequence: ['video', 'video', 'video', 'gallery', 'gallery', 'gallery', 'classic', 'classic', 'classic']
     }
 };

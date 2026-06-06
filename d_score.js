@@ -144,7 +144,7 @@ const ChoreographyEngine = {
                 report.dmtBonus += t.dmtBonus;
             }
         });
-
+        report.cv = this.calculateCV(tracks);
         // 格式化精度
         report.dv = parseFloat(report.dv.toFixed(2));
         report.cv = parseFloat(report.cv.toFixed(2));
@@ -284,8 +284,14 @@ const ChoreographyEngine = {
                     // ==========================================
                     // 3. 单腿立转连接 (Turn + Turn)
                     // ==========================================
-                    else if (track.type === 'point' && type1 === 'turn' && type2 === 'turn' && isDirect) {
-                        if (v1 >= 4 && v2 >= 2) trackCv += 0.1;
+                    // ==========================================
+                    // 3. 单腿立转连接 (Turn + Turn)
+                    // ==========================================
+                    else if (type1 === 'turn' && type2 === 'turn' && isDirect) {
+                        // 🟢 取消了 track.type === 'point' 的严格限制，并完美支持 D+B 或 B+D
+                        if ((v1 >= 4 && v2 >= 2) || (v1 >= 2 && v2 >= 4)) {
+                            trackCv += 0.1;
+                        }
                     }
                 }
             }

@@ -174,8 +174,12 @@ window.selectMusic = async function(audioId, sysUrl) {
     }
     
     // 展现【✅ 确认导入该音乐】的按钮
+    const actionButtons = document.getElementById('musicActionButtons');
     const confirmBtn = document.getElementById('musicConfirmBtn');
+    const reselectBtn = document.getElementById('reselectMusicBtn');
+    if (actionButtons) actionButtons.classList.remove('hidden');
     if (confirmBtn) confirmBtn.classList.remove('hidden');
+    if (reselectBtn) reselectBtn.classList.add('hidden');
 };
 
 // 2. 正式绑定：用户满意了，点击“确认导入”，锁定 UI
@@ -191,13 +195,32 @@ window.confirmMusicBinding = function() {
     window.currentRoutineData.musicId = window.auditionMusicData.id;
     window.currentRoutineData.musicUrl = window.auditionMusicData.url;
 
-    ToastManager.show('success', '绑定成功', '🎉 该音乐已正式导入成套！\n现在的【保存草稿】将把音乐一同存入历史记录。', 3000);
+    // 初始化时间轴标记
+    window.musicMarkers = [{ time: 0, label: '开始' }];
+    window.currentRoutineData.musicMarkers = window.musicMarkers;
+
+    ToastManager.show('success', '绑定成功', '🎉 该音乐已正式导入成套！\n现在可以按 [M] 键在音乐中打标记点了！', 3000);
 
     // UX 魔法：隐藏确认按钮、收起繁杂的曲库卡片、露出“重新选择”按钮
-    document.getElementById('musicConfirmBtn').classList.add('hidden');
-    document.getElementById('musicLibraryList').classList.add('hidden');
-    document.getElementById('reselectMusicBtn').classList.remove('hidden');
-    document.getElementById('libraryTitle').innerText = '🎵 已绑定当前音乐 (可使用[M]键进行打点编排)';
+    const confirmBtn = document.getElementById('musicConfirmBtn');
+    const reselectBtn = document.getElementById('reselectMusicBtn');
+    const libraryList = document.getElementById('musicLibraryList');
+    const libraryTitle = document.getElementById('libraryTitle');
+    
+    if (confirmBtn) confirmBtn.classList.add('hidden');
+    if (libraryList) libraryList.classList.add('hidden');
+    if (reselectBtn) reselectBtn.classList.remove('hidden');
+    if (libraryTitle) libraryTitle.innerText = '🎵 已绑定当前音乐 (可使用[M]键进行打点编排)';
+
+    // 显示时间轴编辑器和编排框
+    const timelineEditor = document.getElementById('timelineEditor');
+    const routineEditorBox = document.getElementById('routineEditorBox');
+    if (timelineEditor) timelineEditor.classList.remove('hidden');
+    if (routineEditorBox) routineEditorBox.classList.remove('hidden');
+
+    // 更新时间轴UI
+    updateTimelineUI();
+    updateRoutineSlots();
 
     // ✨【FlowStateManager】退出音乐选择模式
     if (window.FlowStateManager) {
@@ -212,14 +235,26 @@ window.reselectMusic = function() {
     if(window.currentRoutineData) {
         window.currentRoutineData.musicId = null;
         window.currentRoutineData.musicUrl = null;
+        window.currentRoutineData.musicMarkers = null;
     }
+    
+    // 清空标记
+    window.musicMarkers = [];
 
     ToastManager.show('warning', '解绑成功', '音乐已移除，请重新在下方选择一首歌。', 2000);
 
     // UX 魔法：隐藏“重新选择”按钮、展开曲库卡片
-    document.getElementById('reselectMusicBtn').classList.add('hidden');
-    document.getElementById('musicLibraryList').classList.remove('hidden');
-    document.getElementById('libraryTitle').innerText = '🎵 可用曲库中心 (试听并选择)';
+    const reselectBtn = document.getElementById('reselectMusicBtn');
+    const libraryList = document.getElementById('musicLibraryList');
+    const libraryTitle = document.getElementById('libraryTitle');
+    const timelineEditor = document.getElementById('timelineEditor');
+    const routineEditorBox = document.getElementById('routineEditorBox');
+    
+    if (reselectBtn) reselectBtn.classList.add('hidden');
+    if (libraryList) libraryList.classList.remove('hidden');
+    if (libraryTitle) libraryTitle.innerText = '🎵 可用曲库中心 (试听并选择)';
+    if (timelineEditor) timelineEditor.classList.add('hidden');
+    if (routineEditorBox) routineEditorBox.classList.add('hidden');
     
     // 如果播放器在响，给它停掉
     if (typeof AudioEngine !== 'undefined' && AudioEngine.wavesurfer) {
@@ -229,6 +264,236 @@ window.reselectMusic = function() {
     const container = document.getElementById('waveformContainer');
     if (container) container.innerHTML = '<p class="text-center text-gray-400 text-sm py-4">请在上方选择并试听音乐</p>';
 };
+
+// 4. 时间轴打点功能
+window.handleMusicMarking = function() {
+    if (!AudioEngine || !AudioEngine.wavesurfer) return;
+    
+    const currentTime = AudioEngine.wavesurfer.getCurrentTime();
+    const duration = AudioEngine.wavesurfer.getDuration();
+    
+    // 添加标记点
+    window.musicMarkers = window.musicMarkers || [{ time: 0, label: '开始' }];
+    window.musicMarkers.push({ 
+        time: currentTime, 
+        label: `标记 ${window.musicMarkers.length}` 
+    });
+    
+    // 按时间排序
+    window.musicMarkers.sort((a, b) => a.time - b.time);
+    
+    // 如果最后一个标记不是结束，添加结束标记
+    if (window.musicMarkers[window.musicMarkers.length - 1].time < duration - 0.5) {
+        // 确保最后有一个结束标记
+    }
+    
+    // 更新UI
+    updateTimelineUI();
+    updateRoutineSlots();
+    
+    ToastManager.show('info', '标记已添加', `📍 在 ${formatTime(currentTime)} 处添加了标记点`, 1500);
+};
+
+// 5. 更新时间轴UI
+function updateTimelineUI() {
+    const markers = window.musicMarkers || [{ time: 0, label: '开始' }];
+    const timelineBackground = document.getElementById('timelineBackground');
+    const markersContainer = document.getElementById('markersContainer');
+    const markerCount = document.getElementById('markerCount');
+    const segmentCount = document.getElementById('segmentCount');
+    
+    if (!markersContainer || !timelineBackground) return;
+    
+    const duration = AudioEngine ? AudioEngine.wavesurfer.getDuration() : 10;
+    
+    // 更新时间轴背景分段
+    let bgHtml = '';
+    markers.forEach((marker, index) => {
+        const nextMarker = markers[index + 1];
+        if (nextMarker) {
+            const segmentWidth = ((nextMarker.time - marker.time) / duration) * 100;
+            const colors = ['bg-blue-100', 'bg-purple-100', 'bg-pink-100', 'bg-green-100', 'bg-yellow-100', 'bg-orange-100'];
+            const colorClass = colors[index % colors.length];
+            bgHtml += `<div class="${colorClass} flex-1 relative overflow-hidden" style="width: ${segmentWidth}%">
+                <div class="absolute inset-0 animate-pulse opacity-50"></div>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <span class="text-[10px] font-black text-slate-600">${index + 1}</span>
+                </div>
+            </div>`;
+        }
+    });
+    timelineBackground.innerHTML = bgHtml;
+    
+    // 更新标记点
+    let markersHtml = '';
+    markers.forEach((marker, index) => {
+        const position = (marker.time / duration) * 100;
+        const isStart = index === 0;
+        const isEnd = index === markers.length - 1;
+        markersHtml += `
+            <div class="absolute transform -translate-x-1/2 cursor-pointer group" style="left: ${position}%">
+                <div class="${isStart ? 'bg-green-500' : isEnd ? 'bg-red-500' : 'bg-indigo-500'} w-3 h-3 rounded-full shadow-lg border-2 border-white group-hover:scale-150 transition-transform z-10"></div>
+                <div class="absolute -top-6 left-1/2 transform -translate-x-1/2 whitespace-nowrap bg-slate-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                    ${marker.label} (${formatTime(marker.time)})
+                </div>
+                <button onclick="removeMarker(${index})" class="absolute -bottom-5 left-1/2 transform -translate-x-1/2 w-5 h-5 bg-red-500 text-white rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-20">
+                    ×
+                </button>
+            </div>
+        `;
+    });
+    markersContainer.innerHTML = markersHtml;
+    
+    // 更新计数
+    if (markerCount) markerCount.textContent = markers.length;
+    if (segmentCount) segmentCount.textContent = markers.length - 1 || 1;
+    
+    // 保存标记到数据
+    if (window.currentRoutineData) {
+        window.currentRoutineData.musicMarkers = markers;
+    }
+}
+
+// 6. 删除标记点
+window.removeMarker = function(index) {
+    const markers = window.musicMarkers || [];
+    if (index <= 0 || index >= markers.length - 1) {
+        ToastManager.show('warning', '无法删除', '首尾标记点不能删除！', 1500);
+        return;
+    }
+    
+    markers.splice(index, 1);
+    updateTimelineUI();
+    updateRoutineSlots();
+    ToastManager.show('success', '已删除', '标记点已移除', 1500);
+};
+
+// 7. 清空所有标记
+window.clearAllMarkers = function() {
+    if (!confirm('确定要清空所有标记点吗？')) return;
+    
+    const duration = AudioEngine ? AudioEngine.wavesurfer.getDuration() : 10;
+    window.musicMarkers = [
+        { time: 0, label: '开始' },
+        { time: duration, label: '结束' }
+    ];
+    updateTimelineUI();
+    updateRoutineSlots();
+    ToastManager.show('info', '已清空', '所有标记点已移除', 1500);
+};
+
+// 8. 更新编排槽位
+function updateRoutineSlots() {
+    const markers = window.musicMarkers || [{ time: 0, label: '开始' }];
+    const maxSlots = markers.length - 1;
+    const slotsContainer = document.getElementById('routineSlots');
+    const filledSlotsEl = document.getElementById('filledSlots');
+    const maxSlotsEl = document.getElementById('maxSlots');
+    const completeHint = document.getElementById('completeHint');
+    
+    if (!slotsContainer) return;
+    
+    // 获取当前已编排的动作
+    const placedActions = window.currentRoutineData?.placedActions || [];
+    
+    let slotsHtml = '';
+    for (let i = 0; i < maxSlots; i++) {
+        const action = placedActions[i];
+        slotsHtml += `
+            <div id="slot-${i}" class="relative aspect-square bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 transition-all ${action ? 'border-solid border-indigo-500 bg-white' : ''}" 
+                ondragover="allowDrop(event)" ondrop="dropAction(event, ${i})">
+                ${action ? `
+                    <div class="text-lg">${action.icon || '🎯'}</div>
+                    <div class="text-[9px] font-bold text-slate-700 text-center mt-1 truncate px-1">${action.name}</div>
+                    <button onclick="removeActionFromSlot(${i})" class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-[8px] flex items-center justify-center hover:bg-red-600">×</button>
+                ` : `
+                    <div class="text-slate-300 text-xs text-center px-1">拖入动作 ${i + 1}</div>
+                `}
+            </div>
+        `;
+    }
+    
+    slotsContainer.innerHTML = slotsHtml;
+    
+    // 更新计数
+    if (filledSlotsEl) filledSlotsEl.textContent = placedActions.length;
+    if (maxSlotsEl) maxSlotsEl.textContent = maxSlots;
+    
+    // 检查是否完成
+    const totalTracks = canvasManager?.tracks?.filter(t => t.type !== 'transit').length || 0;
+    const isComplete = placedActions.length === maxSlots && placedActions.length === totalTracks;
+    
+    if (completeHint) {
+        completeHint.classList.toggle('hidden', !isComplete);
+    }
+}
+
+// 9. 拖拽相关函数
+window.allowDrop = function(e) {
+    e.preventDefault();
+};
+
+window.dropAction = function(e, slotIndex) {
+    e.preventDefault();
+    
+    const markers = window.musicMarkers || [{ time: 0, label: '开始' }];
+    const maxSlots = markers.length - 1;
+    const placedActions = window.currentRoutineData?.placedActions || [];
+    
+    const trackIndexStr = e.dataTransfer.getData('text/plain');
+    if (!trackIndexStr) return;
+    
+    const trackIndex = parseInt(trackIndexStr, 10);
+    if (isNaN(trackIndex) || typeof canvasManager === 'undefined' || !canvasManager.tracks[trackIndex]) return;
+
+    const track = canvasManager.tracks[trackIndex];
+    
+    if (track.type === 'transit' || !track.skills || track.skills.length === 0) {
+        ToastManager.show('warning', '无效操作', '只能将包含具体动作的路线拖入编排小节！', 2000);
+        return;
+    }
+
+    if (placedActions.filter(Boolean).length >= maxSlots && !placedActions[slotIndex]) {
+        ToastManager.show('warning', '数量受限', '音乐小节已满！请按 [M] 键在时间轴上添加更多标记点。', 2500);
+        return;
+    }
+    
+    const action = {
+        id: track.id,
+        trackIndex: trackIndex,
+        name: track.skills.map(s => s.nameZh[0]).join(' + '),
+        icon: track.type === 'line' ? '📏' : (track.type === 'curve' ? '〰️' : '📍')
+    };
+    
+    const existingIndex = placedActions.findIndex(a => a && a.id === action.id);
+    if (existingIndex !== -1 && existingIndex !== slotIndex) {
+        ToastManager.show('warning', '已存在', '该路线已在别的音乐小节中，请勿重复编排！', 2000);
+        return;
+    }
+    
+    placedActions[slotIndex] = action;
+    window.currentRoutineData.placedActions = placedActions;
+    
+    updateRoutineSlots();
+    ToastManager.show('success', '卡点成功', `路线 ${trackIndex + 1} 已与该音乐小节绑定！`, 1500);
+};
+
+// 10. 从槽位移除动作
+window.removeActionFromSlot = function(slotIndex) {
+    const placedActions = window.currentRoutineData?.placedActions || [];
+    placedActions.splice(slotIndex, 1);
+    window.currentRoutineData.placedActions = placedActions;
+    updateRoutineSlots();
+    ToastManager.show('info', '已移除', '动作已从编排框移除', 1500);
+};
+
+// 11. 格式化时间
+function formatTime(seconds) {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    const ms = Math.floor((seconds % 1) * 100);
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
+}
 
 // 5. 接管文件上传事件 (事件监听员)
 document.addEventListener('DOMContentLoaded', () => {

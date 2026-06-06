@@ -451,6 +451,19 @@ const AppController = {
         
         // 恢复体操运动员显示
         this.updateGymnastDisplay();
+        
+        // 如果有得分报告，显示音乐模式开关
+        if (routine.scoreReport) {
+            const musicModeWrapper = document.getElementById('musicModeWrapper');
+            const musicModeLabel = document.getElementById('musicModeLabel');
+            if (musicModeWrapper) {
+                musicModeWrapper.classList.remove('hidden');
+                musicModeWrapper.classList.remove('grayscale', 'opacity-70');
+            }
+            if (musicModeLabel) {
+                musicModeLabel.innerText = '🎬 现场/音乐模式';
+            }
+        }
     },
 
     // ✨【新增】：更新体操运动员显示面板
@@ -990,7 +1003,11 @@ const AppController = {
         } else {
             // 数据库名将模式
             const gymnast = gymnastsData.find(g => g.id === mode);
-            if (!gymnast) return;
+            if (!gymnast) {
+                ToastManager.show('error', '错误', '未找到选手数据，请检查选手配置！');
+                console.error("⚠️ 未找到选手数据:", mode);
+                return;
+            }
             window.currentRoutineData.gymnastName = gymnast.nameEn;
             
             // 【核心联动】：调用双引擎算分！
@@ -1146,8 +1163,16 @@ const AppController = {
         const modalDiv = document.createElement('div');
         modalDiv.innerHTML = html;
         document.body.appendChild(modalDiv.firstElementChild);
-        document.getElementById('musicModeWrapper').classList.remove('grayscale', 'opacity-70');
-        document.getElementById('musicModeLabel').innerText = '🎬 现场/音乐模式';
+        // 显示音乐模式开关
+        const musicModeWrapper = document.getElementById('musicModeWrapper');
+        if (musicModeWrapper) {
+            musicModeWrapper.classList.remove('hidden');
+            musicModeWrapper.classList.remove('grayscale', 'opacity-70');
+        }
+        const musicModeLabel = document.getElementById('musicModeLabel');
+        if (musicModeLabel) {
+            musicModeLabel.innerText = '🎬 现场/音乐模式';
+        }
     },
 
     // ✨【新增】：冲榜扣费与拦截系统
@@ -1278,12 +1303,6 @@ const AppController = {
 
     // ✨【新增】：暂存草稿功能
     saveDraft: function() {
-        // ✨【FlowStateManager】先检查功能状态
-        if (window.FlowStateManager && window.FlowStateManager.isAnyFlowActive()) {
-            window.FlowStateManager.showInterception('保存草稿');
-            return;
-        }
-
         if (canvasManager.tracks.length === 0) {
             ToastManager.show('warning', '操作拦截', '画板上还没有任何动作，不需要保存草稿哦~');
             return;
@@ -1407,14 +1426,8 @@ const AppController = {
         this.renderHistory();
     },
 
-    // ✨【修复 #1】私密分享草稿 (不再上榜) - 带功能状态锁
+    // ✨【修复 #1】私密分享草稿 (不再上榜)
     shareFromHistory: function(id) {
-        // ✨【安全修复】：先检查功能状态锁
-        if (window.FlowStateManager && window.FlowStateManager.isAnyFlowActive()) {
-            window.FlowStateManager.showInterception('私密分享');
-            return;
-        }
-
         let history = JSON.parse(localStorage.getItem('gymChoreoHistory') || '[]');
         let routine = history.find(r => r.id === id);
         if (!routine) return;
@@ -1438,12 +1451,6 @@ const AppController = {
 
     // ✨【修复 #5】历史记录的“冲榜”校验器
     uploadFromHistory: function(id) {
-        // ✨【安全修复】：先检查功能状态锁
-        if (window.FlowStateManager && window.FlowStateManager.isAnyFlowActive()) {
-            window.FlowStateManager.showInterception('冲榜上传');
-            return;
-        }
-
         let history = JSON.parse(localStorage.getItem('gymChoreoHistory') || '[]');
         let routine = history.find(r => r.id === id);
         if (!routine) return;
@@ -1592,12 +1599,6 @@ const AppController = {
     // ✨【新增】：逆向工程，将历史记录完全还原到工作台
     // toNewWorkspace: true = 导入到新草稿纸, false = 覆盖当前编辑
     loadRoutine: function(id, toNewWorkspace = false) {
-        // ✨【FlowStateManager】先检查功能状态
-        if (window.FlowStateManager && window.FlowStateManager.isAnyFlowActive() && window.FlowStateManager.getCurrentFlow() !== 'history_viewing') {
-            window.FlowStateManager.showInterception('加载历史');
-            return;
-        }
-
         // 🟢 智能执裁互斥锁：如果画板是空的，直接无视锁定放行！
         const isBoardEmpty = typeof canvasManager === 'undefined' || !canvasManager.tracks || canvasManager.tracks.length === 0;
         
@@ -1605,11 +1606,6 @@ const AppController = {
             ToastManager.show('error', '操作被拦截 🛑', '当前正在执裁打分中！\n请先完成打分或清空画板，再导入新成套。', 5000);
             return; // 强制熔断
         }  
-
-        // ✨【FlowStateManager】退出历史查看模式
-        if (window.FlowStateManager) {
-            window.FlowStateManager.exitFlow('history_viewing', true);
-        }
 
         let history = JSON.parse(localStorage.getItem('gymChoreoHistory') || '[]');
         let routine = history.find(r => r.id === id);
@@ -1636,7 +1632,7 @@ const AppController = {
         this.restoreRoutineData(routine);
     },
 
-    // ✨【新增】：将历史记录导入到新草稿纸
+    // ✨【新增】：将历史记录导入到新草稿纸（切换到设置面板）
     loadRoutineToNewWorkspace: function(routine) {
         // 检查草稿纸数量上限
         if (WorkspaceManager.workspaces.length >= WorkspaceManager.MAX_WORKSPACES) {
@@ -1644,36 +1640,30 @@ const AppController = {
             return;
         }
 
-        // 保存当前状态
-        WorkspaceManager.saveCurrentState();
+        // 切换到设置面板
+        switchTab('setup');
         
-        // 新建草稿纸并导入数据
-        const newIndex = WorkspaceManager.workspaces.length;
-        WorkspaceManager.workspaces.push({
-            id: 'ws_' + Date.now(),
+        // 预填充设置数据
+        window.currentRoutineData = {
             name: routine.name.replace(" (草稿)", "").replace(" (🎶 音乐现场版)", ""),
-            routineData: {
-                name: routine.name.replace(" (草稿)", "").replace(" (🎶 音乐现场版)", ""),
-                brand: routine.brand || "gymnova",
-                gymnastMode: routine.gymnastMode || "none",
-                gymnastName: routine.gymnastName || "纯排位测试 (无E分)",
-                musicId: routine.musicId || null,
-                musicUrl: routine.musicUrl || null,
-                initialized: true // ✨【新增】：导入的成套标记为已初始化
-            },
-            tracks: JSON.parse(JSON.stringify(routine.tracks)),
-            scoreReport: routine.scoreReport ? JSON.parse(JSON.stringify(routine.scoreReport)) : null,
-            eScoreReport: routine.eScoreReport ? JSON.parse(JSON.stringify(routine.eScoreReport)) : null,
-            playbackMode: routine.playbackMode || 'auto'
-        });
+            brand: routine.brand || "gymnova",
+            gymnastMode: routine.gymnastMode || "none",
+            gymnastName: routine.gymnastName || "",
+            musicId: routine.musicId || null,
+            musicUrl: routine.musicUrl || null,
+            initialized: false // 未完成设置，需要用户确认
+        };
         
-        // 切换到新草稿纸
-        WorkspaceManager.executeSwitch(newIndex);
+        // 填充表单
+        const routineNameInput = document.getElementById('routineNameInput');
+        if (routineNameInput) routineNameInput.value = window.currentRoutineData.name;
         
-        // 恢复全局状态
-        this.restoreGlobalState(routine);
+        // 应用地板品牌
+        if (typeof selectBrand === 'function') {
+            selectBrand(window.currentRoutineData.brand);
+        }
         
-        ToastManager.show('success', '导入成功', `已将【${routine.name}】导入到新草稿纸！`, 4000);
+        ToastManager.show('info', '导入数据已填充', '请检查配置并点击"进入编排战术板"！', 3000);
     },
 
     // ✨【新增】：恢复成套数据到当前草稿纸
@@ -1995,12 +1985,6 @@ window.saveRoutine = function() {
 };
 
 window.startPlayback = function(mode) {
-    // ✨【FlowStateManager】先检查功能状态
-    if (window.FlowStateManager && window.FlowStateManager.isAnyFlowActive()) {
-        window.FlowStateManager.showInterception('3D回放');
-        return;
-    }
-
     document.getElementById('playbackOptionsModal').classList.add('hidden');
     // ✨【Bug 修复】：重新播放时，强制将可能未收回的 E裁判 面板踢回底部！
     const deck = document.getElementById('juryCardDeck');
@@ -2009,18 +1993,6 @@ window.startPlayback = function(mode) {
         deck.classList.add('translate-y-full');
     }
     window.currentPlaybackMode = mode;
-
-    // ✨【FlowStateManager】进入3D回放模式
-    if (window.FlowStateManager) {
-        window.FlowStateManager.enterFlow('3d_playback', {
-            autoSave: true,
-            snapshot: window.currentRoutineData,
-            onExit: () => {
-                // 退出时恢复编辑状态
-                AppController.applyViewingMode(false);
-            }
-        });
-    } 
     
     if (mode === 'skip_to_d') {
         // 【秒结算模式】：跳过所有动画，直接弹成绩单！
@@ -2135,14 +2107,18 @@ window.SidebarInteraction = {
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
     const workbenchLogo = document.getElementById('workbench-logo');
-    const startView = document.getElementById('viewStart');
+    const heroSection = document.getElementById('heroSection');
     const mainNav = document.getElementById('mainNav');
     const mainBody = document.getElementById('mainBody');
 
-    if (workbenchLogo && startView && mainNav) {
+    if (workbenchLogo && heroSection && mainNav) {
         workbenchLogo.addEventListener('click', () => {
+            // 安全检查：确保 window.currentTab 有效
+            const currentTab = window.currentTab || 'dictionary';
+            const tabId = currentTab.charAt(0).toUpperCase() + currentTab.slice(1);
+            
             // 获取当前正在显示的工作台界面
-            const currentView = document.getElementById('view' + window.currentTab.charAt(0).toUpperCase() + window.currentTab.slice(1));
+            const currentView = document.getElementById('view' + tabId);
             
             // 1. 导航栏和当前工作台开始淡出 (0.5秒)
             mainNav.style.opacity = '0';
@@ -2162,11 +2138,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // 唤醒首页
                 mainBody.classList.add('overflow-hidden');
-                startView.classList.remove('hidden');
+                heroSection.classList.remove('hidden');
                 
                 // 3. 极短延迟后，首页优雅淡入 (0.8秒)
                 setTimeout(() => {
-                    startView.style.opacity = '1';
+                    heroSection.style.opacity = '1';
                 }, 50);
 
             }, 500); 
@@ -2329,7 +2305,13 @@ const AudioEngine = {
                 this.wavesurfer.playPause();
             } else if (e.code === 'KeyM') {
                 e.preventDefault();
-                this.handleMarking();
+                // 调用音乐编排控制器的打点函数
+                if (typeof window.handleMusicMarking === 'function') {
+                    window.handleMusicMarking();
+                } else {
+                    // 降级到原有的 handleMarking
+                    this.handleMarking();
+                }
             }
         });
         this._keydownBound = true;
@@ -2823,3 +2805,11 @@ window.confirmUpload = function() {
         }
     }, 200);
 };
+
+// 初始化教程系统
+window.addEventListener('load', () => {
+    if (typeof TutorialSystem !== 'undefined') {
+        TutorialSystem.init();
+    }
+});
+

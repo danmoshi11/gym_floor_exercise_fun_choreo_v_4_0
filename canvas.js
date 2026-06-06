@@ -63,37 +63,37 @@ const canvasManager = {
     },
 
     // ✨【新增】：显示空白画板提示
-    showEmptyCanvasPrompt: function() {
-        // 如果提示已经显示，不再重复显示
+        showEmptyCanvasPrompt: function() {
         if (document.getElementById('emptyCanvasPrompt')) return;
+        if (window.currentTab !== 'builder') return;
+
+        const container = document.getElementById('floorContainer');
+        if (!container) return;
 
         const promptDiv = document.createElement('div');
         promptDiv.id = 'emptyCanvasPrompt';
+        promptDiv.className = 'absolute inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 rounded-xl';
         promptDiv.innerHTML = `
-            <div class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-                <div class="bg-white rounded-2xl p-6 w-80 shadow-2xl">
-                    <div class="text-center mb-4">
-                        <div class="text-5xl mb-3">📝</div>
-                        <h3 class="text-xl font-bold text-slate-800">开始新成套</h3>
-                        <p class="text-sm text-slate-500 mt-2">当前是空白草稿纸</p>
-                    </div>
-                    
-                    <div class="space-y-3">
-                        <button onclick="canvasManager.startNewRoutine()" 
-                                class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2">
-                            <span>🎯</span>
-                            <span>新建成套</span>
-                        </button>
-                        
-                        <button onclick="canvasManager.closeEmptyCanvasPrompt()" 
-                                class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 px-6 rounded-xl transition-all">
-                            关闭
-                        </button>
-                    </div>
+            <div class="bg-white rounded-3xl p-6 w-11/12 max-w-xs shadow-2xl transform transition-all">
+                <div class="text-center mb-5">
+                    <div class="text-5xl mb-3">📝</div>
+                    <h3 class="text-xl font-black text-slate-800 midnight-weight-fix">开始新成套</h3>
+                    <p class="text-xs text-slate-500 mt-2">当前是空白草稿纸，请先配置参数信息</p>
+                </div>
+                <div class="space-y-3">
+                    <button onclick="canvasManager.startNewRoutine()" 
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-3.5 px-6 rounded-xl transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 text-sm">
+                        <span>🎯</span>
+                        <span>配置场地与选手</span>
+                    </button>
+                    <button onclick="canvasManager.closeEmptyCanvasPrompt()" 
+                            class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3.5 px-6 rounded-xl transition-all text-sm">
+                        稍后配置
+                    </button>
                 </div>
             </div>
         `;
-        document.body.appendChild(promptDiv);
+        container.appendChild(promptDiv);
     },
 
     // ✨【新增】：关闭空白画板提示
@@ -112,12 +112,15 @@ const canvasManager = {
         }
         window.currentRoutineData.initialized = true;
         
-        // 显示体操运动员选择面板
-        if (typeof AppController !== 'undefined' && AppController.openGymnastModal) {
-            AppController.openGymnastModal();
+        // 💡【核心修复】：不再直接呼叫残缺的选人小弹窗，而是霸道地展示包含所有配置项（场地、名称、选手）的 setupModal！
+        const setupModal = document.getElementById('setupModal');
+        if (setupModal) {
+            setupModal.classList.remove('hidden');
         }
         
-        ToastManager.show('info', '欢迎开始新成套', '请先选择体操运动员，或直接开始编排！', 4000);
+        if (typeof ToastManager !== 'undefined') {
+            ToastManager.show('info', '开启新草稿纸', '请在上方配置成套名称与场地环境！', 3000);
+        }
     },
 
     getMousePos: function(evt) {
@@ -151,35 +154,27 @@ const canvasManager = {
         return null;
     },
 
-    startDraw: function(e) {
-        // 🔒【安全防线】：如果 E裁判 面板当前处于激活呼出状态，完全锁死画板绘画行为
+        startDraw: function(e) {
         const eDeck = document.getElementById('juryCardDeck');
         if (eDeck && !eDeck.classList.contains('translate-y-full')) {
             console.warn("🔒 正在执裁打分模式，战术画板已进入只读安全锁状态！");
             return;
         }
 
-        // ✨【FlowStateManager】检查是否有其他活动功能
+        if (window.ThreeEngine && window.ThreeEngine.isActive) {
+            console.warn("🔒 3D 现场演示中，已自动锁定位移，防止 2D 轨迹越权穿透！");
+            return;
+        }
+
         if (window.FlowStateManager && window.FlowStateManager.isAnyFlowActive() && window.FlowStateManager.getCurrentFlow() !== 'canvas_editing') {
             window.FlowStateManager.showInterception('画板编辑');
             return;
         }
 
-        // ✨【新增】：如果画板为空且未初始化，显示新建提示
         if (this.tracks.length === 0 && !window.currentRoutineData?.initialized) {
             this.showEmptyCanvasPrompt();
             return;
-        }
-
-        // ✨【FlowStateManager】进入画板编辑模式
-        if (window.FlowStateManager && !window.FlowStateManager.isAnyFlowActive()) {
-            window.FlowStateManager.enterFlow('canvas_editing', {
-                autoSave: true,
-                snapshot: window.currentRoutineData
-            });
-        }
-        
-        const pos = this.getMousePos(e);
+        }const pos = this.getMousePos(e);
         
         // 【核心】拖拽模式入口
         if (this.currentTool === 'move') {
@@ -713,6 +708,8 @@ const canvasManager = {
             return;
         }
         
+        // 设置动画状态标志
+        this.isAnimating = true;
         this.showcaseMarks = []; 
         let currentIndex = 0;
         const _this = this;
@@ -809,6 +806,7 @@ const canvasManager = {
                         setTimeout(() => requestAnimationFrame(() => animateTrack(Date.now())), 300);
                     } else {
                         // 🟢 动画结束，销毁跳过按钮
+                        _this.isAnimating = false;
                         if (skipBtn && skipBtn.parentNode) skipBtn.parentNode.removeChild(skipBtn);
                         _this.redraw(-1, -1);
                         if (callback) callback(); 
@@ -827,6 +825,79 @@ const canvasManager = {
             }
         }
         requestAnimationFrame(() => animateTrack(Date.now()));
+    },
+
+    // ==========================================
+    // ✨【音乐时间轴卡点引擎】：基于真实音频时间的轨迹演示
+    // ==========================================
+    playMusicSyncAnimation: function() {
+        // 过滤出有音频同步标记的动作轨迹
+        const actionTracks = this.tracks.filter(t => t.type !== 'transit' && t.audioSync && t.audioSync.endTime !== null);
+        
+        if (actionTracks.length === 0) {
+            console.warn("⚠️ 音乐模式下缺少时间戳标记，无法执行卡点动画！\n请先在音乐时间轴上为轨迹添加 startTime 和 endTime 标记。");
+            return;
+        }
+        
+        this.isAnimating = true;
+        
+        // 1. 防抖与清理：如果有旧动画在跑，强制掐断
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
+        }
+
+        // 2. 拿到最后一个动作的结束时间，作为整个动画的终点
+        const lastTrack = actionTracks[actionTracks.length - 1];
+        const totalDuration = lastTrack.audioSync.endTime;
+
+        // 3. 核心逐帧渲染器
+        const animate = () => {
+            if (!this.isAnimating) return;
+
+            // 🎶 获取真实音频时间（核心：接入 AudioEngine）
+            let currentTime = typeof AudioEngine !== 'undefined' ? AudioEngine.getCurrentTime() : 0;
+
+            // 如果音乐播完了，结束动画
+            if (currentTime >= totalDuration) {
+                this.isAnimating = false;
+                this.currentAnimIndex = -1;
+                this.redrawBasedOnTime(totalDuration); // 画最后一帧
+                return;
+            }
+
+            // 🔍 扫描：当前音乐时间落在哪条轨迹的区间里？
+            this.currentAnimIndex = actionTracks.findIndex(track => 
+                currentTime >= track.audioSync.startTime && currentTime < track.audioSync.endTime
+            );
+
+            // 🎯 精确计算进度 (0.00 ~ 1.00)
+            if (this.currentAnimIndex !== -1) {
+                const currentTrack = actionTracks[this.currentAnimIndex];
+                this.animationProgress = (currentTime - currentTrack.audioSync.startTime) / 
+                                        (currentTrack.audioSync.endTime - currentTrack.audioSync.startTime);
+            }
+
+            // ⚡ 触发基于时间的精准重绘（核心：调用 redrawBasedOnTime）
+            this.redrawBasedOnTime(currentTime);
+            
+            // 请求下一帧继续跑
+            this.animationFrameId = requestAnimationFrame(animate);
+        };
+
+        // 启动引擎
+        animate();
+    },
+
+    // 专属的音乐动画停止刹车
+    stopMusicSyncAnimation: function() {
+        this.isAnimating = false;
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
+        }
+        this.currentAnimIndex = -1;
+        this.redraw();
     }
 };
 
@@ -843,3 +914,5 @@ window.setTool = function(tool) {
     });
 };
 window.clearCanvas = function() { canvasManager.clearAll(); };
+
+

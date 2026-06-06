@@ -113,6 +113,56 @@
         @media (max-width: 768px) {
             .hero-carousel { background-size: contain; background-position: bottom; }
         }
+    
+    /* ==========================================
+       🌌 深夜模式 (Deep Night Mode) 核心样式
+       ========================================== */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&display=swap');
+    
+    body.midnight-theme {
+        background-color: #05070f !important;
+        color: #e2e8f0 !important;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+        font-weight: 300;
+    }
+    body.midnight-theme nav {
+        background-color: rgba(10, 15, 30, 0.8) !important;
+        border-color: #1a2333 !important;
+    }
+    body.midnight-theme .bg-white, 
+    body.midnight-theme #workspaceSidebar,
+    body.midnight-theme .track-card {
+        background-color: #0b1121 !important;
+        border-color: #1e293b !important;
+        color: #f8fafc !important;
+    }
+    body.midnight-theme .text-slate-800, 
+    body.midnight-theme .text-gray-800,
+    body.midnight-theme h1, body.midnight-theme h2, body.midnight-theme h3 {
+        color: #f1f5f9 !important;
+        font-weight: 400 !important;
+    }
+    body.midnight-theme .font-black, body.midnight-theme .font-extrabold {
+        font-weight: 500 !important;
+        letter-spacing: 0.03em;
+    }
+    body.midnight-theme .midnight-weight-fix {
+        font-weight: 400 !important;
+    }
+    body.midnight-theme .text-slate-500, body.midnight-theme .text-gray-500 {
+        color: #94a3b8 !important;
+    }
+    body.midnight-theme .bg-slate-50, body.midnight-theme .bg-gray-50 {
+        background-color: #0e1626 !important;
+    }
+    body.midnight-theme .border-slate-200, body.midnight-theme .border-gray-200 {
+        border-color: #1a2436 !important;
+    }
+    body.midnight-theme #musicDrawer, body.midnight-theme #juryCardDeck {
+        background-color: rgba(11, 17, 33, 0.95) !important;
+        border-color: #1e293b !important;
+    }
+
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen font-sans text-slate-800 overflow-hidden" id="mainBody">
@@ -126,7 +176,7 @@
         </div>
         <div class="text-slate-500 text-xs mt-6 font-mono tracking-widest uppercase">Initializing Engine...</div>
     </div>
-    <main id="viewStart" class="fixed inset-0 z-50 w-full h-screen flex items-center justify-center bg-slate-950 overflow-hidden transition-opacity duration-1000">
+    <main id="heroSection" class="fixed inset-0 z-50 w-full h-screen flex items-center justify-center bg-slate-950 overflow-hidden transition-opacity duration-1000">
         <div id="ambientBlobs" class="absolute inset-0 z-0 pointer-events-none transition-opacity duration-1000">
             <div class="absolute inset-0 backdrop-blur-xl bg-slate-900/50"></div>
             <div class="absolute top-[-10%] left-[-10%] w-[60vw] h-[60vw] bg-indigo-700/70 rounded-full mix-blend-screen filter blur-none animate-blob"></div>
@@ -146,7 +196,7 @@
                     <div class="text-yellow-100 font-bold text-xs leading-tight mt-0.5">更新日志</div>
                 </div>
             </div>
-            <div onclick="document.getElementById('uploadModal').classList.remove('hidden')" 
+            <div id="createRoutineBtn" onclick="document.getElementById('uploadModal').classList.remove('hidden')" 
                 class="absolute -bottom-10 -left-10 w-36 h-36 bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-400 starburst-badge animate-heartbeat flex items-center justify-center cursor-pointer shadow-2xl hover:scale-110 transition-transform z-50" title="上传私人素材">
                 <div class="text-center transform rotate-6 mt-2">
                     <div class="text-white text-3xl drop-shadow-md">🎵</div>
@@ -172,10 +222,10 @@
             <h1 id="workbench-logo" class="text-xl font-black tracking-tight text-slate-800 flex items-center gap-2 cursor-pointer hover:opacity-70 transition-opacity">
                 🤸‍♀️ GymChoreo <span class="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-md border border-slate-200">CoP 25-28</span>
             </h1>
-            <div class="flex gap-3 md:gap-6 h-full items-center">
+            <div id="navTabs" class="flex gap-3 md:gap-6 h-full items-center">
                 <button id="tabBtnDictionary" onclick="switchTab('dictionary')" class="h-full border-b-[3px] border-transparent px-2 text-sm font-bold text-slate-500 hover:text-blue-600 transition-colors">📚 字典</button>
                 <button id="tabBtnBuilder" onclick="switchTab('builder')" class="h-full border-b-[3px] border-transparent px-2 text-sm font-bold text-slate-500 hover:text-blue-600 transition-colors">🎨 画板</button>
-                <button onclick="switchTab('music')" id="tab-music" class="px-3 py-1.5 text-xs font-bold rounded text-slate-300 hover:text-white transition-colors">🎵 音乐库</button>
+                <button data-tab="music" onclick="switchTab('music')" id="tab-music" class="px-3 py-1.5 text-xs font-bold rounded text-slate-300 hover:text-white transition-colors">🎵 音乐库</button>
                 <button id="tabBtnHistory" onclick="switchTab('history')" class="h-full border-b-[3px] border-transparent px-2 text-sm font-bold text-slate-500 hover:text-blue-600 transition-colors">📁 草稿</button>
                 <button id="tabBtnLeaderboard" onclick="switchTab('leaderboard')" class="h-full border-b-[3px] border-transparent px-2 text-sm font-bold text-slate-500 hover:text-blue-600 transition-colors text-indigo-500">🏆 奖牌榜</button>
                 
@@ -191,6 +241,7 @@
                     </div>
                 </div>
                 
+                <button id="midnightThemeToggleBtn" onclick="toggleMidnightMode()" class="px-3 py-1.5 text-xs font-bold bg-slate-900 text-indigo-200 border border-slate-700 rounded-full shadow-sm hover:bg-slate-800 transition-colors mr-1 flex items-center gap-1">🌌 深夜模式</button>
                 <div class="flex items-center gap-1.5 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-full shadow-sm select-none" title="每日登录自动获取100金币">
                     <span class="text-sm">🪙</span>
                     <span id="coinDisplay" class="font-black text-amber-600 text-sm">0</span>
@@ -211,63 +262,7 @@
         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4" id="skillsGrid"></div>
     </main>
 
-    <main id="viewSetup" class="max-w-4xl mx-auto p-6 mt-10 hidden">
-        <div class="bg-white p-10 rounded-[2rem] shadow-xl border border-slate-200">
-            <h2 class="text-3xl font-black text-slate-800 mb-2">新建成套编排</h2>
-            <p class="text-slate-500 mb-8">在进入画板前，请先配置您的项目基础信息。</p>
-            
-            <div class="space-y-8">
-                <div>
-                    <label class="block text-sm font-bold text-slate-600 uppercase tracking-wider mb-2">📝 1. 成套名称</label>
-                    <input type="text" id="routineNameInput" placeholder="例如：2026全锦赛预赛..." class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none font-bold text-slate-700 text-lg transition-all">
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-bold text-slate-600 uppercase tracking-wider mb-3">🤸‍♀️ 2. 选手身份 (影响 E 分与失误模拟)</label>
-                    <div class="flex gap-3 mb-3">
-                        <button onclick="AppController.openGymnastModal()" class="flex-1 bg-white border-2 border-slate-200 text-slate-700 font-bold py-3.5 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all shadow-sm flex items-center justify-center gap-2">
-                            🔍 数据库选人
-                        </button>
-                        <button onclick="AppController.setGymnastMode('custom')" class="flex-1 bg-white border-2 border-slate-200 text-slate-700 font-bold py-3.5 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all shadow-sm flex items-center justify-center gap-2">
-                            ✨ 自定义
-                        </button>
-                        <button onclick="AppController.setGymnastMode('none')" class="flex-1 bg-white border-2 border-slate-200 text-slate-700 font-bold py-3.5 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all shadow-sm flex items-center justify-center gap-2">
-                            🙈 不算E分
-                        </button>
-                    </div>
-
-                    <div id="setupGymnastDisplay" class="hidden p-4 bg-blue-50 border-2 border-blue-200 rounded-xl flex items-center gap-4 transition-all shadow-sm">
-                        <div class="w-14 h-14 rounded-full bg-white border-2 border-blue-200 overflow-hidden flex items-center justify-center text-3xl shrink-0" id="setupGymnastAvatar">
-                            🙈
-                        </div>
-                        <div class="flex-1">
-                            <div class="font-black text-slate-800 text-xl flex items-center gap-2">
-                                <span id="setupGymnastFlag"></span>
-                                <span id="setupGymnastName">纯排位测试 (无E分)</span>
-                            </div>
-                            <div class="text-sm font-bold text-blue-600 mt-1" id="setupGymnastStats">系统将仅计算D分</div>
-                        </div>
-                    </div>
-                    
-                    <input type="text" id="customGymnastNameInput" placeholder="输入自定义选手英文名/中文名..." class="w-full p-4 bg-white border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none font-bold text-slate-700 hidden transition-all shadow-sm">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-bold text-slate-600 uppercase tracking-wider mb-2">🏟️ 3. 物理场地品牌 (视觉底色)</label>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="brandSelector">
-                        <button onclick="selectBrand('gymnova')" class="brand-btn border-2 border-blue-500 bg-blue-50 rounded-xl p-4 flex flex-col items-center gap-2 transition-all shadow-sm" data-brand="gymnova"><div class="w-8 h-8 bg-[#fef3c7] border-2 border-[#dc2626] rounded-full"></div><span class="font-bold text-sm text-slate-700">Gymnova</span></button>
-                        <button onclick="selectBrand('taishan')" class="brand-btn border-2 border-slate-100 bg-white hover:bg-slate-50 rounded-xl p-4 flex flex-col items-center gap-2 transition-all" data-brand="taishan"><div class="w-8 h-8 bg-[#1e3a8a] border-2 border-[#1e40af] rounded-full"></div><span class="font-bold text-sm text-slate-700">Taishan</span></button>
-                        <button onclick="selectBrand('spieth')" class="brand-btn border-2 border-slate-100 bg-white hover:bg-slate-50 rounded-xl p-4 flex flex-col items-center gap-2 transition-all" data-brand="spieth"><div class="w-8 h-8 bg-[#e0f2fe] border-2 border-[#cbd5e1] rounded-full"></div><span class="font-bold text-sm text-slate-700">Spieth</span></button>
-                        <button onclick="selectBrand('gaofei')" class="brand-btn border-2 border-slate-100 bg-white hover:bg-slate-50 rounded-xl p-4 flex flex-col items-center gap-2 transition-all" data-brand="gaofei"><div class="w-8 h-8 bg-[#fee2e2] border-2 border-[#b91c1c] rounded-full"></div><span class="font-bold text-sm text-slate-700">Gaofei</span></button>
-                    </div>
-                </div>
-
-                <button onclick="enterBuilder()" class="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-black text-xl py-4 rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5">
-                    进入编排战术板 🚀
-                </button>
-            </div>
-        </div>
-    </main>
+    
 
     <main id="viewBuilder" class="max-w-[1400px] mx-auto p-4 md:p-6 hidden">
         <div id="workspaceSidebar" class="fixed left-0 top-16 bottom-0 w-64 bg-slate-50 border-r border-slate-200 shadow-lg transform -translate-x-full transition-transform duration-300 z-40 flex flex-col">
@@ -303,7 +298,7 @@
                     <div class="flex items-center gap-2 mb-1">
                         <h3 class="font-black text-sm text-slate-800 leading-none truncate max-w-[120px]" id="displayRoutineName">未命名</h3>
                         <span id="displayBrand" class="text-[9px] font-bold text-blue-600 bg-blue-50 px-1 rounded uppercase border border-blue-100">GYMNOVA</span>
-                        <button onclick="editSetup()" class="text-[10px] text-slate-400 font-bold hover:text-blue-500 underline ml-1">修改</button>
+                        <button onclick="document.getElementById('setupModal').classList.remove('hidden')" class="text-[10px] text-slate-400 font-bold hover:text-blue-500 underline ml-1">修改</button>
                     </div>
                     <div class="flex items-center gap-2 text-base font-black text-slate-700">
                         <span id="displayGymnastFlag" class="flex items-center shrink-0"></span>
@@ -334,7 +329,7 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div id="workspaceContainer" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
            <div class="lg:col-span-2 flex flex-col gap-4">
                 
                 <div class="flex justify-between items-center bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
@@ -354,17 +349,16 @@
                     ✅ 完成编排并计算最终成绩
                 </button>
 
-                <div class="w-full max-w-[500px] mx-auto mb-2 flex justify-end items-center px-1">
-                    <div id="musicModeWrapper" class="relative inline-flex items-center cursor-pointer bg-slate-100 px-3 py-1 rounded-full border border-slate-200 shadow-sm transition-all grayscale opacity-70 hover:grayscale-0 hover:opacity-100" onclick="checkMusicModeEligibility(event)">
-                        <span class="text-[11px] font-black text-slate-500 mr-2" id="musicModeLabel">🔒 现场/音乐模式 (请先完成编排)</span>
-                        <input type="checkbox" id="musicModeToggle" class="sr-only peer" onchange="toggleMusicMode(this)">
-                        <div class="w-7 h-4 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[6px] after:right-[26px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-2.5 after:w-2.5 after:transition-all peer-checked:bg-indigo-500"></div>
-                    </div>
+                <!-- 🎵 音乐模式开关 - 默认隐藏，完成编排后显示 -->
+                <div id="musicModeWrapper" class="relative inline-flex items-center cursor-pointer bg-slate-100 px-3 py-1 rounded-full border border-slate-200 shadow-sm transition-all hidden" onclick="checkMusicModeEligibility(event)">
+                    <span class="text-[11px] font-black text-slate-500 mr-2" id="musicModeLabel">🎬 现场/音乐模式</span>
+                    <input type="checkbox" id="musicModeToggle" class="sr-only peer" onchange="toggleMusicMode(this)">
+                    <div class="w-7 h-4 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[6px] after:right-[26px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-2.5 after:w-2.5 after:transition-all peer-checked:bg-indigo-500"></div>
                 </div>
 
                 <div id="floorContainer" class="relative border-[6px] w-full max-w-[500px] aspect-square mx-auto rounded-xl shadow-inner cursor-crosshair transition-colors floor-gymnova overflow-hidden mt-2">
                     
-                    <div id="canvas3DContainer" class="absolute inset-0 w-full h-full z-0 pointer-events-none hidden bg-slate-900">
+                    <div id="canvas3DContainer" class="absolute inset-0 w-full h-full z-20 pointer-events-none hidden bg-slate-900">
                         <div id="modelLoaderUI" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-slate-900/80 backdrop-blur-sm transition-opacity duration-500">
                             <div class="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-3"></div>
                             <div class="text-indigo-200 text-xs font-bold" id="modelLoaderText">连接 3D 引擎中...</div>
@@ -395,18 +389,9 @@
             </div>
         </div>
 
-        <div class="flex items-center gap-3 p-3 bg-white rounded-xl shadow-sm border border-slate-200 w-max mb-4">
-            <div class="flex flex-col">
-                <span class="text-sm font-black text-slate-800">🎵 音乐同步模式</span>
-                <span class="text-[10px] text-slate-400">锁定当前编排，进入实况打点与 3D 预览</span>
-            </div>
-            <label class="relative inline-flex items-center cursor-pointer ml-4">
-                <input type="checkbox" id="musicModeToggle" class="sr-only peer" onchange="toggleMusicMode(this)">
-                <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500"></div>
-            </label>
-        </div>
 
-        <div id="musicDrawer" class="fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] transform translate-y-full transition-transform duration-500 z-[300] p-5 flex flex-col gap-4 rounded-t-[2rem] min-h-[300px]">
+
+        <div id="musicDrawer" class="fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] transform translate-y-full transition-transform duration-500 z-[200] p-5 flex flex-col gap-4 rounded-t-[2rem] min-h-[300px]">
         
             <div class="flex justify-between items-center px-2">
                 <div class="flex items-center gap-3">
@@ -427,24 +412,94 @@
                 </div>
             </div>
 
+            <!-- 音乐控制按钮 -->
             <div class="relative w-full h-24 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden flex items-center shadow-inner group">
                 
                 <div class="absolute left-4 z-20 flex items-center gap-3">
-                    <button onclick="if(typeof AudioEngine !== 'undefined' && AudioEngine.wavesurfer) AudioEngine.wavesurfer.playPause()" class="w-14 h-14 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-indigo-700 hover:scale-105 transition-all text-xl" title="播放音乐">
+                    <button onclick="if(typeof AudioEngine !== 'undefined' && AudioEngine.wavesurfer) AudioEngine.wavesurfer.playPause()" class="w-14 h-14 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-indigo-700 hover:scale-105 transition-all text-xl" title="播放音乐 (空格)">
                         ⏯️
                     </button>
-                    <button onclick="ThreeEngine.initAndEnter3D()" class="w-10 h-10 bg-slate-800 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-black hover:scale-105 transition-all text-sm border-2 border-slate-600" title="进入 3D 舞台">
-                        🍿
+                    <button onclick="AudioEngine.stop()" class="w-10 h-10 bg-slate-700 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-slate-800 hover:scale-105 transition-all text-sm" title="停止音乐">
+                        ⏹️
                     </button>
                 </div>
 
                 <div id="waveformContainer" class="w-full h-full pl-32 pr-4 flex items-center justify-center cursor-pointer">
-                    <span class="text-slate-400 font-bold text-xs">请在下方曲库中选择一首背景音乐开始执裁...</span>
+                    <span class="text-slate-400 font-bold text-xs">请在下方曲库中选择一首背景音乐...</span>
+                </div>
+            </div>
+
+            <!-- 音乐确认/重新选择按钮 -->
+            <div id="musicActionButtons" class="flex gap-3 hidden">
+                <button id="musicConfirmBtn" onclick="confirmMusicBinding()" class="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-black py-2.5 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
+                    ✅ 确认导入该音乐
+                </button>
+                <button id="reselectMusicBtn" onclick="reselectMusic()" class="flex-1 bg-slate-600 hover:bg-slate-700 text-white text-sm font-black py-2.5 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
+                    🔄 重新选择音乐
+                </button>
+            </div>
+            
+            <!-- 时间轴编排区域 -->
+            <div id="timelineEditor" class="w-full bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200 p-4 hidden">
+                <div class="flex justify-between items-center mb-3">
+                    <h4 class="text-sm font-black text-slate-800 flex items-center gap-2">
+                        <span>🎯</span> 动作打点编排
+                    </h4>
+                    <span class="text-[10px] text-purple-600 font-bold bg-purple-100 px-2 py-1 rounded">按 [M] 打点 | 空格播放</span>
+                </div>
+                
+                <!-- 时间轴显示 -->
+                <div id="markerTimeline" class="relative w-full h-16 bg-white rounded-lg border border-slate-200 overflow-hidden flex items-center">
+                    <!-- 时间轴背景 -->
+                    <div id="timelineBackground" class="absolute inset-0 flex"></div>
+                    
+                    <!-- 标记点容器 -->
+                    <div id="markersContainer" class="absolute inset-0 flex items-center"></div>
+                    
+                    <!-- 当前播放位置线 -->
+                    <div id="playbackIndicator" class="absolute top-0 bottom-0 w-0.5 bg-red-500 shadow-lg hidden"></div>
+                </div>
+                
+                <!-- 时间轴控制信息 -->
+                <div class="flex justify-between items-center mt-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] text-slate-500">已打标记:</span>
+                        <span id="markerCount" class="text-xs font-black text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded">0</span>
+                        <span class="text-[10px] text-slate-400">|</span>
+                        <span class="text-[10px] text-slate-500">分段数:</span>
+                        <span id="segmentCount" class="text-xs font-black text-purple-600 bg-purple-100 px-2 py-0.5 rounded">1</span>
+                    </div>
+                    <button id="clearMarkersBtn" onclick="clearAllMarkers()" class="text-[11px] font-bold text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1 rounded-lg transition-all">
+                        🗑️ 清空所有标记
+                    </button>
                 </div>
             </div>
             
+            <!-- 编排框区域 -->
+            <div id="routineEditorBox" class="w-full bg-white rounded-xl border border-slate-200 p-4 hidden">
+                <div class="flex justify-between items-center mb-3">
+                    <h4 class="text-sm font-black text-slate-800 flex items-center gap-2">
+                        <span>📋</span> 音乐编排框
+                    </h4>
+                    <span id="routineSlotInfo" class="text-[10px] text-slate-500">
+                        已放入 <span id="filledSlots">0</span> / <span id="maxSlots">0</span> 个动作
+                    </span>
+                </div>
+                
+                <!-- 编排槽位 -->
+                <div id="routineSlots" class="grid grid-cols-4 gap-2 min-h-[80px]"></div>
+                
+                <!-- 完成提示 -->
+                <div id="completeHint" class="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg hidden">
+                    <p class="text-xs text-green-700 font-bold flex items-center gap-2">
+                        ✅ 编排完成！所有动作已与音乐同步。
+                    </p>
+                </div>
+            </div>
+            
+            <!-- 曲库列表 -->
             <div class="w-full border-t border-slate-100 pt-3">
-                <div class="text-[11px] font-black text-slate-400 mb-2 px-2">🎵 可用曲库中心 (拖动下方滚动条查看全部)</div>
+                <div id="libraryTitle" class="text-[11px] font-black text-slate-400 mb-2 px-2">🎵 可用曲库中心 (拖动下方滚动条查看全部)</div>
                 <div id="musicLibraryList" class="w-full flex items-center gap-3 overflow-x-auto pb-3 min-h-[80px]">
                     </div>
             </div>
@@ -455,10 +510,38 @@
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 min-h-[500px]">
             <h2 class="text-2xl font-black mb-6 flex justify-between items-center text-slate-800">
                 <span>📁 历史编排库</span>
-                <button onclick="ShareEngine.importRoutineWorkflow()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black px-4 py-2 rounded-xl shadow transition-all">
-                    📥 导入好友成套
-                </button>
+                <div class="flex gap-2">
+                    <button onclick="PerformanceMonitor.showPerformanceStats()" class="bg-purple-500 hover:bg-purple-600 text-white text-xs font-black px-4 py-2 rounded-xl shadow transition-all">
+                        🚀 性能监控
+                    </button>
+                    <button onclick="showCacheStats()" class="bg-blue-500 hover:bg-blue-600 text-white text-xs font-black px-4 py-2 rounded-xl shadow transition-all">
+                        📊 缓存统计
+                    </button>
+                    <button onclick="CacheManager.clearAllCache()" class="bg-red-500 hover:bg-red-600 text-white text-xs font-black px-4 py-2 rounded-xl shadow transition-all">
+                        🧹 清理缓存
+                    </button>
+                    <button onclick="ShareEngine.importRoutineWorkflow()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black px-4 py-2 rounded-xl shadow transition-all">
+                        📥 导入好友成套
+                    </button>
+                </div>
             </h2>
+            <div id="cacheStatsCard" class="hidden mb-6 bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-xl border border-blue-200">
+                <h3 class="font-bold text-blue-800 mb-3">📊 存储空间使用情况</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div class="bg-white p-3 rounded-lg border border-blue-200">
+                        <div class="text-slate-500 font-bold">localStorage</div>
+                        <div class="text-blue-800 font-black text-lg" id="localStorageSize">计算中...</div>
+                    </div>
+                    <div class="bg-white p-3 rounded-lg border border-indigo-200">
+                        <div class="text-slate-500 font-bold">音乐文件数</div>
+                        <div class="text-indigo-800 font-black text-lg" id="musicFileCount">计算中...</div>
+                    </div>
+                    <div class="bg-white p-3 rounded-lg border border-purple-200">
+                        <div class="text-slate-500 font-bold">音乐总大小</div>
+                        <div class="text-purple-800 font-black text-lg" id="musicTotalSize">计算中...</div>
+                    </div>
+                </div>
+            </div>
             <div id="historyGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"></div>
         </div>
     </main>
@@ -588,7 +671,72 @@
         </div>
     </main>
 
-    <div id="skillModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center hidden transition-opacity">
+    <!-- 💡【全新重构】：基础信息配置弹窗 (替代原先割裂的全屏 Setup 页面) -->
+    <div id="setupModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center hidden z-[280] p-4 transition-all">
+        <div class="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-2xl border border-slate-200 w-full max-w-4xl max-h-[90vh] overflow-y-auto no-scrollbar relative transform transition-all">
+            <div class="flex justify-between items-start mb-8">
+                <div>
+                    <h2 class="text-3xl font-black text-slate-800 mb-2 midnight-weight-fix">新建成套编排</h2>
+                    <p class="text-slate-500">在进入画板前，请先配置您的项目基础信息。</p>
+                </div>
+                <button onclick="document.getElementById('setupModal').classList.add('hidden')" class="text-slate-400 hover:text-red-500 text-3xl font-bold transition-colors w-12 h-12 flex items-center justify-center bg-slate-50 hover:bg-red-50 rounded-full shrink-0">
+                    &times;
+                </button>
+            </div>
+            
+            <div class="space-y-8">
+                <div>
+                    <label class="block text-sm font-bold text-slate-600 uppercase tracking-wider mb-2">📝 1. 成套名称</label>
+                    <input type="text" id="routineNameInput" placeholder="例如：2026全锦赛预赛..." class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none font-bold text-slate-700 text-lg transition-all shadow-sm">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-bold text-slate-600 uppercase tracking-wider mb-3">🤸‍♀️ 2. 选手身份 (影响 E 分与失误模拟)</label>
+                    <div class="flex gap-3 mb-3">
+                        <button onclick="AppController.openGymnastModal()" class="flex-1 bg-white border-2 border-slate-200 text-slate-700 font-bold py-3.5 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all shadow-sm flex items-center justify-center gap-2 text-sm">
+                            🔍 数据库选人
+                        </button>
+                        <button onclick="AppController.setGymnastMode('custom')" class="flex-1 bg-white border-2 border-slate-200 text-slate-700 font-bold py-3.5 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all shadow-sm flex items-center justify-center gap-2 text-sm">
+                            ✨ 自定义
+                        </button>
+                        <button onclick="AppController.setGymnastMode('none')" class="flex-1 bg-white border-2 border-slate-200 text-slate-700 font-bold py-3.5 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all shadow-sm flex items-center justify-center gap-2 text-sm">
+                            🙈 不算E分
+                        </button>
+                    </div>
+
+                    <div id="setupGymnastDisplay" class="hidden p-4 bg-blue-50 border-2 border-blue-200 rounded-xl flex items-center gap-4 transition-all shadow-sm">
+                        <div class="w-14 h-14 rounded-full bg-white border-2 border-blue-200 overflow-hidden flex items-center justify-center text-3xl shrink-0" id="setupGymnastAvatar">
+                            🙈
+                        </div>
+                        <div class="flex-1">
+                            <div class="font-black text-slate-800 text-xl flex items-center gap-2 midnight-weight-fix">
+                                <span id="setupGymnastFlag"></span>
+                                <span id="setupGymnastName">纯排位测试 (无E分)</span>
+                            </div>
+                            <div class="text-sm font-bold text-blue-600 mt-1" id="setupGymnastStats">系统将仅计算D分</div>
+                        </div>
+                    </div>
+                    
+                    <input type="text" id="customGymnastNameInput" placeholder="输入自定义选手英文名/中文名..." class="w-full p-4 bg-white border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-300 outline-none font-bold text-slate-700 hidden transition-all shadow-sm">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-slate-600 uppercase tracking-wider mb-2">🏟️ 3. 物理场地品牌 (视觉底色)</label>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="brandSelector">
+                        <button onclick="selectBrand('gymnova')" class="brand-btn border-2 border-blue-500 bg-blue-50 rounded-xl p-4 flex flex-col items-center gap-2 transition-all shadow-sm" data-brand="gymnova"><div class="w-8 h-8 bg-[#fef3c7] border-2 border-[#dc2626] rounded-full"></div><span class="font-bold text-sm text-slate-700">Gymnova</span></button>
+                        <button onclick="selectBrand('taishan')" class="brand-btn border-2 border-slate-100 bg-white hover:bg-slate-50 rounded-xl p-4 flex flex-col items-center gap-2 transition-all" data-brand="taishan"><div class="w-8 h-8 bg-[#1e3a8a] border-2 border-[#1e40af] rounded-full"></div><span class="font-bold text-sm text-slate-700">Taishan</span></button>
+                        <button onclick="selectBrand('spieth')" class="brand-btn border-2 border-slate-100 bg-white hover:bg-slate-50 rounded-xl p-4 flex flex-col items-center gap-2 transition-all" data-brand="spieth"><div class="w-8 h-8 bg-[#e0f2fe] border-2 border-[#cbd5e1] rounded-full"></div><span class="font-bold text-sm text-slate-700">Spieth</span></button>
+                        <button onclick="selectBrand('gaofei')" class="brand-btn border-2 border-slate-100 bg-white hover:bg-slate-50 rounded-xl p-4 flex flex-col items-center gap-2 transition-all" data-brand="gaofei"><div class="w-8 h-8 bg-[#fee2e2] border-2 border-[#b91c1c] rounded-full"></div><span class="font-bold text-sm text-slate-700">Gaofei</span></button>
+                    </div>
+                </div>
+
+                <button onclick="enterBuilder()" class="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-black text-xl py-4 rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5">
+                    进入编排战术板 🚀
+                </button>
+            </div>
+        </div>
+    </div>
+    <div id="skillModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[260] flex items-center justify-center hidden transition-opacity">
         <div class="bg-white w-full max-w-2xl h-[85vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-200">
             <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                 <h3 id="modalTitle" class="text-xl font-black text-slate-800">配置</h3>
@@ -607,7 +755,7 @@
         </div>
     </div>
 
-    <div id="gymnastModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden transition-opacity">
+    <div id="gymnastModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[290] flex items-center justify-center hidden transition-opacity">
         <div class="bg-white w-full max-w-4xl h-[80vh] rounded-[2rem] shadow-2xl flex flex-col overflow-hidden border border-slate-200">
             <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                 <h3 class="text-2xl font-black text-slate-800">🤸‍♀️ 选择出场选手</h3>
@@ -621,7 +769,7 @@
         </div>
     </div>
 
-    <div id="customScoreModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div id="customScoreModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[260] flex items-center justify-center hidden">
         <div class="bg-white p-8 rounded-[2rem] shadow-2xl max-w-sm w-full text-center border border-slate-100">
             <h2 class="text-2xl font-black text-slate-800 mb-2">手动输入 E 分</h2>
             <p class="text-slate-500 mb-6 text-sm">此选手不在自动算法库中，请输入预估完成分（含艺术扣分），以便结算总分。</p>
@@ -630,7 +778,7 @@
         </div>
     </div>
 
-    <div id="playbackOptionsModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-[100]">
+    <div id="playbackOptionsModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-[260]">
         <div class="bg-white rounded-xl shadow-2xl w-11/12 max-w-md p-6 transform transition-all">
             <h3 class="text-xl font-bold mb-4 text-slate-800 border-b pb-2">请选择模拟裁判模式</h3>
             <div class="space-y-3 mt-4">
@@ -706,7 +854,7 @@
             <p id="toastMessage" class="text-xs text-slate-500 font-bold mt-1 whitespace-pre-line leading-relaxed">提示内容</p>
         </div>
     </div>
-    <div id="saveConfirmModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div id="saveConfirmModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[260] flex items-center justify-center hidden">
         <div class="bg-white p-8 rounded-[2rem] shadow-2xl max-w-md w-full text-center border border-slate-100">
             <h2 class="text-3xl font-black text-slate-800 mb-4">成套已出分！🎉</h2>
             <div class="flex justify-center gap-3 mb-8">
@@ -722,7 +870,7 @@
         </div>
     </div>
 
-    <div id="oobModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div id="oobModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[260] flex items-center justify-center hidden">
         <div class="bg-white p-6 rounded-3xl shadow-2xl max-w-sm w-full border-t-8 border-red-500">
             <h2 class="text-xl font-black text-slate-800 mb-2">⚠️ 检测到路线出界</h2>
             <p class="text-slate-500 text-sm mb-6">刚刚绘制的动作路线超出了有效比赛区域。本串属于什么情况？</p>
@@ -833,12 +981,12 @@
                 
                 <div class="grid grid-cols-2 gap-3 mb-5">
                     <div class="border-2 border-dashed border-slate-300/80 bg-white/50 rounded-xl p-4 text-center hover:border-emerald-400 hover:bg-emerald-50 transition-all cursor-pointer" onclick="document.getElementById('imageUpload').click()">
-                        <input type="file" id="imageUpload" accept="image/*, audio/*" multiple class="hidden" onchange="handleMediaSelect(this)">
+                        <input type="file" id="imageUpload" accept="image/*, audio/*" multiple class="hidden" onchange="handleImageSelect(this)">
                         <div class="text-3xl mb-1">🖼️</div>
                         <div class="text-xs font-bold text-slate-500">添加图/音</div>
                     </div>
                     <div class="border-2 border-dashed border-slate-300/80 bg-white/50 rounded-xl p-4 text-center hover:border-emerald-400 hover:bg-emerald-50 transition-all cursor-pointer" onclick="document.getElementById('videoUpload').click()">
-                        <input type="file" id="videoUpload" accept="video/*" multiple class="hidden" onchange="handleMediaSelect(this)">
+                        <input type="file" id="videoUpload" accept="video/*" multiple class="hidden" onchange="handleVideoSelect(this)">
                         <div class="text-3xl mb-1">🎬</div>
                         <div class="text-xs font-bold text-slate-500">添加视频</div>
                     </div>
@@ -897,9 +1045,16 @@
     <script src="controllers/jury_controller.js"></script>
     <script src="controllers/audio_controller.js"></script>
     
-    <!-- ✨【新增】管理器层 -->
+    <!-- ✨【新增】：管理器层 -->
     <script src="music_manager.js"></script>
     <script src="managers/music_recorder.js"></script>
+    <script src="managers/simple_tutorial.js"></script>
+    <script src="managers/cache_manager.js"></script>
+    <script src="managers/performance_monitor.js"></script>
+    <script src="managers/help_assistant.js"></script>
+    
+    <!-- 旧教程系统已废弃 -->
+    <!-- <script src="managers/tutorial_manager.js"></script> -->
     
     <script src="share_engine.js"></script>
     
@@ -951,39 +1106,74 @@
                 }
             }, 12000); 
         });
-        function enterSystem() {
-           const startView = document.getElementById('viewStart');
-            startView.style.opacity = '0'; 
-            setTimeout(() => {
-                startView.classList.add('hidden');
-                document.getElementById('mainNav').classList.remove('hidden'); 
-                document.getElementById('mainBody').classList.remove('overflow-hidden'); 
-                switchTab('dictionary'); // 激活导航，首屏直接进字典
-            }, 700);
-        }
+        // =========================================================================
+        // 🚨 ⚠️ 核心警告 ⚠️ 🚨
+        // 以下是【封面大厅】进入【工作台系统】的核心流转函数（Hero Section 逻辑）。
+        // 包含完整的淡出动画、导航栏解除隐藏以及 Body 滚动解锁。
+        // 请未来的开发者绝对不要删改、简化或覆盖此段代码，否则会导致系统无法进入！
+        // =========================================================================
+        window.enterSystem = function() {
+            // 1. 关闭教程遮罩（如果正在显示）
+            if (window.SimpleTutorial && window.SimpleTutorial.isShowing && window.SimpleTutorial.isShowing()) {
+                window.SimpleTutorial.complete();
+            }
+            
+            // 2. 锁定封面元素（优先找 heroSection，兼容旧版 viewStart）
+            const startView = document.getElementById('heroSection') || document.getElementById('viewStart');
+            const mainNav = document.getElementById('mainNav');
+            const mainBody = document.getElementById('mainBody') || document.body;
+            
+            if (startView) {
+                // 执行你原本优雅的 0.7秒 淡出过渡动画
+                startView.style.opacity = '0'; 
+                
+                setTimeout(() => {
+                    // 彻底隐藏封面图层
+                    startView.classList.add('hidden');
+                    
+                    // 唤醒顶部导航栏
+                    if (mainNav) mainNav.classList.remove('hidden'); 
+                    
+                    // 解除页面的滚动锁定
+                    if (mainBody) mainBody.classList.remove('overflow-hidden'); 
+                    
+                    // 自动跳转到战术板 (利用带有自动弹窗检测的 switchTab)
+                    if (typeof switchTab === 'function') {
+                        switchTab('dictionary'); 
+                    }
+                }, 700); // 700ms 动画延迟，必须保留！
+            } else {
+                // 如果找不到封面（开发热重载环境下），直接跳工作台
+                if (typeof switchTab === 'function') switchTab('builder');
+            }
+        };
 
         // ==========================================
         // ✨【核心改造】：升级 Tab 拦截器与切换网格，包含奖牌榜
         // ==========================================
         function switchTab(tabId) {
             window.currentTab = tabId;
-            if (tabId === 'builder' && !isRoutineInitialized) {
-                tabId = 'setup'; 
-                updateNavButtonHighlight('builder'); 
-            } else {
+            
+            // 更新顶部按钮高亮
+            if (typeof updateNavButtonHighlight === 'function') {
                 updateNavButtonHighlight(tabId);
             }
 
-            // 💡【修改点】：将 'leaderboard' 压入控制循环的漏斗中
-            ['dictionary', 'setup', 'builder', 'history', 'leaderboard', 'music'].forEach(id => {
+            // 💡【核心逻辑】：移除旧版的硬拦截，直接显隐对应的面板
+            ['dictionary', 'builder', 'history', 'leaderboard', 'music'].forEach(id => {
                 const el = document.getElementById('view' + id.charAt(0).toUpperCase() + id.slice(1));
-                if (el) el.classList.toggle('hidden', id !== tabId);
+                if (el) {
+                    if (id === tabId) {
+                        el.classList.remove('hidden');
+                    } else {
+                        el.classList.add('hidden');
+                    }
+                }
             });
 
-            // 触发表格内部分页数据的二次反洗
+            // 触发其他页面的初始化事件
             if(tabId === 'history' && typeof window.renderHistory === 'function') {
                 window.renderHistory();
-                // 只有用户主动切换到历史选项卡时才进入历史查看模式
                 if (window.FlowStateManager) {
                     window.FlowStateManager.enterFlow('history_viewing', {
                         autoSave: false,
@@ -991,12 +1181,51 @@
                     });
                 }
             }
+            if(tabId === 'leaderboard' && typeof SupabaseEngine !== 'undefined') {
+                SupabaseEngine.renderLeaderboard();
+            }
+            if(tabId === 'music' && typeof window.initMusicLibrary === 'function') {
+                window.initMusicLibrary();
+            }
+        }
+                // 重新找回丢失的系统入口点函数
+        function enterSystem() {
+            // 先关闭教程遮罩（如果正在显示）
+            if (window.SimpleTutorial && window.SimpleTutorial.isShowing && window.SimpleTutorial.isShowing()) {
+                window.SimpleTutorial.complete();
+            }
             
-            // ✨【新增】：一旦用户点开“奖牌榜”Tab，立刻向太空索要最新的前50名排行进行实时排版
-            if(tabId === 'leaderboard' && typeof SupabaseEngine !== 'undefined') SupabaseEngine.renderLeaderboard();
+            // 💡【核心修复】：将原来的 const 改为了 let，允许变量根据环境重新赋值，彻底消除页面卡死的报错！
+            let startView = document.getElementById('heroSection');
+            if (!startView) {
+                startView = document.getElementById('viewStart');
+            }
             
-            // ✨【新增】：音乐仓库Tab加载
-            if(tabId === 'music' && typeof window.initMusicLibrary === 'function') window.initMusicLibrary();
+            if (startView) {
+                // 执行你写好的 0.7秒 优雅淡出动画
+                startView.style.opacity = '0'; 
+                
+                setTimeout(() => {
+                    // 彻底隐藏封面图层
+                    startView.classList.add('hidden');
+                    
+                    // 唤醒顶部导航栏
+                    const mainNav = document.getElementById('mainNav');
+                    if (mainNav) mainNav.classList.remove('hidden'); 
+                    
+                    // 解除页面的滚动锁定
+                    const mainBody = document.getElementById('mainBody');
+                    if (mainBody) mainBody.classList.remove('overflow-hidden'); 
+                    
+                    // 自动跳转到战术板 (因为按钮写的是"进入工作台")
+                    if (typeof switchTab === 'function') {
+                        switchTab('builder'); 
+                    }
+                }, 700);
+            } else {
+                // 如果找不到封面图层（可能是热重载状态），作为兜底直接进入系统
+                if (typeof switchTab === 'function') switchTab('builder');
+            }
         }
 
         function updateNavButtonHighlight(activeTabId) {
@@ -1152,6 +1381,8 @@
             
             // 8. 冲破拦截锁定，正式切入战术编排工作台
             isRoutineInitialized = true; 
+            const setupModal = document.getElementById('setupModal');
+            if (setupModal) setupModal.classList.add('hidden');
             switchTab('builder');
         }
 
@@ -1168,5 +1399,46 @@
         }
     </script>
     
+
+    <!-- 🌌 深夜模式3秒缓冲星光全屏过渡动画 -->
+    <div id="midnightOverlay" class="fixed inset-0 z-[9999] bg-slate-950 opacity-0 pointer-events-none transition-all duration-700 flex flex-col items-center justify-center">
+        <div class="absolute inset-0 overflow-hidden pointer-events-none">
+            <div class="absolute bg-white rounded-full opacity-50 animate-pulse" style="top:15%; left:25%; width:2px; height:2px;"></div>
+            <div class="absolute bg-white rounded-full opacity-80 animate-pulse" style="top:45%; left:65%; width:3px; height:3px; animation-delay:0.7s;"></div>
+            <div class="absolute bg-white rounded-full opacity-40 animate-pulse" style="top:75%; left:12%; width:2px; height:2px; animation-delay:0.3s;"></div>
+            <div class="absolute bg-indigo-400 rounded-full opacity-60 animate-pulse" style="top:35%; left:80%; width:3px; height:3px; animation-delay:1.2s;"></div>
+            <div class="absolute bg-purple-400 rounded-full opacity-50 animate-pulse" style="top:25%; left:55%; width:2px; height:2px; animation-delay:1.8s;"></div>
+            <div class="absolute bg-white rounded-full opacity-90 animate-pulse" style="top:60%; left:35%; width:2px; height:2px; animation-delay:2.2s;"></div>
+        </div>
+        <div class="text-center z-10 transform scale-95 transition-all duration-1000 text-indigo-200 font-light tracking-widest text-xl" id="midnightText">
+            🌌 ✨ 正在切入深夜星空剧场...
+        </div>
+    </div>
+    
+    <script>
+        window.toggleMidnightMode = function() {
+            const overlay = document.getElementById('midnightOverlay');
+            const txt = document.getElementById('midnightText');
+            if (!overlay) return;
+            
+            overlay.classList.remove('pointer-events-none');
+            overlay.style.opacity = '1';
+            txt.style.transform = 'scale(1.05)';
+            
+            setTimeout(() => {
+                document.body.classList.toggle('midnight-theme');
+                const isDark = document.body.classList.contains('midnight-theme');
+                document.getElementById('midnightThemeToggleBtn').innerHTML = isDark ? '☀️ 白昼模式' : '🌌 深夜模式';
+            }, 1500);
+            
+            setTimeout(() => {
+                overlay.style.opacity = '0';
+                overlay.classList.add('pointer-events-none');
+                txt.style.transform = 'scale(0.95)';
+            }, 3000);
+        };
+        
+    </script>
+
 </body>
 </html>

@@ -2,51 +2,16 @@
 // ✨ 终极巨幕跨媒体引擎 (防内存泄漏 + 柔和淡入版)
 // ==========================================
 window.HeroEngine = {
-    // 📁 视频总库 (精准时长)
-    allVideos: [
-        { src: './videos/vani_ferrari.mp4', duration: 15 },
-        { src: './videos/angi_mel.mp4', duration: 13 },
-        { src: './videos/sabrina_voinea.mp4', duration: 10 },
-        { src: './videos/zhou_yaqin.mp4', duration: 10 },
-        { src: './videos/mai_murakami.mp4', duration: 9 },
-        { src: './videos/zhang_jin.mp4', duration: 9 },
-        { src: './videos/ruby_evans.mp4', duration: 8 },
-        { src: './videos/vlada_ura.mp4', duration: 8 },
-        { src: './videos/jade_carey.mp4', duration: 7 },
-        { src: './videos/suni_lee.mp4', duration: 7 },
-        { src: './videos/sui_han.mp4', duration: 11 },
-        { src: './videos/rebw_and.mp4', duration: 4 },
-        { src: './videos/sui_lu.mp4', duration: 8 }
-    ],
+    // 📁 视频总库 (从 Config 读取)
+    get allVideos() { return Config?.heroMedia?.videos || []; },
     activeVideos: [],
     videoDeck: [],
 
-    classicImages: [
-        './images/classic/Simone_Biles_Showcast.jpeg', 
-        './images/classic/Rebeca_Andrade_Showcast.jpg', 
-        './images/classic/Ruby_Evans_Showcast.jpg', 
-        './images/classic/Ou_Yushan_Showcast.jpg', 
-        './images/classic/Brooklyn_Moors_Showcast.jpg'
-    ],
+    // 📁 经典图片库 (从 Config 读取)
+    get classicImages() { return Config?.heroMedia?.classicImages || []; },
     
-    // 📁 剧场小图库 (✅ 已删除 Kishi_Rina_Showcase1.png)
-    galleryImages: [
-        './images/gallery/Zhou_Yaqin_Showcast.jpg', './images/gallery/Zhou_Yaqin_Showcast2.jpg',
-        './images/gallery/Zhang_Yihan_Showcast.jpg', './images/gallery/Zhang_Yihan_Showcast2.jpg', 
-        './images/gallery/Kishi_Rina_Showcast.jpg', 
-        // ✨ 新增选手图片
-        './images/gallery/Ou_Yushan.jpg', './images/gallery/Ke_Qinqin.jpeg',
-        './images/gallery/Chen_Xinyi.jpg', './images/gallery/Yang_Jingxi.jpg',
-        './images/gallery/Jin_Xiaoxuan.jpg', './images/gallery/Zhou_Yaqin.jpg',
-        './images/gallery/Qin_Xinyi.jpg','./images/gallery/Alice_DAmato_Showcast.png', './images/gallery/Kaylia_Nemour_Showcast.jpg',
-        './images/gallery/Angelina_Melnikova_Showcast.png', './images/gallery/Aiko_Sugihara_Showcast.jpg', 
-        './images/gallery/Maiana_Prat_Showcast.png', './images/gallery/Sabrina_Voinea_Showcast.png',
-        './images/gallery/Ellie_Black_Showcast.png', './images/gallery/Skye_Blakely_Showcast.png',
-        './images/gallery/Aiko_Sugihara_Showcast2.jpg', './images/gallery/Jordan_Chiles_Showcast.jpeg', 
-        './images/gallery/Shilese_Jones_Showcast.png', './images/gallery/Zhang_Yihan_Showcast3.jpg',
-        './images/gallery/Ana_Barbosu_Showcast.png'
-        
-    ],
+    // 📁 剧场小图库 (从 Config 读取)
+    get galleryImages() { return Config?.heroMedia?.galleryImages || []; },
 
     classicDeck: [],
     galleryDeck: [],
@@ -55,8 +20,8 @@ window.HeroEngine = {
     lastPlayedVideo: null,
     lastPlayedClassic: null,
 
-    // 调整后的导演时间轴：3视频 -> 3剧场(gallery) -> 3大图(classic)
-    sequence: ['video', 'video', 'video', 'gallery', 'gallery', 'gallery', 'classic', 'classic', 'classic'],
+    // 调整后的导演时间轴 (从 Config 读取)
+    get sequence() { return Config?.heroMedia?.sequence || ['video', 'video', 'video', 'gallery', 'gallery', 'gallery', 'classic', 'classic', 'classic']; },
     stepIndex: 0,
 
     // ==========================================

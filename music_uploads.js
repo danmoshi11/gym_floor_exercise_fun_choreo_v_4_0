@@ -226,7 +226,9 @@ window.uploadToCloud = async function() {
     // 🔒 密码验证（仅云端上传需要）
     if (Config.settings.enableUploadPassword) {
         const UPLOAD_SECRET = Config.homeMediaUploadPassword;
-        const userInput = prompt("🔒 此功能为内部专属通道。\n请输入上传密码：");
+        
+        // ⚠️ 把原来的 prompt 替换成我们的自定义弹窗
+        const userInput = await window.customPasswordPrompt("🔒 此功能为内部专属通道。\n请输入上传密码：");
 
         if (userInput === null) {
             // 用户点击取消
@@ -253,7 +255,7 @@ window.uploadToCloud = async function() {
             document.getElementById('progressBar').style.width = '50%';
             
             // 步骤2：上传到云端（已连接 Supabase）
-            await uploadToCloud();
+            await performCloudUpload();
             
             document.getElementById('progressBar').style.width = '100%';
             document.getElementById('uploadStatus').textContent = '上传完成';
@@ -278,37 +280,43 @@ window.uploadToCloud = async function() {
 };
 
 // 真实云端上传（已连接 Supabase）
-async function uploadToCloud() {
-    // 1. 上传文件到 storage
-    const { data: uploadData, error: uploadError } = await supabase.storage.from('music-pool').upload(
-        `uploads/${Date.now()}_${currentUploadFile.name}`,
-        currentUploadFile,
-        {
+async function performCloudUpload() {
+    // 确保正确获取 Supabase 实例
+    const supabaseClient = typeof SupabaseEngine !== 'undefined' ? SupabaseEngine.client : window.supabase;
+    if (!supabaseClient) throw new Error('云数据库未连接');
+
+    // 生成安全干净的文件名（丢弃原文件名中的中文字符，防止 url 错误）
+    const fileExt = currentUploadFile.name.split('.').pop().toLowerCase();
+    const safeFileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+    
+    // 1. 上传文件到 music-pool
+    const { data: uploadData, error: uploadError } = await supabaseClient.storage
+        .from('music-pool')
+        .upload(safeFileName, currentUploadFile, {
             cacheControl: '3600',
             upsert: false
-        }
-    );
+        });
     
     if (uploadError) {
         throw new Error(`上传失败: ${uploadError.message}`);
     }
     
     // 2. 插入审核队列记录
-    const { error: insertError } = await supabase
+    const { error: insertError } = await supabaseClient
         .from('music_audit_queue')
         .insert({
             uploader_name: window.currentUser?.name || '匿名用户',
-            file_name: currentUploadFile.name,
-            file_path: uploadData.path,
+            file_name: currentUploadFile.name, // 数据库里保留原来的中文名用于显示
+            file_path: uploadData.path,        // 这里存的是干净的云端路径
             file_size: currentUploadFile.size,
             mime_type: currentUploadFile.type,
             status: 'pending'
         });
     
     if (insertError) {
-        // 如果插入失败，删除已上传的文件
-        await supabase.storage.from('music-pool').remove([uploadData.path]);
-        throw new Error(`记录失败: ${insertError.message}`);
+        // 如果数据库记录插入失败，立刻把刚传的文件删掉，防止产生死数据
+        await supabaseClient.storage.from('music-pool').remove([uploadData.path]);
+        throw new Error(`队列记录失败: ${insertError.message}`);
     }
     
     return uploadData;
