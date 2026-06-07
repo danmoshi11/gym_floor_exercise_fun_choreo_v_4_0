@@ -7,6 +7,16 @@ const Config = {
     homeMediaUploadPassword: '0000',
     SUPABASE_URL: 'https://aorjdomtvnlmwjhhetes.supabase.co',
     SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFvcmpkb210dm5sbXdqaGhldGVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0ODI4NjQsImV4cCI6MjA5NjA1ODg2NH0.Ism_ygrwbspclpQdz9x9cLKL2rY5WCXRQg-v3SaRA_k',
+    
+    // ==========================================
+    // 💰 金币兑换码配置
+    // ==========================================
+    coinCodes: {
+        'woshineimuer': { coins: 99999, description: '无限金币密码' },
+        'woyaojinbi': { coins: 10000, description: 'VIP专属礼包' },
+        'woshivip': { coins: 5000, description: '体操大师' }
+    },
+    
     // 文件大小限制配置
     limits: {
         // 图片限制：10MB
@@ -93,7 +103,7 @@ const Config = {
             './images/gallery/Shilese_Jones_Showcast.png', './images/gallery/Zhang_Yihan_Showcast3.jpg',
             './images/gallery/Ana_Barbosu_Showcast.png'
         ],
-        // 导演时间轴
+        // 导演时间轴 - 调整顺序：先显示gallery图片，给视频缓冲多一点时间
         sequence: ['video', 'video', 'video', 'gallery', 'gallery', 'gallery', 'classic', 'classic', 'classic']
     }
 };

@@ -217,14 +217,14 @@
         <div class="relative z-20 max-w-lg w-full mx-6 p-10 md:p-14 rounded-[2.5rem] bg-white/0 border border-white/20 shadow-2xl text-white text-center backdrop-blur-none">
             
             <div onclick="document.getElementById('changelogModal').classList.remove('hidden')" 
-                 class="absolute -top-8 -right-8 w-28 h-28 bg-gradient-to-tr from-pink-500 via-rose-500 to-amber-400 starburst-badge flex items-center justify-center cursor-pointer shadow-2xl animate-heartbeat z-50">
+                 class="absolute -top-8 -right-8 w-28 h-28 bg-gradient-to-tr from-pink-500 via-rose-500 to-amber-400 starburst-badge flex items-center justify-center cursor-pointer shadow-2xl animate-heartbeat z-50 opacity-80 hover:opacity-100 transition-opacity">
                 <div class="text-center transform -rotate-12 mt-1">
                     <div class="text-white font-black text-base leading-none drop-shadow-md">V 3.0</div>
                     <div class="text-yellow-100 font-bold text-xs leading-tight mt-0.5">更新日志</div>
                 </div>
             </div>
             <div id="createRoutineBtn" onclick="document.getElementById('uploadModal').classList.remove('hidden')" 
-                class="absolute -bottom-10 -left-10 w-36 h-36 bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-400 starburst-badge animate-heartbeat flex items-center justify-center cursor-pointer shadow-2xl hover:scale-110 transition-transform z-50" title="上传私人素材">
+                class="absolute -bottom-10 -left-10 w-36 h-36 bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-400 starburst-badge animate-heartbeat flex items-center justify-center cursor-pointer shadow-2xl hover:scale-110 transition-transform z-50 opacity-80 hover:opacity-100 transition-opacity" title="上传私人素材">
                 <div class="text-center transform rotate-6 mt-2">
                     <div class="text-white text-3xl drop-shadow-md">🎵</div>
                     <div class="text-white/90 font-black text-[11px] leading-tight mt-1">想要夹带你的私货吗？<br>点击查看</div>
@@ -237,7 +237,7 @@
                 </span>
             </h1>
             <p class="text-white/80 text-base mb-12 font-light tracking-wide drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">WAG 自由体操智能编排与算分引擎</p>
-            <button onclick="enterSystem()" class="w-full bg-white text-slate-950 hover:bg-slate-100 font-black text-xl py-4 rounded-2xl transition-all shadow-xl hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] transform hover:-translate-y-0.5">
+            <button onclick="enterSystem()" class="w-full bg-white/80 hover:bg-white/95 text-slate-950 font-black text-xl py-4 rounded-2xl transition-all shadow-xl hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] transform hover:-translate-y-0.5 backdrop-blur-sm border border-white/30">
                 进入工作台 🚀
             </button>
         </div>
@@ -268,7 +268,7 @@
                     </div>
                 </div>
                 
-                <div class="flex items-center gap-1.5 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-full shadow-sm select-none" title="每日登录自动获取100金币">
+                <div class="flex items-center gap-1.5 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-full shadow-sm cursor-pointer hover:bg-amber-100 transition-colors select-none" title="点击打开兑换码窗口" onclick="openCoinCodeModal()">
                     <span class="text-sm">🪙</span>
                     <span id="coinDisplay" class="font-black text-amber-600 text-sm">0</span>
                 </div>
@@ -373,12 +373,12 @@
                 </div>
                 
                 <!-- 拖拽提示栏 - 音乐编排时显示 -->
-                <div id="dragHintBar" class="hidden flex justify-between items-center bg-indigo-50 p-2 rounded-xl border border-indigo-200 shadow-sm">
+                <div id="dragHintBar" class="hidden flex justify-between items-center bg-indigo-50/80 backdrop-blur-sm p-2 rounded-xl border border-indigo-200/60 shadow-sm">
                     <div class="flex items-center gap-2 text-indigo-700">
                         <span class="text-lg">✋</span>
-                        <span class="text-sm font-bold">拖拽模式：请将左侧画板上的动作拖入下方编排框</span>
+                        <span class="text-sm font-bold">编排模式：请将左侧画板上的动作拖入下方编排框</span>
                     </div>
-                    <button onclick="setTool('move')" class="px-3 py-1 rounded-lg text-sm font-bold text-indigo-600 bg-indigo-100 hover:bg-indigo-200 transition-colors">🤚 拖拽</button>
+                    <button onclick="setTool('move')" class="px-3 py-1.5 rounded-lg text-sm font-bold text-indigo-600 bg-white/80 hover:bg-white border border-indigo-200 shadow-sm transition-all">🖱️ 拖动线条至编排框</button>
                 </div>
 
                 <button id="finishRoutineBtn" onclick="saveRoutine()" class="w-full bg-slate-800 hover:bg-slate-900 text-white py-3.5 rounded-xl font-black text-lg shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 transform hover:-translate-y-0.5">
@@ -413,28 +413,86 @@
             <div class="flex flex-col gap-4 h-[700px]">
                 <div id="warningsPanel" class="hidden bg-red-50 border border-red-100 text-red-700 p-4 rounded-xl text-xs space-y-1 shrink-0 shadow-sm"></div>
 
-                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex-1 flex flex-col overflow-hidden">
-                    <h3 class="text-base font-black mb-3 flex justify-between items-center border-b border-slate-100 pb-3 text-slate-800">
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex-1 flex flex-col overflow-hidden relative">
+                    
+                    <h3 id="normalRoutineHeader" class="text-base font-black mb-3 flex justify-between items-center border-b border-slate-100 pb-3 text-slate-800">
                         <span>📋 编排动作序列</span>
                         <span class="text-xs font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded-md" id="skillCount">0/8 有效动作</span>
                     </h3>
+
+                    <div id="routineEditorBox" class="hidden border-b border-slate-100 pb-3 mb-3 bg-white/40 backdrop-blur-md rounded-xl p-2 border border-slate-100 transition-all">
+                        <div class="flex justify-between items-center flex-wrap gap-2">
+                            <div class="flex items-center gap-1.5 min-w-0">
+                                <span class="text-sm font-black text-slate-800 whitespace-nowrap">📋 音乐编排框</span>
+                                <span id="actionMatchWarning" class="text-[10px] text-orange-600 font-bold bg-orange-50 px-1.5 py-0.5 rounded truncate max-w-[180px] hidden">
+                                    ⚠️ 未匹配
+                                </span>
+                            </div>
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <span id="routineSlotInfo" class="text-[10px] text-slate-400 font-medium">
+                                    已入 <span id="filledSlots" class="font-black text-indigo-600">0</span> / <span id="maxSlots" class="font-black text-purple-600">0</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
                     <div id="routineList" class="flex-1 overflow-y-auto space-y-2 no-scrollbar pb-4">
                         <p class="text-center text-slate-400 text-sm py-10">请在左侧场地上画线</p>
                     </div>
+
+                    <div id="musicRoutineContent" class="hidden flex-1 flex flex-col overflow-hidden bg-white/30 backdrop-blur-md rounded-xl border border-slate-200/60 p-3 shadow-inner">
+                        <div id="routineSlots" class="flex-1 overflow-y-auto space-y-2 pr-1 no-scrollbar min-h-[150px]"></div>
+                        
+                        <div id="completeHint" class="mt-2 p-2 bg-indigo-50/50 rounded-lg border border-indigo-100/40">
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-indigo-500 text-xs">⚡</span>
+                                <span class="text-[11px] text-slate-500 font-bold leading-tight">
+                                    无需拖拽！系统已开启智能映射。您在场地每画一条线（包含移动），槽位会按时间顺序全自动落入填充。
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3 flex gap-2 shrink-0">
+                            <button id="confirmMusicArrangeBtn" onclick="confirmMusicArrange()" class="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-xs font-black py-2.5 rounded-xl shadow-md transition-all">
+                                🎵 确认编排完毕
+                            </button>
+                            <button onclick="clearAllArrangementAndExit()" class="px-3 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold py-2.5 rounded-xl transition-all">
+                                退出
+                            </button>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
 
 
 
-        <div id="musicDrawer" class="fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] transform translate-y-full transition-transform duration-500 z-[200] p-5 flex flex-col gap-4 rounded-t-[2rem] min-h-[300px]">
+        <!-- ═══════════════════════════════════════════════════════════════════
+             🎵 音乐控制中心 (Music Control Center)
+             职责：统一管理音乐选择、编排、播放控制
+             ═══════════════════════════════════════════════════════════════════ -->
+         <div id="musicDrawer" class="fixed bottom-0 left-0 w-full bg-white/80 backdrop-blur-xl border-t border-slate-200/60 shadow-[0_-20px_50px_rgba(0,0,0,0.15)] transform translate-y-full transition-transform duration-500 z-[200] p-4 flex flex-col gap-3 rounded-t-[2rem] max-h-[60vh]">
         
+            <!-- 阶段信息栏 - 移到音乐与现场控制台上面 -->
+            <div id="phaseInfoBar" class="flex items-center justify-between px-2 py-1.5 rounded-lg bg-gradient-to-r from-indigo-50/60 to-purple-50/60 border border-indigo-200/40 hidden">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-lg">🎯</span>
+                    <span class="text-sm font-black text-slate-700">音乐编排</span>
+                    <span class="text-[10px] text-purple-500 font-bold bg-purple-100 px-2 py-0.5 rounded">阶段 2/2</span>
+                    <span class="text-[10px] text-slate-500">由于您上一次已经选择音乐，这次直接加载了上次的音乐，如需要更换音乐请点击：</span>
+                    <button onclick="backToMusicSelection()" class="text-[11px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-lg transition-all shrink-0">
+                        ← 返回选择音乐
+                    </button>
+                </div>
+            </div>
+
             <div class="flex justify-between items-center px-2">
                 <div class="flex items-center gap-3">
                     <span class="text-2xl">🎛️</span>
                     <div>
-                        <h3 class="font-black text-slate-800 text-sm">音乐与 3D 现场控制台</h3>
-                        <p class="text-[11px] text-slate-400">点击波形图可拖动进度。按 [M键] 标记动作起止点。</p>
+                        <h3 class="font-black text-slate-800 text-sm">音乐与现场控制台</h3>
+                        <p class="text-[11px] text-slate-400" id="musicDrawerSubtitle">请在下方曲库中选择一首背景音乐...</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-3">
@@ -449,7 +507,7 @@
             </div>
 
             <!-- 音乐控制按钮 -->
-            <div class="relative w-full h-16 bg-slate-50/80 backdrop-blur-sm rounded-xl border border-slate-200 overflow-hidden flex items-center shadow-inner group">
+            <div class="relative w-full h-20 bg-slate-50/60 backdrop-blur-sm rounded-xl border border-slate-200/60 flex items-center shadow-inner group">
                 
                 <div class="absolute left-3 z-20 flex items-center gap-2">
                     <button onclick="if(typeof AudioEngine !== 'undefined' && AudioEngine.wavesurfer) AudioEngine.wavesurfer.playPause()" class="w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-indigo-700 hover:scale-105 transition-all" title="播放音乐 (空格)">
@@ -465,92 +523,64 @@
                 </div>
             </div>
 
-            <!-- 音乐确认/重新选择按钮 -->
-            <div id="musicActionButtons" class="flex gap-3 hidden">
-                <button id="musicConfirmBtn" onclick="confirmMusicBinding()" class="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-black py-2.5 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
-                    ✅ 确认导入该音乐
-                </button>
-                <button id="reselectMusicBtn" onclick="reselectMusic()" class="flex-1 bg-slate-600 hover:bg-slate-700 text-white text-sm font-black py-2.5 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
-                    🔄 重新选择音乐
-                </button>
-            </div>
-            
-            <!-- 时间轴编排区域 (可收起) -->
-            <div id="timelineEditor" class="w-full bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200 p-2 hidden">
-                <!-- 标题栏（始终显示，点击可收起） -->
-                <div class="flex justify-between items-center cursor-pointer" onclick="toggleTimelineEditor()">
-                    <h4 class="text-sm font-black text-slate-800 flex items-center gap-2">
-                        <span id="timelineEditorToggle" class="text-xs">▼</span>
-                        <span>🎯 动作打点编排</span>
-                        <span class="text-[10px] text-purple-600 font-bold bg-purple-100 px-2 py-0.5 rounded">按 [M] 打点 | 空格播放</span>
-                    </h4>
-                    <div class="flex items-center gap-2">
-                        <span class="text-[10px] text-slate-500">已打标记:</span>
-                        <span id="markerCount" class="text-xs font-black text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded">0</span>
-                        <span class="text-[10px] text-slate-400">|</span>
-                        <span class="text-[10px] text-slate-500">分段数:</span>
-                        <span id="segmentCount" class="text-xs font-black text-purple-600 bg-purple-100 px-2 py-0.5 rounded">1</span>
-                        <button id="clearMarkersBtn" onclick="clearAllMarkers()" class="text-[11px] font-bold text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-2 py-0.5 rounded-lg transition-all">
-                            🗑️ 清空
-                        </button>
-                    </div>
+            <!-- ========================================== -->
+            <!-- 🎵 阶段1：音乐选择面板 (只有选择、试听、载入功能) -->
+            <!-- ========================================== -->
+            <div id="musicSelectionPanel" class="w-full">
+                <!-- 阶段标题 -->
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="text-lg">🎶</span>
+                    <h4 class="text-sm font-black text-slate-700">选择背景音乐</h4>
+                    <span class="text-[10px] text-slate-400 font-bold bg-slate-100 px-2 py-0.5 rounded">阶段 1/2</span>
                 </div>
                 
-                <!-- 可收起的内容区域 -->
-                <div id="timelineContent" class="mt-2">
-                    <!-- 时间轴显示 -->
-                    <div id="markerTimeline" class="relative w-full h-8 bg-white rounded-lg border border-slate-200 overflow-hidden flex items-center">
-                        <!-- 时间轴背景 -->
-                        <div id="timelineBackground" class="absolute inset-0 flex"></div>
-                        
-                        <!-- 标记点容器 -->
-                        <div id="markersContainer" class="absolute inset-0 flex items-center"></div>
-                        
-                        <!-- 当前播放位置线 -->
-                        <div id="playbackIndicator" class="absolute top-0 bottom-0 w-0.5 bg-red-500 shadow-lg hidden"></div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- 编排框区域 (可收起) -->
-            <div id="routineEditorBox" class="w-full bg-white rounded-xl border border-slate-200 p-2 hidden">
-                <!-- 标题栏（始终显示，点击可收起） -->
-                <div class="flex justify-between items-center cursor-pointer" onclick="toggleRoutineEditor()">
-                    <h4 class="text-sm font-black text-slate-800 flex items-center gap-2">
-                        <span id="routineEditorToggle" class="text-xs">▼</span>
-                        <span>📋 音乐编排框</span>
-                    </h4>
-                    <div class="flex items-center gap-2">
-                        <span id="routineSlotInfo" class="text-[10px] text-slate-500">
-                            已放入 <span id="filledSlots" class="font-black text-indigo-600">0</span> / <span id="maxSlots" class="font-black text-purple-600">0</span> 个动作
-                        </span>
-                        <!-- 槽位满警告 -->
-                        <span id="slotFullWarning" class="text-[10px] text-amber-600 font-bold bg-amber-50 px-2 py-0.5 rounded hidden">
-                            ⚠️ 槽位已满
-                        </span>
-                    </div>
+                <!-- 音乐确认/重新选择按钮 -->
+                <div id="musicActionButtons" class="flex gap-3 mb-4 hidden">
+                    <button id="musicConfirmBtn" onclick="confirmMusicBinding()" class="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-black py-2.5 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
+                        ✅ 确认导入该音乐
+                    </button>
+                    <button id="reselectMusicBtn" onclick="reselectMusic()" class="flex-1 bg-slate-600 hover:bg-slate-700 text-white text-sm font-black py-2.5 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
+                        🔄 重新选择音乐
+                    </button>
                 </div>
                 
-                <!-- 可收起的内容区域 -->
-                <div id="routineContent" class="mt-2">
-                    <!-- 编排槽位 -->
-                    <div id="routineSlots" class="flex items-center gap-2 overflow-x-auto min-h-[40px] py-1"></div>
-                    
-                    <!-- 完成提示 -->
-                    <div id="completeHint" class="mt-2 p-2 rounded-lg">
+                <!-- 曲库列表 -->
+                <div class="w-full border-t border-slate-100 pt-3">
+                    <div id="libraryTitle" class="text-[11px] font-black text-slate-400 mb-2 px-2">🎵 可用曲库中心 (拖动下方滚动条查看全部)</div>
+                    <div id="musicLibraryList" class="w-full flex items-center gap-3 overflow-x-auto pb-3 min-h-[80px]">
+                        </div>
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- 🎯 阶段2：音乐编排面板 (有M打点功能和编排功能) -->
+            <!-- ========================================== -->
+            <div id="musicArrangementPanel" class="w-full hidden">
+                <div id="timelineEditor" class="w-full bg-gradient-to-r from-indigo-50/80 to-purple-50/80 rounded-xl border border-indigo-200/60 p-2">
+                    <div class="flex justify-between items-center cursor-pointer" onclick="toggleTimelineEditor()">
+                        <h4 class="text-sm font-black text-slate-800 flex items-center gap-2">
+                            <span id="timelineEditorToggle" class="text-xs">▼</span>
+                            <span>🎯 动作时间打点</span>
+                            <span class="text-[10px] text-purple-600 font-bold bg-purple-100 px-2 py-0.5 rounded">按 [M] 打点 | 空格播放</span>
+                        </h4>
                         <div class="flex items-center gap-2">
-                            <span class="text-blue-500">ℹ️</span>
-                            <span class="text-xs text-slate-600 font-bold">
-                                请先在画板上绘制动作线条，然后拖入下方槽位进行编排。
-                            </span>
+                            <span class="text-[10px] text-slate-500">已打标记:</span>
+                            <span id="markerCount" class="text-xs font-black text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded">0</span>
+                            <span class="text-[10px] text-slate-500">|</span>
+                            <span class="text-[10px] text-purple-500 font-bold">分段数:</span>
+                            <span id="segmentCount" class="text-xs font-black text-purple-600 bg-purple-100 px-2 py-0.5 rounded">1</span>
+                            <button id="clearMarkersBtn" onclick="clearAllMarkers()" class="text-[11px] font-bold text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-2 py-0.5 rounded-lg transition-all">
+                                🗑️ 清空
+                            </button>
                         </div>
                     </div>
                     
-                    <!-- 确认编排完毕按钮 -->
-                    <div id="confirmMusicArrangeBtn" class="mt-2 hidden">
-                        <button onclick="confirmMusicArrange()" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-sm font-black py-2.5 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
-                            🎵 确认编排完毕，开始音乐同步展示
-                        </button>
+                    <div id="timelineContent" class="mt-2">
+                        <div id="markerTimeline" class="relative w-full h-8 bg-white rounded-lg border border-slate-200 overflow-hidden flex items-center">
+                            <div id="timelineBackground" class="absolute inset-0 flex"></div>
+                            <div id="markersContainer" class="absolute inset-0 flex items-center"></div>
+                            <div id="playbackIndicator" class="absolute top-0 bottom-0 w-0.5 bg-red-500 shadow-lg hidden"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -559,15 +589,69 @@
             <div id="musicEditorResizeHandle" class="w-full h-2 bg-transparent cursor-row-resize hover:bg-slate-200 transition-colors flex items-center justify-center">
                 <div class="w-10 h-1 bg-slate-400 rounded-full"></div>
             </div>
-            
-            <!-- 曲库列表 -->
-            <div class="w-full border-t border-slate-100 pt-3">
-                <div id="libraryTitle" class="text-[11px] font-black text-slate-400 mb-2 px-2">🎵 可用曲库中心 (拖动下方滚动条查看全部)</div>
-                <div id="musicLibraryList" class="w-full flex items-center gap-3 overflow-x-auto pb-3 min-h-[80px]">
-                    </div>
-            </div>
         </div>
     </main>
+    
+    <!-- ═══════════════════════════════════════════════════════════════════
+         🎬 音乐展示控制面板（右侧悬浮面板）- 第三阶段
+         ═══════════════════════════════════════════════════════════════════ -->
+    <div id="musicShowcaseControlPanel" class="fixed right-0 top-1/2 -translate-y-1/2 z-[150] hidden">
+        <div id="showcasePanelContent" class="relative transition-transform duration-500 ease-in-out translate-x-full flex items-center">
+            
+            <button id="showcasePanelToggle" onclick="toggleShowcasePanel()" 
+                    class="absolute -left-8 w-8 h-20 bg-white/60 backdrop-blur-md border-y border-l border-slate-200 rounded-l-xl shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.1)] flex items-center justify-center text-slate-500 hover:text-indigo-600 transition-all font-bold">
+                ◀
+            </button>
+
+            <div class="w-72 bg-white/60 backdrop-blur-xl border border-slate-200 rounded-l-2xl shadow-2xl p-5 flex flex-col gap-4">
+                
+                <div class="flex justify-between items-center border-b border-slate-200/60 pb-2">
+                    <h3 class="text-sm font-black text-slate-800 flex items-center gap-1.5">
+                        <span class="text-indigo-600">🍿</span> 观赏成套
+                    </h3>
+                    <button onclick="toggleShowcasePanel()" class="text-slate-400 hover:text-red-500 text-lg font-bold transition-colors">
+                        &times;
+                    </button>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex justify-between text-[10px] font-bold text-slate-500 mb-1.5">
+                            <span id="showcaseCurrentTime">0:00</span>
+                            <span class="text-indigo-600">总进度</span>
+                            <span id="showcaseTotalTime">0:00</span>
+                        </div>
+                        <div class="h-1.5 bg-slate-200 rounded-full overflow-hidden shadow-inner">
+                            <div id="showcaseAudioProgress" class="h-full bg-gradient-to-r from-indigo-500 to-purple-500 w-0 transition-all duration-75"></div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="flex justify-between text-[10px] font-bold text-slate-500 mb-1.5">
+                            <span id="showcaseCurrentTrack" class="truncate max-w-[130px] text-indigo-900">🏃 准备动作</span>
+                            <span class="text-purple-600" id="showcaseCurrentSegment">1/1</span>
+                        </div>
+                        <div class="h-1 bg-slate-200 rounded-full overflow-hidden shadow-inner">
+                            <div id="showcaseSegmentProgress" class="h-full bg-purple-500 w-0 transition-all duration-75"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-center items-center gap-5 pt-2">
+                    <button onclick="seekShowcaseOffset(-3)" class="text-slate-400 hover:text-indigo-600 font-black text-sm transition-colors">⏮ 3s</button>
+                    <button id="showcasePlayPauseBtn" onclick="toggleShowcasePlayPause()" class="w-12 h-12 flex items-center justify-center text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 rounded-full shadow-xl transform hover:scale-105 transition-all text-xl pb-0.5">
+                        ▶
+                    </button>
+                    <button onclick="seekShowcaseOffset(3)" class="text-slate-400 hover:text-indigo-600 font-black text-sm transition-colors">3s ⏭</button>
+                </div>
+                
+                <div id="showcaseSegmentGrid" class="grid grid-cols-5 gap-1.5 mt-3 border-t border-slate-100 pt-3">
+                </div> <button onclick="window.returnToPhase2()" class="w-full mt-3 py-2 bg-slate-100 hover:bg-orange-50 text-slate-600 hover:text-orange-600 font-bold text-xs rounded-xl transition-all border border-slate-200/60 flex items-center justify-center gap-1.5 shadow-sm">
+                    🔄 重新编辑打点
+                </button>
+            </div>
+        </div>
+    </div>
 
     <main id="viewHistory" class="max-w-[1400px] mx-auto p-4 md:p-6 hidden">
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 min-h-[500px]">
@@ -899,8 +983,28 @@
         <div class="bg-white p-8 rounded-[2rem] shadow-2xl max-w-sm w-full text-center border border-slate-100">
             <h2 class="text-2xl font-black text-slate-800 mb-2">手动输入 E 分</h2>
             <p class="text-slate-500 mb-6 text-sm">此选手不在自动算法库中，请输入预估完成分（含艺术扣分），以便结算总分。</p>
-            <input type="number" id="customEScoreInput" step="0.1" min="0" max="10" placeholder="例如: 8.5" class="w-full p-4 mb-6 bg-slate-50 border border-slate-200 rounded-xl text-center text-2xl font-black text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300">
+            <input type="number" id="customEScoreInput" step="0.001" min="0" max="10" placeholder="例如: 8.500" oninput="limitDecimalPlaces(this, 3)" class="w-full p-4 mb-6 bg-slate-50 border border-slate-200 rounded-xl text-center text-2xl font-black text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300">
             <button onclick="AppController.confirmCustomScore()" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 shadow-md transition-all">确认并亮相</button>
+        </div>
+    </div>
+
+    <!-- 💰 金币兑换码弹窗 -->
+    <div id="coinCodeModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[260] flex items-center justify-center hidden">
+        <div class="bg-white p-8 rounded-[2rem] shadow-2xl max-w-sm w-full border border-slate-100 mx-4">
+            <button onclick="closeCoinCodeModal()" class="float-right text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
+            <div class="text-center">
+                <div class="text-5xl mb-4">💰</div>
+                <h2 class="text-2xl font-black text-slate-800 mb-2">金币兑换</h2>
+                <p class="text-slate-500 text-sm mb-6">输入兑换码获取金币奖励</p>
+                
+                <input type="text" id="coinCodeInput" placeholder="请输入兑换码" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-center text-lg font-bold uppercase focus:outline-none focus:ring-2 focus:ring-amber-300" onkeyup="if(event.keyCode===13) redeemCoinCode()">
+                
+                <button onclick="redeemCoinCode()" class="w-full mt-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3.5 rounded-xl shadow-md transition-all">
+                    兑换金币
+                </button>
+                
+                <div id="coinCodeResult" class="mt-4 text-sm"></div>
+            </div>
         </div>
     </div>
 
@@ -1201,36 +1305,111 @@
         window.currentTab = 'dictionary'; // 显式开辟全局变量记录当前选项卡
 
         // ==========================================
-        // ✨ 全局加载引擎：拟真进度条 + 终极保险
+        // ✨ 全局加载引擎：智能视频预加载 + 缓存机制
         // ==========================================
+        
+        // ==========================================
+        // ✨ 全局加载引擎：原生缓存秒解 + 动画卡点启动
+        // ==========================================
+        let videoPreloadProgress = {
+            total: 0,
+            loaded: 0,
+            completed: false
+        };
+        
+        function preloadVideos(videoObjects) {
+            const progress = document.getElementById('loaderProgress');
+            const statusText = document.querySelector('#globalLoader .text-xs.font-mono') || document.getElementById('loaderStatus');
+            
+            videoPreloadProgress.total = videoObjects.length;
+            if (statusText) statusText.innerText = `INITIALIZING RESOURCES... (0/${videoObjects.length})`;
+            
+            let loadedCount = 0;
+            
+            videoObjects.forEach((vObj, index) => {
+                const video = document.createElement('video');
+                video.preload = 'auto';
+                video.muted = true;
+                video.playsInline = true;
+                
+                // 🌟【核心修复1】：准确提取对象中的 src 属性
+                const actualSrc = vObj.src;
+                
+                const checkComplete = () => {
+                    loadedCount++;
+                    const percent = Math.min(95, 10 + (loadedCount / videoPreloadProgress.total) * 85);
+                    
+                    if (progress) progress.style.width = `${percent}%`;
+                    if (statusText) statusText.innerText = `PARSING STREAM DATA... (${loadedCount}/${videoPreloadProgress.total})`;
+                    
+                    // 当所有视频资源探测完毕
+                    if (loadedCount >= videoPreloadProgress.total && !videoPreloadProgress.completed) {
+                        videoPreloadProgress.completed = true;
+                        completeLoading();
+                    }
+                };
+                
+                // 🌟【核心修复2】：利用原生事件，只要视频在本地缓存中，这句会在几毫秒内瞬间触发！
+                video.oncanplaythrough = checkComplete;
+                video.onerror = checkComplete; // 就算某个视频404了也放行，防止整个网页卡死
+                
+                video.src = actualSrc;
+                video.load(); // 强制激发浏览器缓存嗅探
+            });
+        }
+        
+        function completeLoading() {
+            const loader = document.getElementById('globalLoader');
+            const progress = document.getElementById('loaderProgress');
+            
+            if (progress) progress.style.width = '100%';
+            
+            setTimeout(() => {
+                if (loader && !loader.classList.contains('opacity-0')) {
+                    loader.classList.add('opacity-0'); // 遮罩层开始淡出
+                    
+                    setTimeout(() => {
+                        loader.remove(); // 销毁遮罩层
+                        
+                        // 🌟【核心修复3】：直到遮罩层完全消失，才正式呼叫导演（HeroEngine）开机！
+                        // 这样进入页面时，绝对是从第一秒的画面开始渲染
+                        if (window.HeroEngine && typeof window.HeroEngine.init === 'function') {
+                            window.HeroEngine.init();
+                        }
+                    }, 700);
+                }
+            }, 300);
+        }
+        
         window.addEventListener('DOMContentLoaded', () => {
             const progress = document.getElementById('loaderProgress');
             if(progress) {
-                // 1. 拟真加载：让进度条在 6 秒内极其平滑地慢慢走到 85%
-                // 这会给用户一种“系统正在拼命下载高清资源”的真实感
-                progress.style.transition = 'width 6s cubic-bezier(0.1, 0.8, 0.2, 1)';
-                progress.style.width = '85%'; 
+                progress.style.transition = 'width 0.5s ease-out';
+                progress.style.width = '10%'; 
+            }
+            
+            // 读取配置中的多媒体流链接
+            if (window.Config && Config.heroMedia && Config.heroMedia.videos) {
+                const videosToLoad = Config.heroMedia.videos.slice(0, 6);
+                if (videosToLoad.length > 0) {
+                    setTimeout(() => preloadVideos(videosToLoad), 200);
+                } else {
+                    completeLoading();
+                }
+            } else {
+                completeLoading();
             }
         });
 
         window.addEventListener('load', () => {
-            // HTML 和静态资源加载完毕。
-            // 剩下的 15% 进度以及隐藏 Loading 的工作，已经完全交给 app.js 里的视频缓冲引擎了！
-            // (🚨 彻底清除了之前报错的残留代码)
-
-            // 2. 终极防卡死保险：万一视频源彻底挂了，导致 app.js 没能接管
-            // 设定一个 12 秒的绝对强制超时，时间一到，强行炸毁 Loading 界面进入系统！
+            // 保底超时机制：如果用户网速极慢，最多等 4.5 秒强行开场，再也不傻等 15 秒了
             setTimeout(() => {
-                const loader = document.getElementById('globalLoader');
-                if (loader && !loader.classList.contains('opacity-0')) {
-                    console.warn('⚠️ 视频缓冲超时，已触发终极保险，强行进入系统！');
-                    const progress = document.getElementById('loaderProgress');
-                    if(progress) progress.style.width = '100%';
-                    
-                    loader.classList.add('opacity-0');
-                    setTimeout(() => loader.remove(), 700);
+                if (!videoPreloadProgress.completed) {
+                    console.warn('⚠️ 缓冲超时，触发保险，强行进入大厅！');
+                    videoPreloadProgress.completed = true;
+                    completeLoading();
                 }
-            }, 12000); 
+            }, 4500); 
         });
         // =========================================================================
         // 🚨 ⚠️ 核心警告 ⚠️ 🚨
@@ -1524,6 +1703,8 @@
             editSetup();
         }
     </script>
-
+    <button id="musicDrawerHandle" onclick="window.openMusicDrawer()" class="fixed bottom-0 left-1/2 -translate-x-1/2 translate-y-full z-[160] px-6 py-1.5 bg-indigo-600 text-white rounded-t-xl shadow-[0_-4px_10px_rgba(0,0,0,0.2)] transition-transform duration-300 font-bold text-xs flex items-center gap-2 cursor-pointer hover:bg-indigo-700">
+        <span class="animate-bounce">⬆</span> 展开音乐时间轴
+    </button>
 </body>
 </html>

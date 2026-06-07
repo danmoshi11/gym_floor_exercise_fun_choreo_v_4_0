@@ -208,6 +208,58 @@ const CoinManager = {
     }
 };
 
+// ==========================================
+// 💰 金币兑换码功能
+// ==========================================
+window.openCoinCodeModal = function() {
+    document.getElementById('coinCodeModal').classList.remove('hidden');
+    document.getElementById('coinCodeInput').value = '';
+    document.getElementById('coinCodeResult').innerHTML = '';
+};
+
+window.closeCoinCodeModal = function() {
+    document.getElementById('coinCodeModal').classList.add('hidden');
+};
+
+window.redeemCoinCode = function() {
+    const input = document.getElementById('coinCodeInput');
+    const result = document.getElementById('coinCodeResult');
+    const code = input.value.trim().toUpperCase();
+    
+    if (!code) {
+        result.innerHTML = '<span class="text-red-500">请输入兑换码！</span>';
+        return;
+    }
+    
+    // 检查配置中的兑换码
+    if (typeof Config !== 'undefined' && Config.coinCodes && Config.coinCodes[code]) {
+        const coinCode = Config.coinCodes[code];
+        
+        // 检查是否已经使用过（使用 localStorage 记录已使用的兑换码）
+        const usedCodes = JSON.parse(localStorage.getItem('usedCoinCodes') || '[]');
+        if (usedCodes.includes(code)) {
+            result.innerHTML = '<span class="text-orange-500">该兑换码已使用过！</span>';
+            return;
+        }
+        
+        // 发放金币
+        CoinManager.addCoins(coinCode.coins);
+        
+        // 记录已使用的兑换码
+        usedCodes.push(code);
+        localStorage.setItem('usedCoinCodes', JSON.stringify(usedCodes));
+        
+        result.innerHTML = `<span class="text-green-500 font-bold">🎉 兑换成功！获得 <span class="text-amber-500">${coinCode.coins}</span> 🪙</span>`;
+        
+        // 3秒后自动关闭弹窗
+        setTimeout(() => {
+            closeCoinCodeModal();
+        }, 2000);
+    } else {
+        result.innerHTML = '<span class="text-red-500">无效的兑换码！</span>';
+    }
+};
+
 const AppController = {
     // 在 AppController 顶部新增属性
     isViewingMode: false,
@@ -478,9 +530,43 @@ const AppController = {
         if (startBtn) {
             startBtn.innerHTML = isViewing ? '🍿 开始观赏成套' : '✅ 完成编排并计算最终成绩';
             if (isViewing) {
-                // 🟢 修复：观赏模式下，点击底部大按钮应正式触发动画演示引擎！
+                // 🟢 核心修复：点击底部「🍿 开始观赏成套」，不仅作为入口，更要接管点火！
                 startBtn.onclick = () => {
-                    AppController.triggerFinishAnimation();
+                    if (window.currentRoutineData && window.currentRoutineData.placedActions && window.currentRoutineData.placedActions.length > 0) {
+                        console.log("[状态机激活] 🍿 收到观赏指令，开启全自动多媒体卡点演示！");
+                        
+                        // 1. 强制弹出右侧观赏控制台
+                        const showcasePanel = document.getElementById('musicShowcaseControlPanel');
+                        if (showcasePanel) showcasePanel.classList.remove('hidden');
+
+                        // 2. 初始化静态数据（此时画面切到0秒，准备就绪）
+                        if (typeof window.initShowcaseControlPanel === 'function') {
+                            window.initShowcaseControlPanel(); 
+                        }
+                        
+                        // 3. 🌟 【灵魂修复】：延迟一瞬间，由爆米花按钮替用户扣下“播放”扳机！
+                        setTimeout(() => {
+                            const ws = window.AudioEngine?.wavesurfer;
+                            if (ws) {
+                                // 防呆设计：如果之前已经播放到底了，自动帮用户复位到 0 秒
+                                if (ws.getCurrentTime() >= (ws.getDuration() - 0.1)) {
+                                    ws.seekTo(0);
+                                }
+                                // 检测到还没播放，立刻触发音画同步播放！
+                                if (!ws.isPlaying() && typeof window.toggleShowcasePlayPause === 'function') {
+                                    window.toggleShowcasePlayPause();
+                                }
+                            }
+                        }, 150); // 给浏览器 150ms 缓冲渲染时间
+
+                    } else {
+                        // 降级保护：普通非音乐名将演示亮相流程
+                        if (typeof PerformanceController !== 'undefined') {
+                            PerformanceController.enterPerformancePhase();
+                        } else {
+                            AppController.triggerFinishAnimation();
+                        }
+                    }
                 };
             } else {
                 startBtn.onclick = () => window.saveRoutine();
@@ -897,15 +983,23 @@ const AppController = {
         this.updateCartUI();
     },
 
-    // ✨【新增 1】渲染 A-J 难度按钮
+    // ✨【新增 1】渲染 A-J 难度按钮（根据轨迹类型显示合适的难度）
     renderModalDiffFilter: function() {
         const bar = document.getElementById('modalDiffFilterBar');
         if (!bar) return;
-        const diffs = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+        
+        // 根据轨迹类型确定显示哪些难度组别
+        const trackType = this.modal.trackType || 'line';
+        let availableDiffs = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+        
+        // 转体(2.x)和跳步(1.x)没有F组以上的动作，不显示
+        if (trackType === 'transit' || trackType === 'curve') {
+            availableDiffs = ['A', 'B', 'C', 'D', 'E'];
+        }
         
         let html = `<button onclick="AppController.setModalDiffFilter('all')" class="px-3 py-1 rounded-lg text-xs font-bold transition-colors shrink-0 ${this.modal.currentDiffFilter === 'all' ? 'bg-slate-800 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}">所有难度</button>`;
         
-        diffs.forEach(d => {
+        availableDiffs.forEach(d => {
             let isSelected = this.modal.currentDiffFilter === d;
             html += `<button onclick="AppController.setModalDiffFilter('${d}')" class="px-3 py-1 rounded-lg text-xs font-bold transition-colors shrink-0 ${isSelected ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}">${d} 组</button>`;
         });
@@ -936,20 +1030,82 @@ const AppController = {
     generateRecommendations: function(trackType) {
         const bar = document.getElementById('recommendationBar');
         bar.innerHTML = '';
-        let recs = [];
+        
+        // 定义技巧类固定推荐列表（第一排）
+        const fixedSkillRecommendations = [
+            '前团', '前屈', '后团', '前直', '前直180', '前直360', '后直540'
+        ];
+        
         if (trackType === 'line') {
+            // ════════════════════════════════════════════════════════════
+            // 第一排：固定推荐（每次都显示相同的动作）
+            // ════════════════════════════════════════════════════════════
+            const fixedRow = document.createElement('div');
+            fixedRow.className = 'flex gap-2 overflow-x-auto no-scrollbar pb-2';
+            
+            fixedSkillRecommendations.forEach(skillName => {
+                const skill = skillsData.find(s => s.nameZh.includes(skillName));
+                if (skill) {
+                    fixedRow.innerHTML += `
+                        <button onclick="AppController.addToCart('${skill.id}', '${skill.nameZh[0]}')" 
+                                class="flex-shrink-0 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 hover:border-amber-500 rounded-lg px-3 py-1.5 flex items-center gap-2 shadow-sm transition-all hover:shadow-md">
+                            <span class="text-xs font-bold text-amber-600">★</span>
+                            <span class="text-xs font-bold text-amber-700">${skill.difficulty}</span>
+                            <span class="text-sm text-gray-700">${skill.nameZh[0]}</span>
+                        </button>
+                    `;
+                }
+            });
+            
+            bar.appendChild(fixedRow);
+            
+            // ════════════════════════════════════════════════════════════
+            // 第二排：智能随机推荐（根据已有技巧数量调整难度）
+            // ════════════════════════════════════════════════════════════
+            const randomRow = document.createElement('div');
+            randomRow.className = 'flex gap-2 overflow-x-auto no-scrollbar';
+            
+            let recs = [];
             const lineCount = canvasManager.tracks.filter(t => t.type === 'line').length;
-            if (lineCount === 1) recs = skillsData.filter(s => /^[45]\./.test(s.id) && ['F','G','H','I','J'].includes(s.difficulty));
-            else if (lineCount === 2) recs = skillsData.filter(s => /^[45]\./.test(s.id) && ['E','F'].includes(s.difficulty));
-            else recs = skillsData.filter(s => /^[45]\./.test(s.id) && ['C','D'].includes(s.difficulty));
+            
+            // 智能推荐逻辑：
+            // - 第1条技巧串：推荐高难度动作 (F-J组)
+            // - 第2条技巧串：推荐中难度动作 (E-F组)  
+            // - 第3条及以后：推荐较低难度动作 (C-D组)
+            if (lineCount === 1) {
+                recs = skillsData.filter(s => /^[45]\./.test(s.id) && ['D','E','F','G','H'].includes(s.difficulty));
+            } else if (lineCount === 2) {
+                recs = skillsData.filter(s => /^[45]\./.test(s.id) && ['D','E','F'].includes(s.difficulty));
+            } else {
+                recs = skillsData.filter(s => /^[45]\./.test(s.id) && ['C','D','E'].includes(s.difficulty));
+            }
+            
+            // 随机打乱并取前5个
+            recs.sort(() => 0.5 - Math.random()).slice(0, 5).forEach(skill => {
+                randomRow.innerHTML += `
+                    <button onclick="AppController.addToCart('${skill.id}', '${skill.nameZh[0]}')" 
+                            class="flex-shrink-0 bg-white border border-blue-200 hover:border-blue-500 rounded-lg px-3 py-1.5 flex items-center gap-2 shadow-sm transition-colors">
+                        <span class="text-xs font-bold text-blue-600">${skill.difficulty}</span>
+                        <span class="text-sm text-gray-700">${skill.nameZh[0]}</span>
+                    </button>
+                `;
+            });
+            
+            bar.appendChild(randomRow);
+            
         } else if (trackType === 'curve') {
-            recs = skillsData.filter(s => s.id.startsWith('1.') && s.tags && s.tags.includes('cr1'));
+            // 舞蹈动作：保持原来的随机推荐
+            let recs = skillsData.filter(s => s.id.startsWith('1.') && s.tags && s.tags.includes('cr1'));
+            recs.sort(() => 0.5 - Math.random()).slice(0, 5).forEach(skill => {
+                bar.innerHTML += `<button onclick="AppController.addToCart('${skill.id}', '${skill.nameZh[0]}')" class="flex-shrink-0 bg-white border border-blue-200 hover:border-blue-500 rounded-lg px-3 py-1.5 flex items-center gap-2 shadow-sm transition-colors"><span class="text-xs font-bold text-blue-600">${skill.difficulty}</span><span class="text-sm text-gray-700">${skill.nameZh[0]}</span></button>`;
+            });
         } else {
-            recs = skillsData.filter(s => s.id.startsWith('2.') && ['C','D','E'].includes(s.difficulty));
+            // 连接动作：保持原来的随机推荐
+            let recs = skillsData.filter(s => s.id.startsWith('2.') && ['C','D','E'].includes(s.difficulty));
+            recs.sort(() => 0.5 - Math.random()).slice(0, 5).forEach(skill => {
+                bar.innerHTML += `<button onclick="AppController.addToCart('${skill.id}', '${skill.nameZh[0]}')" class="flex-shrink-0 bg-white border border-blue-200 hover:border-blue-500 rounded-lg px-3 py-1.5 flex items-center gap-2 shadow-sm transition-colors"><span class="text-xs font-bold text-blue-600">${skill.difficulty}</span><span class="text-sm text-gray-700">${skill.nameZh[0]}</span></button>`;
+            });
         }
-        recs.sort(() => 0.5 - Math.random()).slice(0, 5).forEach(skill => {
-            bar.innerHTML += `<button onclick="AppController.addToCart('${skill.id}', '${skill.nameZh[0]}')" class="flex-shrink-0 bg-white border border-blue-200 hover:border-blue-500 rounded-lg px-3 py-1.5 flex items-center gap-2 shadow-sm transition-colors"><span class="text-xs font-bold text-blue-600">${skill.difficulty}</span><span class="text-sm text-gray-700">${skill.nameZh[0]}</span></button>`;
-        });
     },
 
     renderModalList: function(skills) {
@@ -1241,6 +1397,11 @@ const AppController = {
         window.currentScoreReport = report;
     },
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 【普通亮相函数】：画板编排后的标准亮相（不含音乐同步）
+    // 触发场景：点击"完成编排并计算最终成绩"按钮
+    // 调用链：triggerFinishAnimation → playShowcase → 播放动画 → E分结算
+    // ═══════════════════════════════════════════════════════════════════════════
     triggerFinishAnimation: function() {
         console.log("%c[雷达1] 🚀 triggerFinishAnimation 被成功触发！", "color: white; background: #3b82f6; font-size: 14px; padding: 4px;");
         
@@ -2100,46 +2261,58 @@ const AppController = {
                 musicModeLabel.innerText = '🎬 现场/音乐模式';
             }
             
-            // ✨【新增】：如果有音乐数据，显示音乐编辑界面
+            // ✨【完美流转分流】：如果是配乐成套，根据是否完结决定是否弹抽屉
             if (window.currentRoutineData.musicId && window.currentRoutineData.musicMarkers) {
-                console.log("[loadRoutine 调试] ✅ 发现音乐数据，恢复音乐编辑界面");
+                console.log("[loadRoutine 调试] ✅ 发现音乐数据，执行二三阶段隔离分流");
                 
-                // 隐藏曲库列表，显示重新选择按钮
                 const libraryList = document.getElementById('musicLibraryList');
                 const reselectBtn = document.getElementById('reselectMusicBtn');
-                const libraryTitle = document.getElementById('libraryTitle');
                 const musicActionButtons = document.getElementById('musicActionButtons');
                 const timelineEditor = document.getElementById('timelineEditor');
                 const routineEditorBox = document.getElementById('routineEditorBox');
-                const confirmBtn = document.getElementById('musicConfirmBtn');
-                
-                if (libraryList) libraryList.classList.add('hidden');
-                if (reselectBtn) reselectBtn.classList.remove('hidden');
-                if (libraryTitle) libraryTitle.innerText = '🎵 可用曲库中心';
-                if (musicActionButtons) musicActionButtons.classList.remove('hidden');
-                if (timelineEditor) timelineEditor.classList.remove('hidden');
-                if (routineEditorBox) routineEditorBox.classList.remove('hidden');
-                if (confirmBtn) confirmBtn.classList.add('hidden');
-                
-                // 更新时间轴UI
-                if (typeof updateTimelineUI === 'function') {
-                    updateTimelineUI();
-                }
-                if (typeof updateRoutineSlots === 'function') {
-                    updateRoutineSlots();
-                }
-                
-                // 隐藏画线工具，显示拖拽提示栏
+                const confirmMusicArrangeBtn = document.getElementById('confirmMusicArrangeBtn');
                 const drawingToolsWrapper = document.getElementById('drawingToolsWrapper');
                 const dragHintBar = document.getElementById('dragHintBar');
-                if (drawingToolsWrapper) drawingToolsWrapper.classList.add('hidden');
-                if (dragHintBar) dragHintBar.classList.remove('hidden');
                 
-                // 显示"确认编排完毕"按钮
-                const confirmMusicArrangeBtn = document.getElementById('confirmMusicArrangeBtn');
-                if (confirmMusicArrangeBtn) confirmMusicArrangeBtn.classList.remove('hidden');
+                // 🌟🌟 核心卡点：如果该历史草稿已经拥有完结数据链 (placedActions) 🌟🌟
+                if (routine.placedActions && routine.placedActions.length > 0) {
+                    console.log("[分流器工作] ⚡ 检测到该草稿已属于完结成品。隐藏第二阶段打点抽屉。");
+                    
+                    // 物理隐藏并关闭所有属于第二阶段的编制、打点、线段编辑 UI 
+                    if (typeof window.closeMusicDrawer === 'function') window.closeMusicDrawer();
+                    if (timelineEditor) timelineEditor.classList.add('hidden');
+                    if (routineEditorBox) routineEditorBox.classList.add('hidden');
+                    
+                    // 解锁常规轨迹，让画板看起来干干净净
+                    if (drawingToolsWrapper) drawingToolsWrapper.classList.remove('hidden');
+                    if (dragHintBar) dragHintBar.classList.add('hidden');
+                    
+                    // 🌟 强行将大按钮状态校准为只读观赏模式：“🍿 开始观赏成套”
+                    AppController.applyViewingMode(true);
+                    
+                    ToastManager.show('success', '成套导入完毕 🎶', '🎵 该成套已处于完结状态！\n请直接点击页面下方的「🍿 开始观赏成套」开始检阅！', 4500);
+                } else {
+                    // 如果是还未编完的半成品草稿，照常弹开第二阶段抽屉和打点轴，让用户继续补完
+                    if (libraryList) libraryList.classList.add('hidden');
+                    if (reselectBtn) reselectBtn.classList.remove('hidden');
+                    if (musicActionButtons) musicActionButtons.classList.remove('hidden');
+                    if (timelineEditor) timelineEditor.classList.remove('hidden');
+                    if (routineEditorBox) routineEditorBox.classList.remove('hidden');
+                    if (confirmMusicArrangeBtn) confirmMusicArrangeBtn.classList.remove('hidden');
+                    if (drawingToolsWrapper) drawingToolsWrapper.classList.add('hidden');
+                    if (dragHintBar) dragHintBar.classList.remove('hidden');
+                    
+                    if (typeof window.openMusicDrawer === 'function') window.openMusicDrawer();
+                    if (typeof updateTimelineUI === 'function') updateTimelineUI();
+                    if (typeof updateRoutineSlots === 'function') updateRoutineSlots();
+                    
+                    ToastManager.show('warning', '恢复未完结打点', '🎵 检测到该音乐草稿尚未完结，已为您重新挂载第二阶段打点控制台。', 4000);
+                }
                 
-                ToastManager.show('success', '数据加载完毕', `进度已成功还原到画板！\n🎵 已恢复您的音乐编排，可直接点击音乐模式开关进行展示！`, 4000);
+                // 无论是成品还是半成品，都无条件静默拉取音频资源生成波形图画布
+                if (window.AudioEngine && routine.musicUrl) {
+                    AudioEngine.loadAudio(routine.musicUrl, true);
+                }
             } else {
                 ToastManager.show('success', '数据加载完毕', `进度已成功还原到画板！\n已为您保留原有的分数，可直接开启音乐模式。`, 4000);
             }
@@ -2706,7 +2879,9 @@ const AudioEngine = {
             barRadius: 2,
             height: 70, // 稍微调矮一点，给下方的刻度尺留出空间
             minPxPerSec: 60, // 🌟 【核心魔法】：每秒占用 60 像素，自动撑出横向滚动条！
-            normalize: true,          
+            normalize: true,
+            barHeight: 0.5,
+            barAlign: 'bottom'          
         });
 
         this.wsRegions = this.wavesurfer.registerPlugin(WaveSurfer.Regions.create());

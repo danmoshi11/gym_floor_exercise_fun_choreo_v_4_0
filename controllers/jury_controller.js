@@ -385,6 +385,14 @@ window.ManualJurySystem = {
         this.appliedFaults = track.skills.map(() => []); 
         this.isMinimized = false; 
         
+        // ✨ 进入手动打分模式时，禁用"完成编排并亮相"按钮
+        const finishBtn = document.getElementById('finishRoutineBtn');
+        if (finishBtn) {
+            finishBtn.disabled = true;
+            finishBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            finishBtn.classList.remove('hover:-translate-y-0.5');
+        } 
+        
         const deck = document.getElementById('juryCardDeck');
         const arrow = document.getElementById('juryToggleArrow');
         const text = document.getElementById('juryToggleText');
@@ -516,6 +524,14 @@ window.ManualJurySystem = {
             deck.classList.remove('translate-y-0');
             deck.classList.add('translate-y-full');
             deck.style.transform = ''; 
+        }
+
+        // ✨ 退出裁判打分模式时，重新启用"完成编排并亮相"按钮
+        const finishBtn = document.getElementById('finishRoutineBtn');
+        if (finishBtn) {
+            finishBtn.disabled = false;
+            finishBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            finishBtn.classList.add('hover:-translate-y-0.5');
         }
 
         // ✨【FlowStateManager】退出裁判打分模式

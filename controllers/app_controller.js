@@ -42,15 +42,6 @@ if (typeof window.AppController === 'undefined') {
         }
     };
 
-    // 触发完成动画
-    AppController.triggerFinishAnimation = function() {
-        // 这里应该包含动画演示逻辑
-        if (typeof ToastManager !== 'undefined') {
-            ToastManager.show('success', '开始观赏', '🎬 正在启动成套动画演示...', 3000);
-        }
-        // 注意：如果在 app.js 里已有实际的 triggerFinishAnimation 动画逻辑，
-        // 请确保不要用这几行空代码覆盖它。如果 app.js 里没有，就保留这行占位。
-    };
 
     // 模态框数据（如果不存在则创建）
     if (!AppController.modal) {

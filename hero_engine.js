@@ -357,11 +357,3 @@ window.HeroEngine = {
         });
     }
 };
-
-// 启动引擎
-// 页面加载完成后启动 HeroEngine
-document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-        if(window.HeroEngine) window.HeroEngine.init();
-    }, 500);
-});

@@ -2,13 +2,106 @@
 // 🎵 音乐模式流转控制器 (严格防呆 + 状态解耦)
 // ==========================================
 
-// 关闭音乐抽屉（不退出音乐模式）
+// 关闭音乐抽屉
 window.closeMusicDrawer = function() {
-    console.log("%c[音乐模式调试] 🔽 关闭音乐抽屉", "color: white; background: #f59e0b; font-size: 12px;");
     const drawer = document.getElementById('musicDrawer');
-    if (drawer) {
-        drawer.classList.add('translate-y-full');
+    if (drawer) drawer.classList.add('translate-y-full');
+    
+    // 🌟 抽屉收起时，呼出底部的救命把手！
+    const handle = document.getElementById('musicDrawerHandle');
+    if (handle) handle.classList.remove('translate-y-full');
+};
+
+// 打开音乐抽屉
+window.openMusicDrawer = function() {
+    const drawer = document.getElementById('musicDrawer');
+    if (drawer) drawer.classList.remove('translate-y-full');
+    
+    // 🌟 抽屉打开时，隐藏把手
+    const handle = document.getElementById('musicDrawerHandle');
+    if (handle) handle.classList.add('translate-y-full');
+};
+window.backToMusicSelection = function() {
+    console.log("%c[音乐模式] ← 返回音乐选择阶段", "color: white; background: #f59e0b; font-size: 12px;");
+    
+    const selectionPanel = document.getElementById('musicSelectionPanel');
+    const arrangementPanel = document.getElementById('musicArrangementPanel');
+    if (selectionPanel) selectionPanel.classList.remove('hidden');
+    if (arrangementPanel) arrangementPanel.classList.add('hidden');
+    
+    const subtitle = document.getElementById('musicDrawerSubtitle');
+    if (subtitle) subtitle.innerText = '请在下方曲库中选择一首背景音乐...';
+    
+    const confirmBtn = document.getElementById('musicConfirmBtn');
+    const reselectBtn = document.getElementById('reselectMusicBtn');
+    const musicActionButtons = document.getElementById('musicActionButtons');
+    const libraryList = document.getElementById('musicLibraryList');
+    
+    if (confirmBtn) confirmBtn.classList.add('hidden');
+    if (reselectBtn) reselectBtn.classList.remove('hidden');
+    if (musicActionButtons) musicActionButtons.classList.remove('hidden');
+    if (libraryList) libraryList.classList.remove('hidden');
+
+    // 🌟 隐藏右侧音乐编排UI，恢复常规画板序列UI
+    document.getElementById('normalRoutineHeader').classList.remove('hidden');
+    document.getElementById('routineList').classList.remove('hidden');
+    document.getElementById('routineEditorBox').classList.add('hidden');
+    document.getElementById('musicRoutineContent').classList.add('hidden');
+};
+
+// 进入音乐编排阶段
+window.enterArrangementPhase = function(fromCache = false) {
+    console.log("%c[音乐模式] 🎯 进入音乐编排阶段 (全自动匹配版)", "color: white; background: #8b5cf6; font-size: 12px;");
+    
+    // 🌟【清洗防线】：进入第二阶段时，立刻将音乐身上可能粘连的第三阶段监听器剥离干净！
+    // 这样第二阶段放完音乐，绝对是一场普通的播放结束，死活不会触发展示完的扣分面板！
+    if (window.AudioEngine && window.AudioEngine.wavesurfer) {
+        const ws = window.AudioEngine.wavesurfer;
+        ws.un('play'); ws.un('pause'); ws.un('finish');
     }
+
+    const selectionPanel = document.getElementById('musicSelectionPanel');
+    const arrangementPanel = document.getElementById('musicArrangementPanel');
+    if (selectionPanel) selectionPanel.classList.add('hidden');
+    if (arrangementPanel) arrangementPanel.classList.remove('hidden');
+    
+    const phaseInfoBar = document.getElementById('phaseInfoBar');
+    if (fromCache && phaseInfoBar) phaseInfoBar.classList.remove('hidden');
+    else if (phaseInfoBar) phaseInfoBar.classList.add('hidden');
+    
+    const subtitle = document.getElementById('musicDrawerSubtitle');
+    if (subtitle) subtitle.innerText = '按 [M] 键在音乐中打标记点，右侧槽位将全自动落入动作';
+    
+    // ... 下方原本控制按钮和工具栏的代码保持不变 ...
+    const libraryList = document.getElementById('musicLibraryList');
+    const confirmBtn = document.getElementById('musicConfirmBtn');
+    const reselectBtn = document.getElementById('reselectMusicBtn');
+    const musicActionButtons = document.getElementById('musicActionButtons');
+    if (libraryList) libraryList.classList.add('hidden');
+    if (confirmBtn) confirmBtn.classList.add('hidden');
+    if (reselectBtn) reselectBtn.classList.add('hidden'); 
+    if (musicActionButtons) musicActionButtons.classList.add('hidden');
+
+    // 画线工具栏正常显示，因为现在我们不需要“假装拖拽”了
+    const drawingToolsWrapper = document.getElementById('drawingToolsWrapper');
+    const dragHintBar = document.getElementById('dragHintBar');
+    if (drawingToolsWrapper) drawingToolsWrapper.classList.remove('hidden');
+    if (dragHintBar) dragHintBar.classList.add('hidden');
+    if (typeof setTool === 'function') setTool('line');
+
+    // 🌟 显示右侧音乐编排UI，隐藏常规画板UI
+    document.getElementById('normalRoutineHeader').classList.add('hidden');
+    document.getElementById('routineList').classList.add('hidden');
+    document.getElementById('routineEditorBox').classList.remove('hidden');
+    document.getElementById('musicRoutineContent').classList.remove('hidden');
+    
+    if (typeof updateTimelineUI === 'function') updateTimelineUI();
+    updateRoutineSlots();
+    // 🌟【核心修复点】：进入编排阶段时，无条件确保底部抽屉弹出！
+    window.openMusicDrawer();
+    
+    if (typeof updateTimelineUI === 'function') updateTimelineUI();
+    updateRoutineSlots();
 };
 
 // 0. 统一的点击处理函数
@@ -95,40 +188,77 @@ window.toggleMusicMode = function(checkbox, skipConfirm = false) {
             drawer.classList.remove('translate-y-full');
         }
         
-        // ✨ 检查是否已经有绑定的音乐
-        if (window.currentRoutineData && (window.currentRoutineData.musicId || window.currentRoutineData.musicUrl)) {
-            console.log("[音乐模式调试] 已绑定音乐，直接显示编辑界面，不显示曲库");
-            
-            // 隐藏曲库列表，显示重新选择按钮
-            const libraryList = document.getElementById('musicLibraryList');
-            const reselectBtn = document.getElementById('reselectMusicBtn');
-            const libraryTitle = document.getElementById('libraryTitle');
-            const musicActionButtons = document.getElementById('musicActionButtons');
-            const confirmBtn = document.getElementById('musicConfirmBtn');
-            const timelineEditor = document.getElementById('timelineEditor');
-            const routineEditorBox = document.getElementById('routineEditorBox');
-            
-            if (libraryList) libraryList.classList.add('hidden');
-            if (reselectBtn) reselectBtn.classList.remove('hidden');
-            if (libraryTitle) libraryTitle.innerText = '🎵 可用曲库中心';
-            if (musicActionButtons) musicActionButtons.classList.remove('hidden');
-            if (confirmBtn) confirmBtn.classList.add('hidden');
-            if (timelineEditor) timelineEditor.classList.remove('hidden');
-            if (routineEditorBox) routineEditorBox.classList.remove('hidden');
+        // ✨ 智能状态检查：根据已有数据决定显示哪个阶段
+        const hasMusic = window.currentRoutineData && (window.currentRoutineData.musicId || window.currentRoutineData.musicUrl);
+        const hasArrangement = window.currentRoutineData && window.currentRoutineData.musicMarkers && 
+                              window.currentRoutineData.musicMarkers.length >= 2;
+        
+        console.log("[音乐模式调试] hasMusic:", hasMusic, "hasArrangement:", hasArrangement);
+        
+        if (hasMusic && hasArrangement) {
+            // 已有完整编排：直接进入编排阶段（跳过选择阶段）
+            console.log("[音乐模式调试] 🎵 已有完整音乐编排，直接进入编排阶段");
             
             // 加载已有的音乐标记
-            if (window.currentRoutineData.musicMarkers) {
-                window.musicMarkers = JSON.parse(JSON.stringify(window.currentRoutineData.musicMarkers));
-                updateTimelineUI();
-            }
+            window.musicMarkers = JSON.parse(JSON.stringify(window.currentRoutineData.musicMarkers));
             
             // 加载音乐
             if (window.currentRoutineData.musicId) {
                 window.selectMusic(window.currentRoutineData.musicId, window.currentRoutineData.musicUrl);
             }
             
-            ToastManager.show('success', '进入音乐模式', '🎵 已恢复您上次的音乐编排！');
+            // 直接进入编排阶段（从缓存加载）
+            enterArrangementPhase(true);
+            
+            ToastManager.show('success', '进入音乐模式', '🎵 已恢复您的完整音乐编排！\n可以直接播放成套了！');
+            
+        } else if (hasMusic) {
+            // 只有音乐没有编排：进入编排阶段（跳过选择阶段）
+            console.log("[音乐模式调试] 🎶 已有音乐，进入编排阶段");
+            
+            // 加载音乐
+            if (window.currentRoutineData.musicId) {
+                window.selectMusic(window.currentRoutineData.musicId, window.currentRoutineData.musicUrl);
+            }
+            
+            // 如果有部分标记，加载它们；否则初始化默认的首尾标记点
+            if (window.currentRoutineData.musicMarkers && window.currentRoutineData.musicMarkers.length > 0) {
+                window.musicMarkers = JSON.parse(JSON.stringify(window.currentRoutineData.musicMarkers));
+            } else {
+                // ✨ 恢复默认的首尾标记点
+                const duration = AudioEngine && AudioEngine.wavesurfer ? AudioEngine.wavesurfer.getDuration() : 0;
+                window.musicMarkers = [
+                    { time: 0, label: '开始' },
+                    { time: Math.max(0, duration - 0.1), label: '结束' }
+                ];
+                window.currentRoutineData.musicMarkers = window.musicMarkers;
+                console.log("[音乐模式调试] 🎯 已初始化默认的首尾标记点");
+            }
+            
+            // 进入编排阶段（从缓存加载）
+            enterArrangementPhase(true);
+            
+            ToastManager.show('success', '进入音乐模式', '🎵 已恢复您选择的音乐！\n现在可以进行动作编排了。');
+            
         } else {
+            // 什么都没有：显示选择阶段
+            console.log("[音乐模式调试] 🎼 无音乐，显示选择面板");
+            
+            // 显示选择面板，隐藏编排面板
+            const selectionPanel = document.getElementById('musicSelectionPanel');
+            const arrangementPanel = document.getElementById('musicArrangementPanel');
+            
+            if (selectionPanel) selectionPanel.classList.remove('hidden');
+            if (arrangementPanel) arrangementPanel.classList.add('hidden');
+            
+            // 更新副标题
+            const subtitle = document.getElementById('musicDrawerSubtitle');
+            if (subtitle) subtitle.innerText = '请在下方曲库中选择一首背景音乐...';
+            
+            // 更新按钮状态
+            window.isInPhase3 = false;
+            updateMusicModeButtonState();
+            
             ToastManager.show('success', '进入音乐模式', '编排已安全锁定 🔒。请载入音乐开始您的汇报演出！');
         }
 
@@ -156,8 +286,21 @@ window.toggleMusicMode = function(checkbox, skipConfirm = false) {
         
         // 解锁 2D 画板
         if (window.AppController && AppController.applyViewingMode) {
+            console.log("[音乐模式调试] 调用 AppController.applyViewingMode(false) 解锁");
             AppController.applyViewingMode(false);
         }
+        
+        // 重置阶段标记
+        window.isInPhase3 = false;
+        
+        // 恢复按钮状态
+        updateMusicModeButtonState();
+        
+        // 恢复显示画线工具
+        const drawingToolsWrapper = document.getElementById('drawingToolsWrapper');
+        const dragHintBar = document.getElementById('dragHintBar');
+        if (drawingToolsWrapper) drawingToolsWrapper.classList.remove('hidden');
+        if (dragHintBar) dragHintBar.classList.add('hidden');
     }
     
     console.log("%c[音乐模式调试] ✅ toggleMusicMode 执行完成", "color: white; background: green; font-size: 12px;");
@@ -304,49 +447,14 @@ window.confirmMusicBinding = function() {
 
     ToastManager.show('success', '绑定成功', '🎉 该音乐已正式导入成套！\n现在可以按 [M] 键在音乐中打标记点了！', 3000);
 
-    // UX 魔法：隐藏确认按钮、收起繁杂的曲库卡片、露出"重新选择"按钮
-    const confirmBtn = document.getElementById('musicConfirmBtn');
-    const reselectBtn = document.getElementById('reselectMusicBtn');
-    const libraryList = document.getElementById('musicLibraryList');
-    const libraryTitle = document.getElementById('libraryTitle');
-    
-    if (confirmBtn) confirmBtn.classList.add('hidden');
-    if (libraryList) libraryList.classList.add('hidden');
-    if (reselectBtn) reselectBtn.classList.remove('hidden');
-    if (libraryTitle) libraryTitle.innerText = '🎵 可用曲库中心';
-    
-    // 隐藏画线工具，显示拖拽提示栏
-    const drawingToolsWrapper = document.getElementById('drawingToolsWrapper');
-    const dragHintBar = document.getElementById('dragHintBar');
-    if (drawingToolsWrapper) drawingToolsWrapper.classList.add('hidden');
-    if (dragHintBar) dragHintBar.classList.remove('hidden');
-    
-    // 自动切换到拖拽模式
-    if (typeof setTool === 'function') {
-        setTool('move');
-    }
-
-    // 显示时间轴编辑器和编排框
-    const timelineEditor = document.getElementById('timelineEditor');
-    const routineEditorBox = document.getElementById('routineEditorBox');
-    if (timelineEditor) timelineEditor.classList.remove('hidden');
-    if (routineEditorBox) routineEditorBox.classList.remove('hidden');
-
-    // 更新时间轴UI
-    updateTimelineUI();
-    updateRoutineSlots();
-
     // ✨【FlowStateManager】退出音乐选择模式（先保存再退出）
     if (window.FlowStateManager) {
         window.FlowStateManager.save('music_selecting'); // 先保存，传入明确的 flow 名称
         window.FlowStateManager.exitFlow('music_selecting', true); // 再退出
     }
     
-    // 显示教程面板
-    const tutorialModal = document.getElementById('musicTutorialModal');
-    if (tutorialModal) {
-        tutorialModal.classList.remove('hidden');
-    }
+    // 进入编排阶段
+    enterArrangementPhase();
 };
 
 // 3. 重新选择：用户想反悔换音乐，重置 UI
@@ -469,6 +577,12 @@ function updateTimelineUI() {
             segmentsHtml += `
                 <div class="absolute h-1.5 rounded-full bg-gradient-to-r ${colorClass} ${glowClass} ${animationClass}" 
                      style="left: ${startPos}%; width: ${width}%;">
+                    <!-- 线段序号（在线段中心） -->
+                    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 
+                                w-5 h-5 rounded-full bg-white text-slate-700 text-[10px] font-black 
+                                flex items-center justify-center shadow-md">
+                        ${index + 1}
+                    </div>
                 </div>
             `;
         }
@@ -592,155 +706,90 @@ window.clearAllMarkers = function() {
     ToastManager.show('info', '已清空', '所有标记点已移除', 1500);
 };
 
-// 8. 更新编排槽位 - 新设计：虚线分割、图标+序号显示
-function updateRoutineSlots() {
+// 🌟【核心重写】：全自动匹配算法，淘汰旧版拖拽
+window.updateRoutineSlots = function() {
     const markers = window.musicMarkers || [{ time: 0, label: '开始' }];
-    const maxSlots = markers.length - 1;
+    const maxSlots = Math.max(1, markers.length - 1); 
     const slotsContainer = document.getElementById('routineSlots');
     const filledSlotsEl = document.getElementById('filledSlots');
     const maxSlotsEl = document.getElementById('maxSlots');
     const completeHint = document.getElementById('completeHint');
+    const confirmBtn = document.getElementById('confirmMusicArrangeBtn');
+    const matchWarning = document.getElementById('actionMatchWarning');
     
     if (!slotsContainer) return;
+    slotsContainer.innerHTML = ''; 
     
-    // 获取当前已编排的动作
-    const placedActions = window.currentRoutineData?.placedActions || [];
-    const duration = AudioEngine ? AudioEngine.wavesurfer.getDuration() : 60;
+    // 🐛【致命Bug修复1】：使用 typeof 检查 const 变量，绕开 window 作用域陷阱！
+    const activeTracks = (typeof canvasManager !== 'undefined' && canvasManager.tracks) ? canvasManager.tracks : [];
+    const totalTracks = activeTracks.length;
     
-    // 计算画板上的线条总数（包含过渡舞蹈！）
-    const totalTracks = canvasManager?.tracks?.length || 0;
-    
-    // ==========================================
-    // 计算编排状态
-    // ==========================================
-    const filledCount = placedActions.filter(Boolean).length;
-    const isComplete = filledCount === maxSlots && filledCount === totalTracks && totalTracks > 0;
-    
-    // ==========================================
-    // 渲染槽位（带虚线分割对应时间轴）
-    // ==========================================
-    let slotsHtml = '';
-    
+    let placedActions = [];
+    let filledCount = 0;
+
     for (let i = 0; i < maxSlots; i++) {
-        const action = placedActions[i];
-        const marker = markers[i];
-        const nextMarker = markers[i + 1];
-        const segmentDuration = nextMarker ? (nextMarker.time - marker.time).toFixed(1) : '?';
+        const track = activeTracks[i];
         
-        // 槽位背景：已放置动作 vs 空槽位
-        const hasAction = action !== undefined;
-        const slotBg = hasAction ? 'bg-white border-indigo-300' : 'bg-slate-50 border-slate-300';
-        
-        // 虚线分割线
-        const showDash = i > 0;
-        
-        slotsHtml += `
-            ${showDash ? `<div class="w-px h-12 bg-slate-300 border-l border-dashed mx-1 shrink-0"></div>` : ''}
-            <div id="slot-${i}" 
-                 class="relative flex-1 min-w-[80px] ${slotBg} border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all
-                        ${hasAction ? 'border-solid' : 'hover:border-indigo-400 hover:bg-indigo-50'}"
-                 ondragover="allowDrop(event)" ondragenter="dragOverSlot(event, ${i})" ondragleave="dragLeaveSlot(event, ${i})" ondrop="dropAction(event, ${i})">
-                
-                <!-- 槽位序号（在右上角） -->
-                <div class="absolute top-1 right-2 text-[10px] font-black text-slate-400">${i + 1}</div>
-                
-                ${hasAction ? `
-                    <!-- 已放置动作 -->
-                    <div class="flex flex-col items-center gap-1 p-2">
-                        <div class="text-2xl">${action.icon}</div>
-                        <div class="text-[9px] font-black text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">${action.trackIndex + 1}</div>
-                        <div class="text-[8px] text-slate-400">${segmentDuration}s</div>
+        if (track) {
+            filledCount++;
+            let icon = '🎯', name = '未知动作';
+            if (track.type === 'transit') {
+                icon = '🚶‍♀️'; name = '移动路线';
+            } else {
+                icon = track.type === 'line' ? '📏' : (track.type === 'curve' ? '〰️' : '📍');
+                name = track.skills?.map(s => s.nameZh?.[0] || '动作').join(' + ') || '空动作串';
+            }
+            
+            placedActions.push({ id: track.id, trackIndex: i, name: name, icon: icon, category: track.type });
+
+            slotsContainer.innerHTML += `
+                <div class="p-2.5 rounded-xl border border-indigo-200 bg-indigo-50/70 text-indigo-900 shadow-sm text-xs flex items-center justify-between transition-all">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <span class="w-5 h-5 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-[10px] shrink-0">${i + 1}</span>
+                        <span class="text-base shrink-0">${icon}</span>
+                        <span class="font-black truncate">${name}</span>
                     </div>
-                    <!-- 取消按钮 -->
-                    <button onclick="removeActionFromSlot(${i})" 
-                            class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-[10px] flex items-center justify-center hover:bg-red-600 hover:scale-110 transition-all shadow"
-                            title="取消此动作与该段音乐的关联">
-                        ×
-                    </button>
-                ` : `
-                    <!-- 空槽位 -->
-                    <div class="flex flex-col items-center gap-1">
-                        <div class="text-slate-300 text-xl">+</div>
-                        <div class="text-[10px] text-slate-400">拖入动作</div>
-                    </div>
-                `}
-            </div>
-        `;
+                    <span class="text-[9px] bg-indigo-100 text-indigo-600 font-bold px-1.5 py-0.5 rounded-full shrink-0">已自动匹配</span>
+                </div>
+            `;
+        } else {
+            slotsContainer.innerHTML += `
+                <div class="p-2.5 rounded-xl border border-dashed border-slate-200 bg-slate-50/50 text-slate-400 text-xs flex items-center gap-2 transition-all">
+                    <span class="w-5 h-5 bg-slate-200 text-slate-400 rounded-full flex items-center justify-center font-bold text-[10px]">${i + 1}</span>
+                    <span class="font-medium italic text-[11px]">等待画板输出第 ${i + 1} 个路线...</span>
+                </div>
+            `;
+        }
     }
-    
-    slotsContainer.innerHTML = slotsHtml;
-    
-    // ==========================================
-    // 更新提示区域
-    // ==========================================
+
+    if (window.currentRoutineData) window.currentRoutineData.placedActions = placedActions;
+
     if (filledSlotsEl) filledSlotsEl.textContent = filledCount;
     if (maxSlotsEl) maxSlotsEl.textContent = maxSlots;
     
-    // 槽位满警告
-    const slotFullWarning = document.getElementById('slotFullWarning');
-    const isSlotsFull = filledCount >= maxSlots && totalTracks > maxSlots;
-    if (slotFullWarning) {
-        if (isSlotsFull) {
-            slotFullWarning.classList.remove('hidden');
+    if (matchWarning) {
+        const remaining = maxSlots - totalTracks;
+        matchWarning.classList.remove('hidden');
+        if (remaining > 0) {
+            matchWarning.className = "text-[10px] text-orange-600 font-bold bg-orange-50 px-1.5 py-0.5 rounded truncate max-w-[180px]";
+            matchWarning.innerText = `⚠️ 缺 ${remaining} 个动作`;
+        } else if (totalTracks > maxSlots) {
+            matchWarning.className = "text-[10px] text-red-600 font-bold bg-red-50 px-1.5 py-0.5 rounded truncate max-w-[180px]";
+            matchWarning.innerText = `⚠️ 画板超标 ${totalTracks - maxSlots} 个`;
         } else {
-            slotFullWarning.classList.add('hidden');
+            matchWarning.className = "text-[10px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded truncate max-w-[180px]";
+            matchWarning.innerText = `✅ 完美匹配`;
         }
     }
-    
-    // 完成提示
-    if (completeHint) {
-        if (isComplete) {
-            completeHint.innerHTML = `
-                <div class="flex items-center gap-2">
-                    <span class="text-green-600">✅</span>
-                    <span class="text-xs text-green-700 font-bold">
-                        编排完成！已匹配全部 ${filledCount} 个动作。
-                    </span>
-                </div>
-            `;
-            completeHint.className = 'mt-2 p-2 bg-green-50 border border-green-200 rounded-lg';
-            completeHint.classList.remove('hidden');
-            
-            // 显示"确认编排完毕"按钮
-            const confirmBtn = document.getElementById('confirmMusicArrangeBtn');
-            if (confirmBtn) confirmBtn.classList.remove('hidden');
-        } else if (totalTracks === 0) {
-            completeHint.innerHTML = `
-                <div class="flex items-center gap-2">
-                    <span class="text-blue-500">ℹ️</span>
-                    <span class="text-xs text-slate-600 font-bold">
-                        请先在画板上绘制动作线条，然后拖入下方槽位进行编排。
-                    </span>
-                </div>
-            `;
-            completeHint.className = 'mt-2 p-2 rounded-lg';
-            completeHint.classList.remove('hidden');
-            
-            // 隐藏"确认编排完毕"按钮
-            const confirmBtn = document.getElementById('confirmMusicArrangeBtn');
-            if (confirmBtn) confirmBtn.classList.add('hidden');
-        } else if (filledCount < totalTracks) {
-            completeHint.innerHTML = `
-                <div class="flex items-center gap-2">
-                    <span class="text-orange-500">⚠️</span>
-                    <span class="text-xs text-orange-700 font-bold">
-                        还差 ${totalTracks - filledCount} 个动作未匹配。请在时间轴上按 [M] 添加更多标记点。
-                    </span>
-                </div>
-            `;
-            completeHint.className = 'mt-2 p-2 bg-orange-50 border border-orange-200 rounded-lg';
-            completeHint.classList.remove('hidden');
-            
-            // 隐藏"确认编排完毕"按钮
-            const confirmBtn = document.getElementById('confirmMusicArrangeBtn');
-            if (confirmBtn) confirmBtn.classList.add('hidden');
-        } else {
-            completeHint.classList.add('hidden');
-            const confirmBtn = document.getElementById('confirmMusicArrangeBtn');
-            if (confirmBtn) confirmBtn.classList.add('hidden');
-        }
+
+    if (totalTracks > 0 && filledCount === maxSlots && totalTracks === maxSlots) {
+        if (completeHint) completeHint.classList.add('hidden');
+        if (confirmBtn) confirmBtn.classList.remove('hidden');
+    } else {
+        if (completeHint) completeHint.classList.remove('hidden');
+        if (confirmBtn) confirmBtn.classList.add('hidden');
     }
-}
+};
 
 // 9. 拖拽相关函数
 window.allowDrop = function(e) {
@@ -877,72 +926,639 @@ function formatTime(seconds) {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
 }
 
-// 12. 确认编排完毕，开始音乐同步展示
+// 12. 确认编排完毕，进入第三阶段
+// 确认编排完毕（纯粹的封存状态，不抢跑！）
 window.confirmMusicArrange = function() {
     const placedActions = window.currentRoutineData?.placedActions || [];
+    const totalTracks = (typeof canvasManager !== 'undefined' && canvasManager.tracks) ? canvasManager.tracks.length : 0;
+    
+    if (placedActions.length !== totalTracks) {
+        if (typeof ToastManager !== 'undefined') ToastManager.show('warning', '未完全匹配', `请确保音乐打点数恰好包裹所有的动作！`, 3000);
+        return;
+    }
+    
+    // 将时间轴数据注入给画板路线
     const markers = window.musicMarkers || [];
-    const totalTracks = canvasManager?.tracks?.length || 0;
-    
-    // 检查条件
-    if (placedActions.filter(Boolean).length === 0) {
-        ToastManager.show('warning', '尚未编排', '请先将画板上的动作拖入下方槽位！', 2000);
-        return;
+    if (typeof canvasManager !== 'undefined' && canvasManager.tracks) {
+        placedActions.forEach((action, i) => {
+            const track = canvasManager.tracks[action.trackIndex];
+            if (track && markers[i] && markers[i+1]) {
+                track.audioSync = {
+                    startTime: markers[i].time,
+                    endTime: markers[i+1].time
+                };
+            }
+        });
+    }
+
+    // 第二阶段彻底踩死刹车，声音归零
+    if (window.AudioEngine && window.AudioEngine.wavesurfer) {
+        window.AudioEngine.wavesurfer.pause();
+        window.AudioEngine.wavesurfer.seekTo(0);
     }
     
-    const filledCount = placedActions.filter(Boolean).length;
-    if (filledCount !== totalTracks) {
-        ToastManager.show('warning', '未完全匹配', `画板上有 ${totalTracks} 条动作，当前只编排了 ${filledCount} 条。\n请将所有动作都编排到音乐槽位中！`, 3000);
-        return;
+    console.log('[音乐编排] ✅ 时间轴数据已硬连接，封存编排进入只读观赏准备态！');
+    window.isInPhase3 = true; 
+    
+    // 1. 隐藏打点专用的底部抽屉和顶部提示条
+    window.closeMusicDrawer();
+    const phaseInfoBar = document.getElementById('phaseInfoBar');
+    if (phaseInfoBar) phaseInfoBar.classList.add('hidden');
+    
+    // 2. 隐藏右侧打点框，恢复为最干净的“动作列表展示”
+    document.getElementById('routineEditorBox')?.classList.add('hidden');
+    document.getElementById('musicRoutineContent')?.classList.add('hidden');
+    document.getElementById('normalRoutineHeader')?.classList.remove('hidden');
+    document.getElementById('routineList')?.classList.remove('hidden');
+
+    // 3. 确保第三阶段的观赏面板躲在屏幕外边，等用户按爆米花再弹出来
+    const showcasePanel = document.getElementById('musicShowcaseControlPanel');
+    if (showcasePanel) showcasePanel.classList.add('hidden');
+    
+    // 4. 🌟 灵魂大转折：立刻命令底部全局主按钮变成「🍿 开始观赏成套」！
+    if (window.AppController && typeof window.AppController.applyViewingMode === 'function') {
+        window.AppController.applyViewingMode(true); 
     }
-    
-    // 条件满足，开始展示
-    console.log('[音乐编排] ✅ 条件满足，开始音乐同步展示！');
-    ToastManager.show('info', '🎬 准备展示', `快去看你编好的成套吧！`, 2500);
-    
-    // 隐藏编排界面和画线工具
-    const timelineEditor = document.getElementById('timelineEditor');
+
+    // 优雅提示，引导用户点击大按钮
+    if (typeof ToastManager !== 'undefined') ToastManager.show('success', '编排已封存', '🎬 动作已全部锁定！\\n请点击底部「🍿 开始观赏成套」触发播放演示！', 4000);
+};
+// 🌟【新增特性】：监听画板动作更新，实时自动刷新右侧槽位！
+const originalUpdateUIRoutineList = window.updateUIRoutineList;
+window.updateUIRoutineList = function() {
+    // 先执行原有的更新逻辑（保持原本左侧常规UI的更新）
+    if (typeof originalUpdateUIRoutineList === 'function') {
+        originalUpdateUIRoutineList.apply(this, arguments);
+    }
+    // 如果我们当前正处于“音乐编排第二阶段”，顺便让音乐槽位也跟着刷新
     const routineEditorBox = document.getElementById('routineEditorBox');
+    if (routineEditorBox && !routineEditorBox.classList.contains('hidden')) {
+        if (typeof window.updateRoutineSlots === 'function') window.updateRoutineSlots();
+    }
+};
+
+// 退出并清空当前编排状态
+window.clearAllArrangementAndExit = function() {
+    window.musicMarkers = [];
+    if (window.currentRoutineData) {
+        window.currentRoutineData.musicMarkers = [];
+        window.currentRoutineData.placedActions = [];
+    }
+    window.closeMusicDrawer();
+    const checkbox = document.getElementById('musicModeToggle');
+    if (checkbox) checkbox.checked = false;
+    window.isInPhase3 = false;
+    updateMusicModeButtonState();
+    
+    document.getElementById('normalRoutineHeader').classList.remove('hidden');
+    document.getElementById('routineList').classList.remove('hidden');
+    document.getElementById('routineEditorBox').classList.add('hidden');
+    document.getElementById('musicRoutineContent').classList.add('hidden');
+    
+    ToastManager.show('info', '已退出', '自动对齐数据已清空，返回普通画板模式！', 2000);
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 【按钮状态管理函数】：根据三个阶段动态切换按钮文字和行为
+// 阶段1（无音乐）：显示"✅ 完成编排并计算最终成绩"
+// 阶段2（有音乐未完成编排）：显示"⏳ 正在进行音乐编排，请完成后再欣赏成套"
+// 阶段3（已完成编排）：显示"🍿 欣赏成套"
+// ═══════════════════════════════════════════════════════════════════════════
+window.updateMusicModeButtonState = function() {
+    const finishBtn = document.getElementById('finishRoutineBtn');
+    if (!finishBtn) return;
+    
+    const hasMusic = window.currentRoutineData && (window.currentRoutineData.musicId || window.currentRoutineData.musicUrl);
+    const isInPhase3 = window.isInPhase3;
+    
+    if (isInPhase3) {
+        // 第三阶段：显示"欣赏成套"按钮
+        finishBtn.innerHTML = '🍿 欣赏成套';
+        finishBtn.onclick = function() {
+            startMusicShowcasePhase3();
+        };
+    } else if (hasMusic) {
+        // 第一二阶段：显示提示文字
+        finishBtn.innerHTML = '⏳ 正在进行音乐编排，请完成后再欣赏成套';
+        finishBtn.onclick = function() {
+            ToastManager.show('info', '请先完成编排', '请先完成音乐编排，点击「确认编排完毕」后再欣赏成套！', 2000);
+        };
+    } else {
+        // 默认：恢复原按钮
+        finishBtn.innerHTML = '✅ 完成编排并计算最终成绩';
+        finishBtn.onclick = function() {
+            saveRoutine();
+        };
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 【音乐同步展示入口函数】：第三阶段入口
+// 触发场景：点击"🍿 欣赏成套"按钮（仅在 isInPhase3=true 时显示）
+// 调用链：startMusicShowcasePhase3 → canvasManager.playMusicSyncShowcase → E分面板
+// 作用：隐藏工具按钮 → 调用音乐同步展示 → 展示完成后显示E分
+// ═══════════════════════════════════════════════════════════════════════════
+window.startMusicShowcasePhase3 = function() {
+    ToastManager.show('info', '🎬 开始展示', '正在播放音乐同步展示！', 2000);
+    
+    // 隐藏所有工具按钮
     const drawingToolsWrapper = document.getElementById('drawingToolsWrapper');
     const dragHintBar = document.getElementById('dragHintBar');
-    if (timelineEditor) timelineEditor.classList.add('hidden');
-    if (routineEditorBox) routineEditorBox.classList.add('hidden');
     if (drawingToolsWrapper) drawingToolsWrapper.classList.add('hidden');
     if (dragHintBar) dragHintBar.classList.add('hidden');
     
-    // 调用新的亮相函数
+    // 初始化控制面板
+    initShowcaseControlPanel();
+    
+    // 调用音乐同步展示函数（传递控制函数）
     if (canvasManager && typeof canvasManager.playMusicSyncShowcase === 'function') {
-        canvasManager.playMusicSyncShowcase(() => {
-            console.log('[音乐编排] ✅ 音乐同步展示完成！');
-            
-            // 展示完成后，显示已有E分
-            const eReport = window.currentEScoreReport;
-            if (eReport) {
-                console.log('[音乐编排] 使用已有E分:', eReport.finalEScore);
-                // 调用app.js中的显示成绩单函数
-                if (window.AppController && typeof window.AppController.showFinalScoreBoard === 'function') {
-                    window.AppController.showFinalScoreBoard();
-                } else if (typeof showFinalScoreBoard === 'function') {
-                    showFinalScoreBoard();
-                } else {
-                    console.error('[音乐编排] ❌ 无法找到显示成绩单的函数！');
-                }
-            } else {
-                ToastManager.show('warning', '注意', '尚未打E分，请先完成E分评定！\n如果您想修改动作，请先点击"重新选择音乐"退出编排模式。', 4000);
-                // 保持画线工具隐藏，提示用户需要退出编排功能
-                const drawingToolsWrapper = document.getElementById('drawingToolsWrapper');
-                const dragHintBar = document.getElementById('dragHintBar');
-                if (drawingToolsWrapper) drawingToolsWrapper.classList.add('hidden');
-                if (dragHintBar) dragHintBar.classList.remove('hidden');
-            }
+        canvasManager.playMusicSyncShowcase({
+            onProgress: updateShowcaseProgress,
+            onPause: onShowcasePaused,
+            onResume: onShowcaseResumed,
+            onSegmentChange: updateShowcaseSegment,
+            onComplete: onShowcaseComplete,
+            onSpeedChange: onShowcaseSpeedChange
         });
-    } else {
-        console.error('[音乐编排] ❌ canvasManager.playMusicSyncShowcase 函数不存在！');
-        ToastManager.show('error', '错误', '展示函数未找到，请刷新页面重试！', 3000);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 【展示控制面板初始化】：设置初始状态
+// ═══════════════════════════════════════════════════════════════════════════
+window.initShowcaseControlPanel = function() {
+    // 重置播放状态
+    window.showcaseIsPlaying = true;
+    window.showcaseIsPaused = false;
+    window.showcaseSpeed = 1;
+    
+    // 获取总时长
+    const duration = AudioEngine && AudioEngine.wavesurfer ? 
+                     AudioEngine.wavesurfer.getDuration() : 90;
+    
+    // 更新时间显示
+    const totalTimeEl = document.getElementById('showcaseTotalTime');
+    if (totalTimeEl) totalTimeEl.textContent = formatTime(duration);
+    
+    // 重置播放按钮
+    const playPauseBtn = document.getElementById('showcasePlayPauseBtn');
+    if (playPauseBtn) playPauseBtn.innerHTML = '⏸';
+    
+    // 重置倍速按钮状态
+    updateSpeedButtons(1);
+    
+    // 重置进度
+    updateShowcaseProgress(0, duration);
+    updateShowcaseSegment(1, 1, null);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 【更新展示进度】：音乐播放时实时更新进度条
+// ═══════════════════════════════════════════════════════════════════════════
+window.updateShowcaseProgress = function(currentTime, totalDuration) {
+    const progressPercent = (currentTime / totalDuration) * 100;
+    
+    // 更新音频进度条
+    const audioProgress = document.getElementById('showcaseAudioProgress');
+    if (audioProgress) audioProgress.style.width = `${progressPercent}%`;
+    
+    // 更新拖动手柄位置
+    const seekHandle = document.getElementById('showcaseSeekHandle');
+    if (seekHandle) seekHandle.style.left = `${progressPercent}%`;
+    
+    // 更新时间显示
+    const currentTimeEl = document.getElementById('showcaseCurrentTime');
+    if (currentTimeEl) currentTimeEl.textContent = formatTime(currentTime);
+    
+    // 更新段落进度（如果有的话）
+    const markers = window.musicMarkers || [];
+    const placedActions = window.currentRoutineData?.placedActions || [];
+    
+    for (let i = 0; i < markers.length - 1; i++) {
+        const startTime = markers[i].time;
+        const endTime = markers[i + 1].time;
         
-        // 恢复编排界面，保持画线工具隐藏
-        if (timelineEditor) timelineEditor.classList.remove('hidden');
-        if (routineEditorBox) routineEditorBox.classList.remove('hidden');
-        // 保持画线工具隐藏，用户需要退出编排模式才能继续
+        if (currentTime >= startTime && currentTime < endTime) {
+            const segmentDuration = endTime - startTime;
+            const segmentProgress = ((currentTime - startTime) / segmentDuration) * 100;
+            
+            // 更新段落进度
+            const segmentProgressEl = document.getElementById('showcaseSegmentProgress');
+            if (segmentProgressEl) segmentProgressEl.style.width = `${segmentProgress}%`;
+            
+            // 更新时间
+            const segmentTimeEl = document.getElementById('showcaseSegmentTime');
+            if (segmentTimeEl) segmentTimeEl.textContent = formatTime(currentTime - startTime);
+            
+            const segmentDurationEl = document.getElementById('showcaseSegmentDuration');
+            if (segmentDurationEl) segmentDurationEl.textContent = formatTime(segmentDuration);
+            
+            break;
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 【更新段落信息】：当播放到新段落时更新显示
+// ═══════════════════════════════════════════════════════════════════════════
+window.updateShowcaseSegment = function(segmentIndex, totalSegments, action) {
+    const currentSegmentEl = document.getElementById('showcaseCurrentSegment');
+    if (currentSegmentEl) currentSegmentEl.textContent = `${segmentIndex}/${totalSegments}`;
+    
+    const currentTrackEl = document.getElementById('showcaseCurrentTrack');
+    if (currentTrackEl) {
+        if (action) {
+            currentTrackEl.textContent = `${action.icon} 路线${action.trackIndex + 1}`;
+        } else {
+            currentTrackEl.textContent = '⏸️ 空段落';
+        }
+    }
+    
+    // 重置段落进度
+    const segmentProgress = document.getElementById('showcaseSegmentProgress');
+    if (segmentProgress) segmentProgress.style.width = '0%';
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 【暂停展示】
+// ═══════════════════════════════════════════════════════════════════════════
+window.pauseShowcase = function() {
+    window.showcaseIsPaused = true;
+    
+    // 暂停音乐
+    if (AudioEngine && AudioEngine.wavesurfer) {
+        AudioEngine.wavesurfer.pause();
+    }
+    
+    // 暂停画板动画
+    if (canvasManager && canvasManager.pauseAnimation) {
+        canvasManager.pauseAnimation();
+    }
+    
+    // 更新按钮
+    const playPauseBtn = document.getElementById('showcasePlayPauseBtn');
+    if (playPauseBtn) playPauseBtn.innerHTML = '▶';
+    
+    ToastManager.show('info', '已暂停', '音乐展示已暂停，点击▶继续', 1000);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 【继续播放】
+// ═══════════════════════════════════════════════════════════════════════════
+window.resumeShowcase = function() {
+    window.showcaseIsPaused = false;
+    
+    // 继续播放音乐
+    if (AudioEngine && AudioEngine.wavesurfer) {
+        AudioEngine.wavesurfer.play();
+    }
+    
+    // 继续画板动画
+    if (canvasManager && canvasManager.resumeAnimation) {
+        canvasManager.resumeAnimation();
+    }
+    
+    // 更新按钮
+    const playPauseBtn = document.getElementById('showcasePlayPauseBtn');
+    if (playPauseBtn) playPauseBtn.innerHTML = '⏸';
+    
+    ToastManager.show('info', '继续播放', '音乐展示继续中...', 1000);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 【设置播放倍速】
+// ═══════════════════════════════════════════════════════════════════════════
+window.setShowcaseSpeed = function(speed) {
+    window.showcaseSpeed = speed;
+    
+    // 设置音乐倍速
+    if (AudioEngine && AudioEngine.wavesurfer) {
+        AudioEngine.wavesurfer.setPlaybackRate(speed);
+    }
+    
+    // 更新按钮状态
+    updateSpeedButtons(speed);
+    
+    ToastManager.show('info', '倍速设置', `播放速度: ${speed}x`, 1000);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 【更新倍速按钮状态】
+// ═══════════════════════════════════════════════════════════════════════════
+window.updateSpeedButtons = function(activeSpeed) {
+    const speeds = [1, 1.5, 2];
+    speeds.forEach(speed => {
+        const btn = document.getElementById(`speed${speed}Btn`);
+        if (btn) {
+            if (speed === activeSpeed) {
+                btn.className = 'px-2 py-1 text-[10px] font-bold bg-indigo-600 text-white rounded transition-colors';
+            } else {
+                btn.className = 'px-2 py-1 text-[10px] font-bold bg-slate-700 hover:bg-slate-600 text-slate-400 rounded transition-colors';
+            }
+        }
+    });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 【跳到指定时间】
+// ═══════════════════════════════════════════════════════════════════════════
+window.seekShowcase = function(event) {
+    const target = event.currentTarget;
+    const rect = target.getBoundingClientRect();
+    const clickX = event.clientX - rect.left;
+    const percent = clickX / rect.width;
+    
+    // 获取总时长
+    const duration = AudioEngine && AudioEngine.wavesurfer ? 
+                     AudioEngine.wavesurfer.getDuration() : 90;
+    const seekTime = percent * duration;
+    
+    // 跳转到指定时间
+    if (AudioEngine && AudioEngine.wavesurfer) {
+        AudioEngine.wavesurfer.seekTo(percent);
+    }
+    
+    // 更新画板动画（根据新时间计算当前段落）
+    if (canvasManager && canvasManager.seekAnimation) {
+        canvasManager.seekAnimation(seekTime);
+    }
+    
+    // 更新进度显示
+    updateShowcaseProgress(seekTime, duration);
+    
+    // 找到当前段落并更新
+    const markers = window.musicMarkers || [];
+    const placedActions = window.currentRoutineData?.placedActions || [];
+    
+    for (let i = 0; i < markers.length - 1; i++) {
+        if (seekTime >= markers[i].time && seekTime < markers[i + 1].time) {
+            updateShowcaseSegment(i + 1, markers.length - 1, placedActions[i]);
+            break;
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 【开始拖动（鼠标按下）】
+// ═══════════════════════════════════════════════════════════════════════════
+window.startShowcaseSeek = function(event) {
+    window.showcaseIsSeeking = true;
+    seekShowcase(event);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 【更新拖动预览（鼠标移动）】
+// ═══════════════════════════════════════════════════════════════════════════
+window.updateShowcaseSeekPreview = function(event) {
+    if (!window.showcaseIsSeeking) return;
+    
+    seekShowcase(event);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 【结束拖动（鼠标松开）】
+// ═══════════════════════════════════════════════════════════════════════════
+window.endShowcaseSeek = function(event) {
+    if (window.showcaseIsSeeking) {
+        window.showcaseIsSeeking = false;
+        // 确保最后一次拖动生效
+        seekShowcase(event);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 【跳过下一个段落】
+// ═══════════════════════════════════════════════════════════════════════════
+window.skipNextSegment = function() {
+    const markers = window.musicMarkers || [];
+    const currentTime = AudioEngine && AudioEngine.wavesurfer ? 
+                        AudioEngine.wavesurfer.getCurrentTime() : 0;
+    
+    // 找到下一个段落的起始时间
+    for (let i = 0; i < markers.length - 1; i++) {
+        if (currentTime < markers[i + 1].time) {
+            // 跳到下一个段落
+            if (AudioEngine && AudioEngine.wavesurfer) {
+                const duration = AudioEngine.wavesurfer.getDuration();
+                AudioEngine.wavesurfer.seekTo(markers[i + 1].time / duration);
+            }
+            
+            // 更新画板动画
+            if (canvasManager && canvasManager.seekAnimation) {
+                canvasManager.seekAnimation(markers[i + 1].time);
+            }
+            
+            // 更新进度
+            updateShowcaseProgress(markers[i + 1].time, 
+                                  AudioEngine && AudioEngine.wavesurfer ? 
+                                  AudioEngine.wavesurfer.getDuration() : 90);
+            
+            ToastManager.show('info', '已跳过', `已跳到第 ${i + 2} 个段落`, 1000);
+            return;
+        }
+    }
+    
+    // 如果已经在最后一个段落，跳到结尾
+    ToastManager.show('info', '提示', '已在最后一个段落', 1000);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 【跳过整个展示】
+// ═══════════════════════════════════════════════════════════════════════════
+window.skipShowcase = function() {
+    if (confirm('确定要跳过展示吗？将直接显示E分结果。')) {
+        // 停止音乐
+        if (AudioEngine && AudioEngine.wavesurfer) {
+            AudioEngine.wavesurfer.pause();
+        }
+        
+        // 停止动画
+        if (canvasManager) {
+            canvasManager.stopAnimation();
+        }
+        
+        // 显示E分
+        const eReport = window.currentEScoreReport;
+        if (eReport) {
+            if (window.AppController && typeof window.AppController.showFinalScoreBoard === 'function') {
+                window.AppController.showFinalScoreBoard();
+            } else if (typeof showFinalScoreBoard === 'function') {
+                showFinalScoreBoard();
+            }
+        }
+        
+        ToastManager.show('info', '已跳过', '已跳过展示，直接显示结果', 1000);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 【重新播放】
+// ═══════════════════════════════════════════════════════════════════════════
+window.replayShowcase = function() {
+    // 停止当前播放
+    if (AudioEngine && AudioEngine.wavesurfer) {
+        AudioEngine.wavesurfer.pause();
+        AudioEngine.wavesurfer.seekTo(0);
+    }
+    
+    // 停止画板动画
+    if (canvasManager) {
+        canvasManager.stopAnimation();
+    }
+    
+    // 重新开始
+    ToastManager.show('info', '重新播放', '正在重新播放...', 1000);
+    
+    // 重新初始化并播放
+    initShowcaseControlPanel();
+    startMusicShowcasePhase3();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 【展示暂停回调】
+// ═══════════════════════════════════════════════════════════════════════════
+window.onShowcasePaused = function() {
+    const playPauseBtn = document.getElementById('showcasePlayPauseBtn');
+    if (playPauseBtn) playPauseBtn.innerHTML = '▶';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 【展示继续回调】
+// ═══════════════════════════════════════════════════════════════════════════
+window.onShowcaseResumed = function() {
+    const playPauseBtn = document.getElementById('showcasePlayPauseBtn');
+    if (playPauseBtn) playPauseBtn.innerHTML = '⏸';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 【展示完成回调】
+// ═══════════════════════════════════════════════════════════════════════════
+window.onShowcaseComplete = function() {
+    console.log('[音乐编排] ✅ 音乐同步展示完成！');
+    
+    // 重置播放按钮
+    const playPauseBtn = document.getElementById('showcasePlayPauseBtn');
+    if (playPauseBtn) playPauseBtn.innerHTML = '▶';
+    
+    // 显示E分面板（只有第三阶段才显示）
+    const eReport = window.currentEScoreReport;
+    if (eReport) {
+        console.log('[音乐编排] 使用已有E分:', eReport.finalEScore);
+        if (window.AppController && typeof window.AppController.showFinalScoreBoard === 'function') {
+            window.AppController.showFinalScoreBoard();
+        } else if (typeof showFinalScoreBoard === 'function') {
+            showFinalScoreBoard();
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 【倍速改变回调】
+// ═══════════════════════════════════════════════════════════════════════════
+window.onShowcaseSpeedChange = function(speed) {
+    // 倍速改变时更新按钮状态
+    updateSpeedButtons(speed);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 【工具函数：格式化时间显示】
+// 输入：秒数（如 90.5）
+// 输出：字符串（如 "1:30"）
+// ═══════════════════════════════════════════════════════════════════════════
+window.formatTime = function(seconds) {
+    if (isNaN(seconds) || seconds < 0) seconds = 0;
+    
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 【工具函数：限制小数点位数】
+// ═══════════════════════════════════════════════════════════════════════════
+window.limitDecimalPlaces = function(input, maxDecimals) {
+    if (!input || !input.value) return;
+    
+    let value = input.value.toString();
+    
+    // 移除非数字字符（除了小数点）
+    value = value.replace(/[^\d.]/g, '');
+    
+    // 只保留第一个小数点
+    const parts = value.split('.');
+    if (parts.length > 2) {
+        value = parts[0] + '.' + parts.slice(1).join('');
+    }
+    
+    // 限制小数位数
+    if (parts.length === 2 && parts[1].length > maxDecimals) {
+        value = parts[0] + '.' + parts[1].substring(0, maxDecimals);
+    }
+    
+    input.value = value;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 【展示控制面板收起/拉出切换】
+// ═══════════════════════════════════════════════════════════════════════════
+// =========================================================================
+// 🎬 第三阶段：音乐展示面板 (满血交互与桥接逻辑)
+// =========================================================================
+
+window.toggleShowcasePanel = function() {
+    const content = document.getElementById('showcasePanelContent');
+    const toggleBtn = document.getElementById('showcasePanelToggle');
+    if (content) {
+        if (content.classList.contains('translate-x-full')) {
+            content.classList.remove('translate-x-full');
+            if (toggleBtn) toggleBtn.innerHTML = '▶';
+        } else {
+            content.classList.add('translate-x-full');
+            if (toggleBtn) toggleBtn.innerHTML = '◀';
+        }
+    }
+};
+
+window.toggleShowcasePlayPause = function() {
+    const btn = document.getElementById('showcasePlayPauseBtn');
+    const ws = window.AudioEngine?.wavesurfer;
+    if (!ws) return;
+
+    if (ws.isPlaying()) {
+        if (canvasManager && typeof canvasManager.pauseAnimation === 'function') canvasManager.pauseAnimation();
+        else ws.pause();
+        if (btn) btn.innerHTML = '▶';
+    } else {
+        if (canvasManager && typeof canvasManager.resumeAnimation === 'function') canvasManager.resumeAnimation();
+        else ws.play();
+        if (btn) btn.innerHTML = '⏸';
+    }
+};
+
+// 🌟 新增：快进/快退功能
+window.seekShowcaseOffset = function(offsetSec) {
+    if (!window.AudioEngine || !window.AudioEngine.wavesurfer) return;
+    const ws = window.AudioEngine.wavesurfer;
+    const duration = ws.getDuration() || 1;
+    let newTime = ws.getCurrentTime() + offsetSec;
+    newTime = Math.max(0, Math.min(newTime, duration));
+    ws.seekTo(newTime / duration);
+    if (canvasManager && typeof canvasManager.redrawBasedOnTime === 'function') {
+        canvasManager.redrawBasedOnTime(newTime); // 让光点瞬间瞬移跟上！
+    }
+};
+
+// 🌟 新增：点方块直接跳段落功能
+window.jumpToShowcaseSegment = function(idx) {
+    const markers = window.musicMarkers || [];
+    if (markers[idx] && window.AudioEngine?.wavesurfer) {
+        const ws = window.AudioEngine.wavesurfer;
+        const duration = ws.getDuration() || 1;
+        ws.seekTo(markers[idx].time / duration);
+        if (canvasManager && typeof canvasManager.redrawBasedOnTime === 'function') {
+            canvasManager.redrawBasedOnTime(markers[idx].time); // 光点跳跃
+        }
     }
 };
 
@@ -967,14 +1583,50 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// ✨ 页面加载完成后，立即渲染系统内置音乐库
+// =========================================================================
+// 🌟 终极智能生命周期绑定 (替换你文件最底部的 DOMContentLoaded 监听块)
+// =========================================================================
+function bindMusicFlowElements() {
+    const checkbox = document.getElementById('musicModeToggle');
+    const drawer = document.getElementById('musicDrawer');
+    
+    if (checkbox) {
+        // 🔒【防呆拦截器】：如果用户收起了面板，再次点击侧边栏开关，意图是“摇上来”而不是“关闭模式”
+        checkbox.addEventListener('click', function(e) {
+            if (!this.checked && drawer && drawer.classList.contains('translate-y-full')) {
+                e.preventDefault();       // 🛑 拦截关闭行为！
+                this.checked = true;       // 强行保持勾选状态
+                if (typeof window.openMusicDrawer === 'function') {
+                    window.openMusicDrawer(); // 直接把抽屉从地下拉出来弹起！
+                }
+                console.log("[音乐模式] 检测到抽屉处于隐藏状态，已拦截关闭行为，改为弹起抽屉。");
+            }
+        });
+
+        // 常规状态切换
+        checkbox.addEventListener('change', function() {
+            if (this.checked) {
+                console.log("[音乐模式] 🎵 唤醒音乐控制中心");
+                if (typeof window.openMusicDrawer === 'function') window.openMusicDrawer();
+            } else {
+                if (typeof window.clearAllArrangementAndExit === 'function') window.clearAllArrangementAndExit();
+            }
+        });
+    }
+
+    // 绑定底部手柄可拖拽调整面板高度的逻辑（保持你原本的代码）
+    const resizeHandle = document.getElementById('musicEditorResizeHandle');
+    if (resizeHandle) {
+        resizeHandle.addEventListener('mousedown', initResize);
+        resizeHandle.addEventListener('touchstart', initResize, { passive: true });
+    }
+}
+
+// 确保在任何生命周期下都能正确加载绑定
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        setTimeout(renderLocalMusicList, 100);
-    });
+    document.addEventListener('DOMContentLoaded', bindMusicFlowElements);
 } else {
-    // DOM 已经就绪，直接调用
-    setTimeout(renderLocalMusicList, 100);
+    bindMusicFlowElements();
 }
 
 // ==========================================
@@ -983,27 +1635,47 @@ if (document.readyState === 'loading') {
 
 // 收起/展开时间轴编辑器
 window.toggleTimelineEditor = function() {
+    console.log("[音乐模式调试] toggleTimelineEditor 被调用");
     const content = document.getElementById('timelineContent');
     const toggle = document.getElementById('timelineEditorToggle');
-    if (content.classList.contains('hidden')) {
-        content.classList.remove('hidden');
-        toggle.innerHTML = '▼';
+    console.log("[音乐模式调试] timelineContent:", content);
+    console.log("[音乐模式调试] timelineEditorToggle:", toggle);
+    
+    if (content && toggle) {
+        if (content.classList.contains('hidden')) {
+            content.classList.remove('hidden');
+            toggle.innerHTML = '▼';
+            console.log("[音乐模式调试] 时间轴编辑器已展开");
+        } else {
+            content.classList.add('hidden');
+            toggle.innerHTML = '▶';
+            console.log("[音乐模式调试] 时间轴编辑器已收起");
+        }
     } else {
-        content.classList.add('hidden');
-        toggle.innerHTML = '▶';
+        console.error("[音乐模式调试] 无法找到 timelineContent 或 timelineEditorToggle 元素");
     }
 };
 
 // 收起/展开编排框
 window.toggleRoutineEditor = function() {
+    console.log("[音乐模式调试] toggleRoutineEditor 被调用");
     const content = document.getElementById('routineContent');
     const toggle = document.getElementById('routineEditorToggle');
-    if (content.classList.contains('hidden')) {
-        content.classList.remove('hidden');
-        toggle.innerHTML = '▼';
+    console.log("[音乐模式调试] routineContent:", content);
+    console.log("[音乐模式调试] routineEditorToggle:", toggle);
+    
+    if (content && toggle) {
+        if (content.classList.contains('hidden')) {
+            content.classList.remove('hidden');
+            toggle.innerHTML = '▼';
+            console.log("[音乐模式调试] 编排框已展开");
+        } else {
+            content.classList.add('hidden');
+            toggle.innerHTML = '▶';
+            console.log("[音乐模式调试] 编排框已收起");
+        }
     } else {
-        content.classList.add('hidden');
-        toggle.innerHTML = '▶';
+        console.error("[音乐模式调试] 无法找到 routineContent 或 routineEditorToggle 元素");
     }
 };
 
@@ -1109,3 +1781,128 @@ window.toggleRoutineEditor = function() {
         initResizeHandle();
     }
 })();
+
+// =========================================================================
+// 🎬 第三阶段：音乐展示面板 UI 交互与桥接逻辑
+// =========================================================================
+
+// 面板侧滑拉出/收起
+window.toggleShowcasePanel = function() {
+    const content = document.getElementById('showcasePanelContent');
+    const toggleBtn = document.getElementById('showcasePanelToggle');
+    
+    if (content) {
+        if (content.classList.contains('translate-x-full')) {
+            content.classList.remove('translate-x-full');
+            if (toggleBtn) toggleBtn.innerHTML = '▶';
+        } else {
+            content.classList.add('translate-x-full');
+            if (toggleBtn) toggleBtn.innerHTML = '◀';
+        }
+    }
+};
+
+// 核心初始化：唤醒第三阶段全功能控制台
+window.initShowcaseControlPanel = function() {
+    const content = document.getElementById('showcasePanelContent');
+    const toggleBtn = document.getElementById('showcasePanelToggle');
+    if (content) content.classList.remove('translate-x-full');
+    if (toggleBtn) toggleBtn.innerHTML = '▶';
+    
+    const playBtn = document.getElementById('showcasePlayPauseBtn');
+    if (playBtn) playBtn.innerHTML = '▶'; // 🌟 初始设置为暂停态播放图标
+
+    // 动态生成网格按钮（保持原样）
+    const grid = document.getElementById('showcaseSegmentGrid');
+    const placedActions = window.currentRoutineData?.placedActions || [];
+    if (grid) {
+        grid.innerHTML = '';
+        placedActions.forEach((action, i) => {
+            grid.innerHTML += `<button id="segBtn_${i}" onclick="jumpToShowcaseSegment(${i})" class="text-[11px] font-black py-1 bg-slate-100 text-slate-500 rounded hover:bg-indigo-100 hover:text-indigo-600 transition-colors shadow-sm border border-slate-200/50">${i+1}</button>`;
+        });
+    }
+
+    const formatTime = (sec) => {
+        const m = Math.floor(sec / 60);
+        const s = Math.floor(sec % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+    };
+
+    // 绑定全新静默开机的卡点展示引擎
+    if (canvasManager && typeof canvasManager.playMusicSyncShowcase === 'function') {
+        canvasManager.playMusicSyncShowcase({
+            onProgress: (currentTime, totalTime) => {
+                document.getElementById('showcaseCurrentTime').innerText = formatTime(currentTime);
+                document.getElementById('showcaseTotalTime').innerText = formatTime(totalTime);
+                if (totalTime > 0) document.getElementById('showcaseAudioProgress').style.width = `${(currentTime/totalTime)*100}%`;
+            },
+            onSegmentChange: (current, total, action) => {
+                document.getElementById('showcaseCurrentSegment').innerText = `${current}/${total}`;
+                document.getElementById('showcaseCurrentTrack').innerText = action ? (action.icon + ' ' + action.name) : '🏃 过渡 / 准备';
+                document.getElementById('showcaseSegmentProgress').style.width = `${(current/total)*100}%`;
+                
+                for(let i=0; i<total; i++) {
+                    const btn = document.getElementById(`segBtn_${i}`);
+                    if(btn) {
+                        if (i === current - 1) {
+                            btn.className = "text-[11px] font-black py-1 bg-indigo-500 text-white rounded border border-indigo-600 transition-colors shadow-sm";
+                        } else {
+                            btn.className = "text-[11px] font-black py-1 bg-slate-100 text-slate-500 rounded hover:bg-indigo-100 hover:text-indigo-600 transition-colors shadow-sm border border-slate-200/50";
+                        }
+                    }
+                }
+            },
+            onPause: () => { if (playBtn) playBtn.innerHTML = '▶'; },
+            onResume: () => { if (playBtn) playBtn.innerHTML = '⏸'; },
+            onComplete: () => {
+                if (playBtn) playBtn.innerHTML = '▶';
+                document.getElementById('showcaseAudioProgress').style.width = '100%';
+                // 🎬 展示圆满结束，在这里才会优雅召唤出最终的 E分/扣分 结算报告面板！
+                if (typeof showFinishScoreReport === 'function') {
+                    showFinishScoreReport();
+                }
+            }
+        });
+        
+        // ❌ 【大快人心】：彻底删掉原来的 setTimeout 强制踩刹车脏代码！
+        // 现在的引擎初始化完就是绝对静止的，根本不会发生任何卡死和线程冲突！
+    }
+};
+
+// =========================================================================
+// 🌟【逆向流转引擎】：从第三阶段全自动回滚到第二阶段重新打点编排
+// =========================================================================
+window.returnToPhase2 = function() {
+    console.log("%c[状态机逆向] 🔄 观赏中止！正在撕毁完结标签，回滚至第二阶段...", "color: white; background: #ea580c; font-size: 12px;");
+    
+    // 1. 掐断当前画布上可能正在狂奔的 2D 动画帧，并强制让音频归零重置
+    if (typeof canvasManager !== 'undefined' && typeof canvasManager.stopAnimation === 'function') {
+        canvasManager.stopAnimation();
+    }
+    if (window.AudioEngine && window.AudioEngine.wavesurfer) {
+        window.AudioEngine.wavesurfer.pause();
+        window.AudioEngine.wavesurfer.seekTo(0); 
+    }
+    
+    // 2. 隐藏右侧的第三阶段观赏面板
+    const showcasePanel = document.getElementById('musicShowcaseControlPanel');
+    if (showcasePanel) showcasePanel.classList.add('hidden');
+    
+    // 3. 🚨 灵魂抹除：撕掉当前运行时的 placedActions 完结证章！
+    // 这一步是告诉分流器：它现在又是一个可以随意蹂躏、可以重新画线打点的“未完结草稿”了！
+    if (window.currentRoutineData) {
+        window.currentRoutineData.placedActions = null; 
+    }
+    
+    // 4. 正式唤醒底部的第二阶段时间轴和打点抽屉
+    if (typeof window.enterArrangementPhase === 'function') {
+        window.enterArrangementPhase(true); // 传入 true，让它自动更新并对齐最新的画板路线
+    }
+    
+    // 5. 将工作台按钮由只读观赏态变回编辑编制态（“完成编排并计算最终成绩”）
+    if (window.AppController && typeof window.AppController.applyViewingMode === 'function') {
+        window.AppController.applyViewingMode(false); 
+    }
+    
+    ToastManager.show('info', '已回到打点编辑阶段', '📂 编制锁已解除！您可以继续在场地上补线、按 [M] 修改音乐卡点时间轴。', 3000);
+};

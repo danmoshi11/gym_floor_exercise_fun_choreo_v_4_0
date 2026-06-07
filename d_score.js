@@ -55,6 +55,23 @@ const ChoreographyEngine = {
             let isAcroLine = track.type === 'line' && track.skills.length > 0;
             if (isAcroLine) {
                 acroLinesCount++;
+                
+                // ⚠️ 新增：检查技巧串起始点是否出界
+                if (track.points && track.points.length > 0) {
+                    const startPoint = track.points[0];
+                    // 边界判定：距离边缘小于 1/14 画布尺寸视为出界
+                    const marginX = 600 / 14; // 标准画布宽度的边界
+                    const marginY = 400 / 14; // 标准画布高度的边界
+                    const isOutOfBounds = startPoint.x < marginX || startPoint.x > 600 - marginX || 
+                                         startPoint.y < marginY || startPoint.y > 400 - marginY;
+                    
+                    if (isOutOfBounds) {
+                        report.warnings.push(`⛔ 第 ${acroLinesCount} 串技巧起始点出界，该串所有动作不计入难度！`);
+                        track.skills.forEach(s => s.figInvalid = true);
+                        return; // 跳过这条出界的技巧串
+                    }
+                }
+                
                 if (acroLinesCount <= 4) validAcroLines.push(track);
                 else report.warnings.push(`⛔ 规则限制：第 ${acroLinesCount} 串技巧串超出 4 串限制，不计入 DV！`);
             }

@@ -78,6 +78,33 @@ window.WorkspaceManager = {
             return;
         }
 
+        // ✨【新增】：如果是从历史导入，直接创建草稿纸，不弹确认框
+        if (window._pendingHistoryImport) {
+            window._pendingHistoryImport = false; // 重置标记
+            this.saveCurrentState();
+            
+            // 直接创建已初始化的草稿纸，等下用 loadRoutine 填充数据
+            const newIndex = this.workspaces.length;
+            this.workspaces.push({
+                id: 'ws_' + Date.now(),
+                name: `草稿 ${newIndex + 1}`,
+                routineData: { 
+                    name: "未命名成套", 
+                    brand: "gymnova", 
+                    gymnastMode: "none", 
+                    gymnastName: "纯排位测试 (无E分)",
+                    initialized: true // 已初始化，直接进入画板
+                },
+                tracks: [],
+                scoreReport: null,
+                eScoreReport: null,
+                playbackMode: 'auto'
+            });
+            
+            this.executeSwitch(newIndex);
+            return;
+        }
+
         const choice = confirm(`📄 新建草稿纸确认\n\n您即将开启一张全新的空白草稿纸。\n（系统最多支持 ${this.MAX_WORKSPACES} 张，当前已用 ${this.workspaces.length} 张）。\n\n[确定] = 系统将自动保存您当前的进度，并清空画板为您准备新场地。\n[取消] = 返回当前画板`);
 
         if (choice) {

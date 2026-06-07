@@ -943,100 +943,171 @@ const canvasManager = {
         this.redraw();
     },
 
-    // ==========================================
-    // ✨【音乐编排展示函数】：按段落依次亮起，匀速光点
-    // ==========================================
-    playMusicSyncShowcase: function(callback) {
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 【音乐同步展示函数】：按音乐时间轴同步播放线段动画
+    // 触发场景：点击"🍿 欣赏成套"按钮（仅在第三阶段）
+    // 调用链：startMusicShowcasePhase3 → canvasManager.playMusicSyncShowcase
+    // 特点：线段跟着音乐节奏亮起，展示完毕后显示E分面板
+    // 支持的回调函数：
+    // - onProgress(currentTime, totalDuration): 进度更新
+    // - onPause(): 暂停时调用
+    // - onResume(): 继续播放时调用
+    // - onSegmentChange(segmentIndex, totalSegments, action): 段落切换时调用
+    // - onComplete(): 播放完成时调用
+    // - onSpeedChange(speed): 倍速改变时调用
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 🎬【全新高精音频时钟引擎】：按音乐真实时间轴 100% 同步渲染线段与 3D  avatar
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 🎬【真·纯数据流时钟同步引擎】：彻底解耦，由用户手动点击 ▶ 触发，杜绝卡死
+    // ═══════════════════════════════════════════════════════════════════════════
+    playMusicSyncShowcase: function(callbacks) {
         const placedActions = window.currentRoutineData?.placedActions || [];
         const markers = window.musicMarkers || [];
         
-        // 检查是否有编排数据
+        const call = (name, ...args) => {
+            if (callbacks && typeof callbacks[name] === 'function') {
+                callbacks[name](...args);
+            }
+        };
+        
         if (placedActions.length === 0 || markers.length < 2) {
             console.warn('[音乐展示] 没有编排数据，跳过音乐同步展示');
-            if (callback) callback();
+            call('onComplete');
             return;
         }
         
-        // 构建段落数据
+        // 1. 仅提取标记条带数据，构建独立的段落时间轴
         const segments = [];
         for (let i = 0; i < markers.length - 1; i++) {
-            const startTime = markers[i].time;
-            const endTime = markers[i + 1].time;
-            const action = placedActions[i];
             segments.push({
                 index: i,
-                startTime: startTime,
-                endTime: endTime,
-                duration: endTime - startTime,
-                action: action
+                startTime: markers[i].time,
+                endTime: markers[i + 1].time,
+                action: placedActions[i]
             });
         }
         
-        console.log('[音乐展示] 开始播放，共', segments.length, '个段落');
-        
         this.isAnimating = true;
-        let currentSegmentIndex = 0;
+        let lastSegmentIndex = -1;
+        let isPaused = true; // 🌟【灵魂改动1】：初始化时默认处于静止/暂停状态！
         const _this = this;
         
-        // 播放单个段落
-        function playSegment(segment) {
-            if (!_this.isAnimating) return;
-            
-            console.log('[音乐展示] 播放段落', segment.index + 1, '/', segments.length, 
-                        segment.action ? `(${segment.action.icon} 路线${segment.action.trackIndex + 1})` : '(空段落)');
-            
-            // 跳转到该段落起始时间
-            if (AudioEngine && AudioEngine.wavesurfer) {
-                const duration = AudioEngine.wavesurfer.getDuration();
-                AudioEngine.wavesurfer.seekTo(segment.startTime / duration);
-            }
-            
-            const segmentStartTime = Date.now();
-            const segmentDuration = segment.duration * 1000; // 转换为毫秒
-            
-            // 段落内动画
-            function animateSegment() {
-                if (!_this.isAnimating) return;
-                
-                const elapsed = Date.now() - segmentStartTime;
-                let progress = Math.min(elapsed / segmentDuration, 1);
-                
-                // 如果该段落有动作，播放该动作
-                if (segment.action) {
-                    const trackIndex = segment.action.trackIndex;
-                    _this.currentAnimIndex = trackIndex;
-                    _this.animationProgress = progress;
-                } else {
-                    _this.currentAnimIndex = -1;
-                    _this.animationProgress = 0;
-                }
-                
-                _this.redraw();
-                
-                if (progress < 1) {
-                    _this.animationFrameId = requestAnimationFrame(animateSegment);
-                } else {
-                    // 段落结束，播放下一个
-                    currentSegmentIndex++;
-                    if (currentSegmentIndex < segments.length) {
-                        setTimeout(() => playSegment(segments[currentSegmentIndex]), 300);
-                    } else {
-                        // 全部段落播放完毕
-                        console.log('[音乐展示] 所有段落播放完毕');
-                        _this.isAnimating = false;
-                        _this.currentAnimIndex = -1;
-                        _this.animationProgress = -1;
-                        _this.redraw();
-                        if (callback) callback();
-                    }
-                }
-            }
-            
-            animateSegment();
+        // 强力掐断可能残存的旧动画帧
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
         }
         
-        // 开始播放第一个段落
-        playSegment(segments[0]);
+        // 2. 核心主帧循环
+        const animationTick = () => {
+            if (!_this.isAnimating) return;
+            if (isPaused) return; // 🌟【灵魂改动2】：如果暂停，直接拦截，不向下渲染下一帧
+
+            if (!window.AudioEngine || !window.AudioEngine.wavesurfer) {
+                _this.isAnimating = false;
+                return;
+            }
+            
+            const ws = window.AudioEngine.wavesurfer;
+            const currentTime = ws.getCurrentTime();
+            const totalDuration = ws.getDuration() || 0;
+            
+            call('onProgress', currentTime, totalDuration);
+            
+            const currentSegment = segments.find(s => currentTime >= s.startTime && currentTime < s.endTime);
+            if (currentSegment) {
+                const idx = currentSegment.index;
+                if (idx !== lastSegmentIndex) {
+                    lastSegmentIndex = idx;
+                    call('onSegmentChange', idx + 1, segments.length, currentSegment.action);
+                }
+            }
+            
+            // 精确呼叫 2D 轨迹卡点重绘
+            _this.redrawBasedOnTime(currentTime);
+            
+            if (ws.isPlaying() && !isPaused) {
+                _this.animationFrameId = requestAnimationFrame(animationTick);
+            }
+        };
+        
+        // 3. 挂载音乐原生事件（动态清洗旧监听器）
+        if (window.AudioEngine && window.AudioEngine.wavesurfer) {
+            const ws = window.AudioEngine.wavesurfer;
+            
+            // 🌟 彻底洗净贴在音乐对象上的所有历史残余监听器，斩断冲突！
+            ws.un('play'); ws.un('pause'); ws.un('finish');
+            
+            ws.on('play', () => {
+                isPaused = false;
+                if (_this.isAnimating) {
+                    if (!_this.animationFrameId) _this.animationFrameId = requestAnimationFrame(animationTick);
+                    call('onResume');
+                }
+            });
+            
+            ws.on('pause', () => {
+                isPaused = true;
+                if (_this.animationFrameId) {
+                    cancelAnimationFrame(_this.animationFrameId);
+                    _this.animationFrameId = null;
+                }
+                call('onPause');
+            });
+            
+            ws.on('finish', () => {
+                if (_this.isAnimating) {
+                    _this.isAnimating = false;
+                    if (_this.animationFrameId) cancelAnimationFrame(_this.animationFrameId);
+                    _this.animationFrameId = null;
+                    const totalDuration = ws.getDuration() || 0;
+                    _this.redrawBasedOnTime(totalDuration); 
+                    call('onComplete'); // 🌟 只有在这里（真正的第三阶段完结）才会触发分数展现！
+                }
+            });
+            
+            // 🌟【灵魂改动3】：仅仅让画面秒闪到音乐当前位置（0秒），绝不抢跑播放音乐
+            _this.redrawBasedOnTime(ws.getCurrentTime());
+            call('onProgress', ws.getCurrentTime(), ws.getDuration() || 0);
+        }
+        
+        // 4. 暴露对外的洁净句柄接口
+        this.pauseAnimation = function() {
+            isPaused = true;
+            if (window.AudioEngine && window.AudioEngine.wavesurfer) window.AudioEngine.wavesurfer.pause();
+        };
+        
+        this.resumeAnimation = function() {
+            isPaused = false;
+            if (window.AudioEngine && window.AudioEngine.wavesurfer) window.AudioEngine.wavesurfer.play();
+        };
+        
+        this.seekAnimation = function(time) {
+            if (window.AudioEngine && window.AudioEngine.wavesurfer) {
+                const ws = window.AudioEngine.wavesurfer;
+                const duration = ws.getDuration() || 1;
+                ws.seekTo(time / duration);
+                _this.redrawBasedOnTime(time);
+                
+                const currentSegment = segments.find(s => time >= s.startTime && time < s.endTime);
+                if (currentSegment) {
+                    call('onSegmentChange', currentSegment.index + 1, segments.length, currentSegment.action);
+                }
+                call('onProgress', time, duration);
+            }
+        };
+        
+        this.stopAnimation = function() {
+            _this.isAnimating = false;
+            if (_this.animationFrameId) {
+                cancelAnimationFrame(_this.animationFrameId);
+                _this.animationFrameId = null;
+            }
+            if (window.AudioEngine && window.AudioEngine.wavesurfer) window.AudioEngine.wavesurfer.pause();
+            _this.redraw();
+        };
     }
 };
 
