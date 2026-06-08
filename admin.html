@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理后台 - 体操动作库</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- 头部 -->
+    <header class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg">
+        <div class="max-w-6xl mx-auto px-4 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-black">🎬 视频审核后台</h1>
+                    <p class="text-indigo-100 text-sm mt-1">审核用户上传的动作示例视频</p>
+                </div>
+                <a href="/" class="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-bold transition-colors">
+                    ← 返回主页
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- 内容区 -->
+    <main class="max-w-6xl mx-auto px-4 py-8">
+        <!-- 统计卡片 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <div class="text-3xl mb-2">📥</div>
+                <h3 class="text-gray-500 text-sm font-bold mb-1">待审核视频</h3>
+                <p class="text-3xl font-black text-indigo-600" id="pendingCount">0</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <div class="text-3xl mb-2">✅</div>
+                <h3 class="text-gray-500 text-sm font-bold mb-1">已批准</h3>
+                <p class="text-3xl font-black text-green-600" id="approvedCount">0</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <div class="text-3xl mb-2">🎬</div>
+                <h3 class="text-gray-500 text-sm font-bold mb-1">已有视频</h3>
+                <p class="text-3xl font-black text-blue-600" id="totalVideos">0</p>
+            </div>
+        </div>
+
+        <!-- 刷新按钮 -->
+        <div class="mb-6">
+            <button onclick="loadPendingVideos()" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-sm transition-colors">
+                🔄 刷新列表
+            </button>
+        </div>
+
+        <!-- 待审核列表 -->
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+            <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                <h2 class="font-bold text-gray-800">⏳ 待审核视频</h2>
+            </div>
+            <div id="pendingList" class="divide-y divide-gray-200">
+                <div class="p-8 text-center text-gray-400">
+                    <div class="text-4xl mb-3">🎉</div>
+                    <p class="font-bold">没有待审核的视频！</p>
+                    <p class="text-sm mt-1">所有视频都已审核完毕</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let approvedCount = 0;
+
+        async function loadPendingVideos() {
+            try {
+                const response = await fetch('/api/pending');
+                const pending = await response.json();
+                
+                document.getElementById('pendingCount').textContent = pending.length;
+                
+                const listEl = document.getElementById('pendingList');
+                
+                if (pending.length === 0) {
+                    listEl.innerHTML = `
+                        <div class="p-8 text-center text-gray-400">
+                            <div class="text-4xl mb-3">🎉</div>
+                            <p class="font-bold">没有待审核的视频！</p>
+                            <p class="text-sm mt-1">所有视频都已审核完毕</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                listEl.innerHTML = pending.map((item, index) => `
+                    <div class="p-6 hover:bg-gray-50 transition-colors">
+                        <div class="flex flex-col md:flex-row md:items-start gap-6">
+                            <!-- 视频预览 -->
+                            <div class="flex-shrink-0">
+                                <div class="w-full md:w-64 bg-gray-900 rounded-lg overflow-hidden">
+                                    <video class="w-full" controls playsinline>
+                                        <source src="/cards/cardvideos/pending/${item.filename.replace('.json', '')}" type="video/mp4">
+                                    </video>
+                                </div>
+                            </div>
+                            
+                            <!-- 视频信息 -->
+                            <div class="flex-grow">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                    <div class="space-y-3">
+                                        <div>
+                                            <label class="text-xs font-bold text-gray-500">动作 ID</label>
+                                            <input type="text" id="skillId_${index}" value="${item.skill_id}" class="w-full mt-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100 outline-none">
+                                        </div>
+                                        <div>
+                                            <label class="text-xs font-bold text-gray-500">运动员</label>
+                                            <input type="text" id="athlete_${index}" value="${item.athlete}" class="w-full mt-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100 outline-none">
+                                        </div>
+                                        <div>
+                                            <label class="text-xs font-bold text-gray-500">国家</label>
+                                            <input type="text" id="country_${index}" value="${item.country}" class="w-full mt-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100 outline-none">
+                                        </div>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <p class="text-sm text-gray-600"><span class="font-bold text-gray-800">原文件名:</span> ${item.original_filename}</p>
+                                        <p class="text-sm text-gray-600"><span class="font-bold text-gray-800">上传时间:</span> ${new Date(item.upload_time).toLocaleString('zh-CN')}</p>
+                                        <div class="pt-2">
+                                            <p class="text-xs font-bold text-gray-500 mb-2">操作</p>
+                                            <div class="flex gap-2">
+                                                <button onclick="approveVideo(${index}, '${item.filename}')" class="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg text-sm transition-colors">
+                                                    ✅ 批准
+                                                </button>
+                                                <button onclick="rejectVideo(${index}, '${item.filename}')" class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg text-sm transition-colors">
+                                                    ❌ 拒绝
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('加载失败:', error);
+                alert('加载失败: ' + error.message);
+            }
+        }
+
+        async function approveVideo(index, filename) {
+            const skillId = document.getElementById(`skillId_${index}`).value;
+            const athlete = document.getElementById(`athlete_${index}`).value;
+            const country = document.getElementById(`country_${index}`).value;
+            
+            if (!confirm(`确定批准这个视频吗？\n动作: ${skillId}\n运动员: ${athlete}\n国家: ${country}`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/approve', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({filename, skill_id: skillId, athlete, country})
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    approvedCount++;
+                    document.getElementById('approvedCount').textContent = approvedCount;
+                    alert('✅ 批准成功！视频已添加到动作库');
+                    loadPendingVideos();
+                } else {
+                    alert('❌ 失败: ' + result.error);
+                }
+            } catch (error) {
+                alert('❌ 失败: ' + error.message);
+            }
+        }
+
+        async function rejectVideo(index, filename) {
+            if (!confirm('确定拒绝这个视频吗？视频将被永久删除')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/reject', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({filename})
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('❌ 视频已删除');
+                    loadPendingVideos();
+                } else {
+                    alert('❌ 失败: ' + result.error);
+                }
+            } catch (error) {
+                alert('❌ 失败: ' + error.message);
+            }
+        }
+
+        function countTotalVideos() {
+            fetch('/cards/cardvideos/')
+                .catch(() => {
+                    // 忽略，我们无法直接列出目录，所以用固定值
+                    document.getElementById('totalVideos').textContent = '40+';
+                });
+        }
+
+        // 页面加载
+        document.addEventListener('DOMContentLoaded', function() {
+            loadPendingVideos();
+            countTotalVideos();
+            document.getElementById('totalVideos').textContent = '40+';
+        });
+    </script>
+</body>
+</html>

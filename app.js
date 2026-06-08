@@ -260,6 +260,56 @@ window.redeemCoinCode = function() {
     }
 };
 
+// ==========================================
+// 🔐 上传密码验证功能
+// ==========================================
+window._uploadCallback = null;  // 存储待上传的回调函数
+
+window.openUploadPasswordModal = function() {
+    document.getElementById('uploadPasswordModal').classList.remove('hidden');
+    document.getElementById('uploadPasswordInput').value = '';
+    document.getElementById('uploadPasswordResult').innerHTML = '';
+    document.getElementById('uploadPasswordInput').focus();
+};
+
+window.closeUploadPasswordModal = function() {
+    document.getElementById('uploadPasswordModal').classList.add('hidden');
+    window._uploadCallback = null;
+};
+
+window.verifyUploadPassword = function() {
+    const input = document.getElementById('uploadPasswordInput');
+    const result = document.getElementById('uploadPasswordResult');
+    const password = input.value;
+    
+    if (!password) {
+        result.innerHTML = '<span class="text-red-500">请输入密码！</span>';
+        return;
+    }
+    
+    if (password === Config.homeMediaUploadPassword) {
+        result.innerHTML = '<span class="text-green-500 font-bold">✅ 验证成功！</span>';
+        
+        // 先保存回调，再执行操作
+        const callback = window._uploadCallback;
+        
+        // 延迟一小会显示成功，然后关闭弹窗并执行上传
+        setTimeout(() => {
+            document.getElementById('uploadPasswordModal').classList.add('hidden');
+            window._uploadCallback = null;
+            // 执行上传回调
+            if (callback && typeof callback === 'function') {
+                callback();
+            }
+        }, 600);
+    } else {
+        result.innerHTML = '<span class="text-red-500">❌ 密码错误！请重试</span>';
+        input.value = '';
+        input.focus();
+        ToastManager.show('error', '密码错误', '请输入正确的上传密码', 2000);
+    }
+};
+
 const AppController = {
     // 在 AppController 顶部新增属性
     isViewingMode: false,
@@ -645,9 +695,9 @@ const AppController = {
         connectionType: 'direct'
     },
 
-    init: function() {
+    init: async function() {
         CoinManager.checkDailyLogin();
-        this.renderDictionary(skillsData);
+        await this.renderDictionary(skillsData);
         this.renderHistory();
         document.getElementById('searchInput').addEventListener('input', () => this.filterDictionary());
         document.getElementById('groupFilter').addEventListener('change', () => this.filterDictionary());
@@ -887,22 +937,76 @@ const AppController = {
     },
     
 
-    renderDictionary: function(data) {
+    renderDictionary: async function(data) {
         const grid = document.getElementById('skillsGrid');
-        grid.innerHTML = '';
+        grid.innerHTML = '<p class="col-span-full text-center py-10 text-gray-400 animate-pulse">加载中...</p>';
+        
         if (data.length === 0) {
             grid.innerHTML = `<p class="col-span-full text-center py-10 text-gray-400">未找到匹配的动作</p>`;
             return;
         }
+        
+        // 1. 先尝试从 Supabase 获取所有视频数量
+        let videoCounts = {};
+        try {
+            if (typeof SupabaseEngine !== 'undefined' && SupabaseEngine.client) {
+                videoCounts = await SupabaseEngine.getAllSkillVideoCounts();
+            }
+        } catch (err) {
+            console.warn('从 Supabase 获取视频数量失败:', err);
+        }
+        
+        grid.innerHTML = '';
+        
+        // 找出有视频的动作 ID，方便调试
+        const skillsWithVideos = Object.keys(videoCounts);
+        if (skillsWithVideos.length > 0) {
+            console.log('[徽章] Supabase 中有视频的动作:', skillsWithVideos);
+        }
+
         data.forEach(skill => {
             const isAcro = skill.id.startsWith('4.') || skill.id.startsWith('5.');
             const bgClass = isAcro ? 'bg-blue-50' : 'bg-green-50'; 
-            const hasVideo = skill.video && skill.video.length > 0;
+            
+            // 1. 从 Supabase 读取用户上传的视频数
+            let supabaseSlots = videoCounts[skill.id] || 0;
+            
+            // 2. 从本地 data.js 读取默认视频数（admin 预置的视频）
+            let localSlots = 0;
+            if (skill.videos) {
+                localSlots = skill.videos.filter(v => v && v.src).length;
+            } else if (skill.video) {
+                if (typeof skill.video === 'object' && skill.video.src) {
+                    localSlots = 1;
+                } else if (typeof skill.video === 'string' && skill.video.length > 0) {
+                    localSlots = 1;
+                }
+            }
+            
+            // 3. 合并两者，不超过2个槽位
+            let usedSlots = Math.min(supabaseSlots + localSlots, 2);
+            let remainingSlots = 2 - usedSlots;
+            
+            // 如果这个动作在 Supabase 中有视频，打印详细信息（调试用）
+            if (supabaseSlots > 0) {
+                console.log('[徽章] 动作', skill.id, '→ Supabase=' + supabaseSlots, '本地=' + localSlots, '总计=' + usedSlots, '剩余=' + remainingSlots);
+            }
+            
+            // 徽章样式
+            let badgeHtml = '';
+            if (remainingSlots === 2) {
+                badgeHtml = '<span class="absolute top-1 right-1 px-2 py-0.5 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full text-white text-[10px] font-black animate-pulse">🎬 快来抢注!</span>';
+            } else if (remainingSlots === 1) {
+                badgeHtml = '<span class="absolute top-1 right-1 px-2 py-0.5 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full text-white text-[10px] font-bold">📹 剩余1</span>';
+            } else {
+                badgeHtml = '<span class="absolute top-1 right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white text-xs">✅</span>';
+            }
+            
             grid.innerHTML += `
                 <div class="skill-card bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-all cursor-pointer hover:-translate-y-1" onclick="AppController.showSkillDetail('${skill.id}')">
                     <div class="${bgClass} p-2 flex justify-center relative">
                         <img src="${skill.image}" class="h-24 object-contain mix-blend-multiply" alt="${skill.nameZh[0]}">
-                        ${hasVideo ? '<span class="absolute top-1 right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white text-xs">▶</span>' : ''}
+                        ${badgeHtml}
                     </div>
                     <div class="p-3">
                         <div class="flex justify-between items-center mb-1">
@@ -916,18 +1020,102 @@ const AppController = {
         });
     },
 
-    showSkillDetail: function(skillId) {
+    showSkillDetail: async function(skillId) {
         const skill = skillsData.find(s => s.id === skillId);
         if (!skill) return;
 
-        // 支持 video 对象格式: {src: "...", athlete: "xxx", country: "yyy"}
-        const videoData = skill.video;
-        const hasVideo = videoData && (typeof videoData === 'string' && videoData.length > 0) || (typeof videoData === 'object' && videoData.src);
-        const videoSrc = typeof videoData === 'object' ? videoData.src : videoData;
-        const videoAthlete = typeof videoData === 'object' ? videoData.athlete : '';
-        const videoCountry = typeof videoData === 'object' ? videoData.country : '';
+        // 1. 从 Supabase 加载用户上传的视频
+        let supabaseVideos = [];
+        try {
+            if (typeof SupabaseEngine !== 'undefined' && SupabaseEngine.client) {
+                const rawVideos = await SupabaseEngine.getSkillVideos(skillId);
+                supabaseVideos = rawVideos.map(v => ({
+                    src: v.video_url,
+                    athlete: v.athlete_name,
+                    country: v.country_code,
+                    uploadedBy: v.uploaded_by,
+                    slotIndex: v.slot_index
+                }));
+            }
+        } catch (err) {
+            console.warn('从 Supabase 加载视频失败:', err);
+        }
+
+        // 2. 从本地 data.js 加载 admin 预置的视频
+        let localVideos = [];
+        if (skill.videos) {
+            localVideos = skill.videos.filter(v => v && v.src).map(v => ({
+                ...v,
+                uploadedBy: v.uploadedBy || 'admin'
+            }));
+        } else if (skill.video) {
+            if (typeof skill.video === 'object' && skill.video.src) {
+                localVideos = [{ ...skill.video, uploadedBy: skill.video.uploadedBy || 'admin' }];
+            } else if (typeof skill.video === 'string' && skill.video.length > 0) {
+                localVideos = [{ src: skill.video, uploadedBy: 'admin' }];
+            }
+        }
+
+        // 3. 合并：用户上传的在前，admin 预置的在后，总共不超过 2 个
+        let videos = [...supabaseVideos, ...localVideos].slice(0, 2);
+
+        // 重新计算 slotIndex（确保按顺序显示）
+        videos = videos.map((v, i) => ({ ...v, slotIndex: i }));
         
         const hasNamedAfter = skill.namedAfter && skill.namedAfter.length > 0;
+        const remainingSlots = 2 - Math.min(videos.length, 2);
+        
+        // 生成视频选择按钮和内容
+        let videoButtonsHtml = '';
+        let videoContentHtml = '';
+        
+        for (let i = 0; i < 2; i++) {
+            const slotVideo = videos[i];
+            const isActive = i === 0;
+            
+            videoButtonsHtml += `
+                <button id="videoTab_${skill.id}_${i}" onclick="AppController.switchVideoTab('${skill.id}', ${i})"
+                    class="flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                        isActive ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                    } ${!slotVideo ? 'opacity-50 cursor-not-allowed' : ''}">
+                    ${slotVideo ? `${i + 1} - ${slotVideo.uploadedBy || '用户'}` : `${i + 1} - 空缺`}
+                </button>
+            `;
+            
+            if (slotVideo) {
+                videoContentHtml += `
+                    <div id="videoTabContent_${skill.id}_${i}" class="${isActive ? '' : 'hidden'}">
+                        <div class="bg-gray-900 rounded-lg overflow-hidden relative group" id="videoContainer_${skill.id}_${i}">
+                            <div class="aspect-video flex items-center justify-center" id="videoPlaceholder_${skill.id}_${i}">
+                                <button onclick="AppController.loadVideoSlot('${skill.id}', ${i}, '${slotVideo.src}')" class="w-12 h-12 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center text-white transition-all hover:scale-110">
+                                    <span class="text-xl ml-1">▶</span>
+                                </button>
+                            </div>
+                            <video id="videoPlayer_${skill.id}_${i}" class="w-full h-full hidden" controls playsinline poster="${skill.image}">
+                                <source src="${slotVideo.src}" type="video/mp4">
+                            </video>
+                        </div>
+                        <div class="mt-1 bg-gradient-to-r from-purple-50 to-indigo-50 rounded p-1.5 border border-purple-100">
+                            <p class="text-[10px] font-bold text-purple-700 text-center">
+                                Presented by: <span class="text-purple-900">${slotVideo.athlete || '未知运动员'}</span>, <span class="text-indigo-600">${slotVideo.country || '未知国家'}</span>
+                            </p>
+                            <p class="text-[10px] font-bold text-gray-600 text-center mt-0.5">
+                                Posted by: <span class="text-blue-700">${slotVideo.uploadedBy || '未知'}</span>
+                            </p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                videoContentHtml += `
+                    <div id="videoTabContent_${skill.id}_${i}" class="${isActive ? '' : 'hidden'}">
+                        <div class="bg-gray-100 rounded-lg p-3 text-center">
+                            <span class="text-xl mb-1 block">📹</span>
+                            <p class="text-gray-400 text-xs">这个槽位还没有视频</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
         
         const modalHtml = `
             <div id="skillDetailModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4" onclick="if(event.target.id==='skillDetailModal')AppController.closeSkillDetail()">
@@ -936,7 +1124,7 @@ const AppController = {
                     <div class="bg-gradient-to-r from-indigo-600 to-purple-600 px-5 py-3 flex items-center justify-between">
                         <div>
                             <h2 class="text-lg font-black text-white">${skill.nameZh[0]}</h2>
-                            <p class="text-indigo-100 text-xs mt-0.5">ID: ${skill.id}</p>
+                            <p class="text-indigo-100 text-xs mt-0.5">ID: ${skill.id} · 剩余槽位: ${remainingSlots}/2</p>
                         </div>
                         <button onclick="AppController.closeSkillDetail()" class="text-white/80 hover:text-white text-2xl">&times;</button>
                     </div>
@@ -983,38 +1171,18 @@ const AppController = {
                             
                             <!-- 右列 -->
                             <div class="space-y-3">
-                                <!-- 动作示例视频 -->
-                                ${hasVideo ? `
+                                <!-- 动作示例视频 - 双槽位 -->
                                 <div>
                                     <h3 class="text-xs font-bold text-gray-500 mb-1">动作示例</h3>
-                                    <div class="bg-gray-900 rounded-lg overflow-hidden relative group" id="videoContainer_${skill.id}">
-                                        <div class="aspect-video flex items-center justify-center" id="videoPlaceholder_${skill.id}">
-                                            <button onclick="AppController.loadVideo('${skill.id}', '${videoSrc}')" class="w-12 h-12 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center text-white transition-all hover:scale-110">
-                                                <span class="text-xl ml-1">▶</span>
-                                            </button>
-                                        </div>
-                                        <video id="videoPlayer_${skill.id}" class="w-full h-full hidden" controls playsinline poster="${skill.image}">
-                                            <source src="${videoSrc}" type="video/mp4">
-                                        </video>
+                                    
+                                    <!-- 视频槽位选择按钮 -->
+                                    <div class="flex gap-1.5 mb-2">
+                                        ${videoButtonsHtml}
                                     </div>
-                                    ${videoAthlete || videoCountry ? `
-                                    <div class="mt-1 bg-gradient-to-r from-purple-50 to-indigo-50 rounded p-1.5 border border-purple-100">
-                                        <p class="text-[10px] font-bold text-purple-700 text-center">
-                                            Presented by: <span class="text-purple-900">${videoAthlete || '未知运动员'}</span>, <span class="text-indigo-600">${videoCountry || '未知国家'}</span>
-                                        </p>
-                                    </div>
-                                    ` : ''}
-                                    <p class="text-[10px] text-gray-400 mt-1 text-center">点击播放按钮加载动作示例</p>
+                                    
+                                    <!-- 视频内容区域 -->
+                                    ${videoContentHtml}
                                 </div>
-                                ` : `
-                                <div>
-                                    <h3 class="text-xs font-bold text-gray-500 mb-1">动作示例</h3>
-                                    <div class="bg-gray-100 rounded-lg p-4 text-center">
-                                        <span class="text-2xl mb-1 block">📹</span>
-                                        <p class="text-gray-400 text-xs">暂无动作示例视频</p>
-                                    </div>
-                                </div>
-                                `}
                                 
                                 <!-- 标签信息 -->
                                 ${skill.tags && skill.tags.length > 0 ? `
@@ -1028,22 +1196,69 @@ const AppController = {
                                 </div>
                                 ` : ''}
                                 
+                                <!-- 上传视频区域 - 仅在有剩余槽位时显示 -->
+                                ${remainingSlots > 0 ? `
+                                <div>
+                                    <h3 class="text-xs font-bold text-gray-500 mb-1">📤 抢注这个动作的视频</h3>
+                                    <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 border border-green-200">
+                                        <div class="space-y-2">
+                                            <div class="grid grid-cols-2 gap-2">
+                                                <input type="text" id="uploadAthlete_${skill.id}" placeholder="运动员姓名" class="px-2 py-1.5 bg-white border border-gray-200 rounded text-xs focus:border-green-400 focus:ring-1 focus:ring-green-100 outline-none">
+                                                <input type="text" id="uploadCountry_${skill.id}" placeholder="国家 (如CHN)" class="px-2 py-1.5 bg-white border border-gray-200 rounded text-xs focus:border-green-400 focus:ring-1 focus:ring-green-100 outline-none">
+                                            </div>
+                                            
+                                            <!-- 上传者名称选项 -->
+                                            <div class="flex gap-2 items-center">
+                                                <label class="text-xs text-gray-500 font-bold flex items-center gap-1 cursor-pointer">
+                                                    <input type="radio" name="uploaderName_${skill.id}" id="uploaderAnonymous_${skill.id}" checked class="w-3 h-3 text-indigo-600">
+                                                    <span>匿名</span>
+                                                </label>
+                                                <label class="text-xs text-gray-500 font-bold flex items-center gap-1 cursor-pointer">
+                                                    <input type="radio" name="uploaderName_${skill.id}" id="uploaderCustom_${skill.id}" class="w-3 h-3 text-indigo-600">
+                                                    <span>自定义名称:</span>
+                                                </label>
+                                                <input type="text" id="uploaderNameInput_${skill.id}" placeholder="最多15字" maxlength="15" disabled class="flex-1 px-2 py-1 bg-gray-100 border border-gray-200 rounded text-xs focus:border-green-400 outline-none text-gray-400">
+                                            </div>
+                                            
+                                            <div class="flex gap-2">
+                                                <input type="file" id="uploadVideo_${skill.id}" accept="video/*" class="hidden">
+                                                <label for="uploadVideo_${skill.id}" class="flex-1 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white font-bold text-xs rounded cursor-pointer text-center transition-colors">
+                                                    📹 选择视频文件
+                                                </label>
+                                                <button onclick="AppController.uploadVideoDirect('${skill.id}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded transition-colors">
+                                                    上传
+                                                </button>
+                                            </div>
+                                            <p class="text-[10px] text-gray-400 text-center">
+                                                ⚠️ 限制：最大 5MB，最长 20 秒
+                                            </p>
+                                            <p id="uploadStatus_${skill.id}" class="text-[10px] text-gray-500 text-center"></p>
+                                        </div>
+                                    </div>
+                                </div>
+                                ` : `
+                                <div>
+                                    <h3 class="text-xs font-bold text-gray-500 mb-1">📤 抢注这个动作的视频</h3>
+                                    <div class="bg-gray-100 rounded-lg p-3 text-center">
+                                        <span class="text-xl mb-1 block">✅</span>
+                                        <p class="text-gray-500 text-xs font-bold">所有槽位已满！</p>
+                                    </div>
+                                </div>
+                                `}
+                                
                                 <!-- 评论区 -->
                                 <div>
                                     <h3 class="text-xs font-bold text-gray-500 mb-1">评论区</h3>
                                     <div class="bg-gray-50 rounded-lg p-2" id="commentsSection_${skill.id}">
-                                        <!-- 评论输入框 -->
                                         <div class="mb-2">
                                             <div class="flex gap-1.5">
                                                 <input type="text" id="commentInput_${skill.id}" placeholder="发表评论 (30字以内)" maxlength="30" class="flex-1 px-2 py-1.5 bg-white border border-gray-200 rounded text-xs focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100 outline-none">
                                                 <button onclick="AppController.submitComment('${skill.id}')" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded transition-colors">发送</button>
                                             </div>
                                         </div>
-                                        <!-- 评论列表 -->
                                         <div id="commentsList_${skill.id}" class="space-y-1">
                                             <p class="text-center text-gray-400 text-xs py-1">正在加载评论...</p>
                                         </div>
-                                        <!-- 查看更多按钮 -->
                                         <button id="loadMoreComments_${skill.id}" onclick="AppController.loadMoreComments('${skill.id}')" class="hidden w-full mt-1 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold text-[10px] rounded transition-colors">
                                             查看更多评论
                                         </button>
@@ -1065,26 +1280,66 @@ const AppController = {
         
         document.body.insertAdjacentHTML('beforeend', modalHtml);
         
+        // 绑定自定义名称输入框的逻辑
+        const customRadio = document.getElementById(`uploaderCustom_${skill.id}`);
+        const anonymousRadio = document.getElementById(`uploaderAnonymous_${skill.id}`);
+        const nameInput = document.getElementById(`uploaderNameInput_${skill.id}`);
+        
+        if (customRadio && anonymousRadio && nameInput) {
+            customRadio.addEventListener('change', () => {
+                if (customRadio.checked) {
+                    nameInput.disabled = false;
+                    nameInput.classList.remove('bg-gray-100', 'text-gray-400');
+                    nameInput.classList.add('bg-white');
+                    nameInput.focus();
+                }
+            });
+            
+            anonymousRadio.addEventListener('change', () => {
+                if (anonymousRadio.checked) {
+                    nameInput.disabled = true;
+                    nameInput.classList.add('bg-gray-100', 'text-gray-400');
+                }
+            });
+        }
+        
         // 加载评论
         this.loadComments(skillId);
+    },
+
+    switchVideoTab: function(skillId, slotIndex) {
+        // 切换按钮样式
+        for (let i = 0; i < 2; i++) {
+            const btn = document.getElementById(`videoTab_${skillId}_${i}`);
+            const content = document.getElementById(`videoTabContent_${skillId}_${i}`);
+            
+            if (i === slotIndex) {
+                btn.classList.remove('bg-gray-100', 'text-gray-500');
+                btn.classList.add('bg-indigo-600', 'text-white');
+                content.classList.remove('hidden');
+            } else {
+                btn.classList.add('bg-gray-100', 'text-gray-500');
+                btn.classList.remove('bg-indigo-600', 'text-white');
+                content.classList.add('hidden');
+            }
+        }
     },
 
     closeSkillDetail: function() {
         const modal = document.getElementById('skillDetailModal');
         if (modal) {
-            // 停止视频播放
-            const video = modal.querySelector('video');
-            if (video) {
-                video.pause();
-                video.currentTime = 0;
-            }
+            const videos = modal.querySelectorAll('video');
+            videos.forEach(v => {
+                v.pause();
+                v.currentTime = 0;
+            });
             modal.remove();
         }
     },
 
-    loadVideo: function(skillId, videoSrc) {
-        const placeholder = document.getElementById(`videoPlaceholder_${skillId}`);
-        const player = document.getElementById(`videoPlayer_${skillId}`);
+    loadVideoSlot: function(skillId, slotIndex, videoSrc) {
+        const placeholder = document.getElementById(`videoPlaceholder_${skillId}_${slotIndex}`);
+        const player = document.getElementById(`videoPlayer_${skillId}_${slotIndex}`);
         
         if (placeholder && player) {
             placeholder.style.display = 'none';
@@ -1092,6 +1347,127 @@ const AppController = {
             player.load();
             player.play();
         }
+    },
+
+    // 保持向后兼容
+    loadVideo: function(skillId, videoSrc) {
+        this.loadVideoSlot(skillId, 0, videoSrc);
+    },
+
+    uploadVideoDirect: async function(skillId) {
+        const fileInput = document.getElementById(`uploadVideo_${skillId}`);
+        const athleteInput = document.getElementById(`uploadAthlete_${skillId}`);
+        const countryInput = document.getElementById(`uploadCountry_${skillId}`);
+        const isAnonymous = document.getElementById(`uploaderAnonymous_${skillId}`)?.checked;
+        const nameInput = document.getElementById(`uploaderNameInput_${skillId}`);
+        const statusEl = document.getElementById(`uploadStatus_${skillId}`);
+        
+        if (!fileInput.files || fileInput.files.length === 0) {
+            statusEl.textContent = '⚠️ 请先选择视频文件';
+            statusEl.className = 'text-[10px] text-red-500 text-center';
+            ToastManager.show('warning', '缺少文件', '请先选择要上传的视频文件', 2000);
+            return;
+        }
+        
+        const file = fileInput.files[0];
+        
+        // 检查文件大小
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        if (file.size > maxSize) {
+            statusEl.textContent = '❌ 文件太大！请选择小于5MB的视频';
+            statusEl.className = 'text-[10px] text-red-500 text-center';
+            ToastManager.show('error', '文件过大', '请选择小于5MB的视频文件', 2500);
+            return;
+        }
+        
+        // 获取上传者名称
+        let uploadedBy = '匿名';
+        if (!isAnonymous && nameInput && nameInput.value.trim()) {
+            uploadedBy = nameInput.value.trim();
+        }
+        
+        const athlete = athleteInput.value.trim() || '未知运动员';
+        const country = countryInput.value.trim() || '未知国家';
+        
+        // 定义实际的上传操作（密码验证成功后执行）
+        const doUpload = async () => {
+            statusEl.textContent = '📤 正在上传...';
+            statusEl.className = 'text-[10px] text-blue-500 text-center';
+            ToastManager.show('info', '开始上传', '正在将视频上传到云端...', 1500);
+            
+            try {
+                // 检查 Supabase 是否可用
+                if (typeof SupabaseEngine === 'undefined' || !SupabaseEngine.client) {
+                    throw new Error('Supabase 未连接，请刷新页面');
+                }
+                
+                // 先计算本地视频数（admin 预置的）
+                let localVideoCount = 0;
+                const currentSkill = skillsData.find(s => s.id === skillId);
+                if (currentSkill) {
+                    if (currentSkill.videos) {
+                        localVideoCount = currentSkill.videos.filter(v => v && v.src).length;
+                    } else if (currentSkill.video) {
+                        if ((typeof currentSkill.video === 'object' && currentSkill.video.src) ||
+                            (typeof currentSkill.video === 'string' && currentSkill.video.length > 0)) {
+                            localVideoCount = 1;
+                        }
+                    }
+                }
+                
+                // 获取 Supabase 中的视频数
+                const supabaseVideoCount = (await SupabaseEngine.getSkillVideos(skillId)).length;
+                
+                // 检查总槽位数
+                const totalUsed = localVideoCount + supabaseVideoCount;
+                if (totalUsed >= 2) {
+                    throw new Error('槽位已满！该动作已有 ' + totalUsed + ' 个视频');
+                }
+                
+                // 根据 Supabase 已有视频数决定新视频的 slotIndex
+                // Supabase 中的视频 slotIndex 从 0 开始
+                // 如果 Supabase 已有 1 个视频，它占用了 slotIndex 0，那么新视频 slotIndex 应该是 1
+                const slotIndex = supabaseVideoCount;
+                
+                // 上传到 Supabase
+                await SupabaseEngine.uploadSkillVideo(skillId, slotIndex, file, athlete, country, uploadedBy);
+                
+                statusEl.textContent = '✅ 上传成功！';
+                statusEl.className = 'text-[10px] text-green-600 text-center';
+                ToastManager.show('success', '上传成功！🎉', `动作 ${skillId} 的视频已成功上传，页面即将刷新`, 2500);
+                
+                fileInput.value = '';
+                athleteInput.value = '';
+                countryInput.value = '';
+                if (nameInput) nameInput.value = '';
+                
+                // 1.5秒后刷新页面
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+                
+            } catch (error) {
+                const errMsg = error.message || '上传失败';
+                statusEl.textContent = '❌ ' + errMsg;
+                statusEl.className = 'text-[10px] text-red-500 text-center';
+                ToastManager.show('error', '上传失败', errMsg, 3000);
+            }
+        };
+        
+        // 密码验证（如果启用了密码保护）
+        if (Config.settings.enableUploadPassword) {
+            // 使用自定义模态框替代 prompt()
+            window._uploadCallback = doUpload;
+            openUploadPasswordModal();
+        } else {
+            // 密码保护未启用，直接上传
+            await doUpload();
+        }
+    },
+
+    // 保持向后兼容
+    uploadVideo: function(skillId) {
+        this.uploadVideoDirect(skillId);
     },
 
     // ==========================================
@@ -1267,7 +1643,7 @@ const AppController = {
         return tagLabels[tag] || tag.toUpperCase();
     },
 
-    filterDictionary: function() {
+    filterDictionary: async function() {
         const query = document.getElementById('searchInput').value.toLowerCase();
         const group = document.getElementById('groupFilter').value;
         const diff = document.getElementById('diffFilter').value;
@@ -1277,7 +1653,7 @@ const AppController = {
             const matchDiff = diff === 'all' || skill.difficulty === diff;
             return matchName && matchGroup && matchDiff;
         });
-        this.renderDictionary(filtered);
+        await this.renderDictionary(filtered);
     },
 
     // 【新增】：侧边栏点击一键呼出弹窗

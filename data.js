@@ -93,8 +93,8 @@ const group1_leaps = {
             nameZh: ["交换腿360", "交换腿跨跳转体 360°"],
             image: "./cards/cardimages/group01/1_402.png",
             video: {
-                src: "./cards/cardvideos/1_402_402_Ana_Barbosu_ROU.mp4",
-                athlete: "402 Ana Barbosu",
+                src: "./cards/cardvideos/1_402_Ana_Barbosu_ROU.mp4",
+                athlete: "Ana Barbosu",
                 country: "ROU"
             }
         }
@@ -131,8 +131,8 @@ const group1_leaps = {
             nameZh: ["交换腿结环", "SR","sr","交换腿结环(劈叉180°)"],
             image: "./cards/cardimages/group01/1_305.png",
             video: {
-                src: "./cards/cardvideos/1_305_305_Ke_Qinqin_CHN.mp4",
-                athlete: "305 Ke Qinqin",
+                src: "./cards/cardvideos/1_305_Ke_Qinqin_CHN.mp4",
+                athlete: "Ke Qinqin",
                 country: "CHN"
             }
         },
@@ -315,8 +315,8 @@ const group1_leaps = {
             nameZh: ["跨结环", "跨结环(劈叉180°)"],
             image: "./cards/cardimages/group01/1_309b.png",
             video: {
-                src: "./cards/cardvideos/1_309_309_Maiana_Prat_FRA.mp4",
-                athlete: "309 Maiana Prat",
+                src: "./cards/cardvideos/1_309_Maiana_Prat_FRA.mp4",
+                athlete: "Maiana Prat",
                 country: "FRA"
             }
         },
@@ -329,8 +329,8 @@ const group1_leaps = {
             nameZh: ["劈叉结环360", "劈叉结环转体360°", "Jurkowska-Kowalska", "尤尔科夫斯卡-科瓦尔斯卡"],
             image: "./cards/cardimages/group01/1_309b.png",
             video: {
-                src: "./cards/cardvideos/1_309b_309b_Ke_Qinqin_CHN.mp4",
-                athlete: "309b Ke Qinqin",
+                src: "./cards/cardvideos/1_309b_Ke_Qinqin_CHN.mp4",
+                athlete: "Ke Qinqin",
                 country: "CHN"
             }
         },
@@ -392,8 +392,8 @@ const group1_leaps = {
             nameZh: ["剪刀跳", "向前剪刀跳(双腿依次高于水平)"],
             image: "./cards/cardimages/group01/1_111b.png",
             video: {
-                src: "./cards/cardvideos/1_111b_111b_111b_Ana_Barbosu_ROU.mp4",
-                athlete: "111b 111b Ana Barbosu",
+                src: "./cards/cardvideos/1_111b_Ana_Barbosu_ROU.mp4",
+                athlete: "Ana Barbosu",
                 country: "ROU"
             }
         },
@@ -550,8 +550,8 @@ const group2_turns = {
             nameZh: ["立转1440", "自由腿低于水平立转1440°", "Gomez", "戈麦兹"],
             image: "./cards/cardimages/group02/2_501.png",
             video: {
-                src: "./cards/cardvideos/2_501_501_Zhou_Yaqin_CHN.mp4",
-                athlete: "501 Zhou Yaqin",
+                src: "./cards/cardvideos/2_501_Zhou_Yaqin_CHN.mp4",
+                athlete: "Zhou Yaqin",
                 country: "CHN"
             },
             tags: []
@@ -614,8 +614,8 @@ const group2_turns = {
             nameZh: ["高举腿720", "高举腿立转720°", "Memmel", "梅梅尔"],
             image: "./cards/cardimages/group02/2_403.png",
             video: {
-                src: "./cards/cardvideos/2_403_403_Liu_Tingting_CHN.mp4",
-                athlete: "403 Liu Tingting",
+                src: "./cards/cardvideos/2_403_Liu_Tingting_CHN.mp4",
+                athlete: "Liu Tingting",
                 country: "CHN"
             },
             tags: []
@@ -736,8 +736,8 @@ const group2_turns = {
             nameZh: ["蹲转1080", "蹲转1080°(无立转开始手撑地面助力)", "Mitchell", "米切尔"],
             image: "./cards/cardimages/group02/2_507.png",
             video: {
-                src: "./cards/cardvideos/2_507_507_Ou_Yushan_CHN.mp4",
-                athlete: "507 Ou Yushan",
+                src: "./cards/cardvideos/2_507_Ou_Yushan_CHN.mp4",
+                athlete: "Ou Yushan",
                 country: "CHN"
             },
             tags: []
@@ -925,8 +925,8 @@ const group4_fwd_saltos = {
             nameZh: ["前团", "团身前空翻"],
             image: "./cards/cardimages/group04/4_101_pike.png",
             video: {
-                src: "./cards/cardvideos/4_101_tuck_101_Tuck_Qiu_Qiyuan_CHN.mp4",
-                athlete: "101 Tuck Qiu Qiyuan",
+                src: "./cards/cardvideos/4_101_tuck_Qiu_Qiyuan_CHN.mp4",
+                athlete: "Qiu Qiyuan",
                 country: "CHN"
             },
             tags: ["fwd"]
@@ -991,8 +991,8 @@ const group4_fwd_saltos = {
             nameZh: ["前团两周180", "前团180旋", "团身前空翻两周转体180°", "Podkopayeva", "波德科帕耶娃"],
             image: "./cards/cardimages/group04/4_601_pike.png",
             video: {
-                src: "./cards/cardvideos/4_601_180_601_180_Brooklyn_Moors_CAN.mp4",
-                athlete: "601 180 Brooklyn Moors",
+                src: "./cards/cardvideos/4_601_180_Brooklyn_Moors_CAN.mp4",
+                athlete: "Brooklyn Moors",
                 country: "CAN"
             },
             tags: ["fwd", "cr3"] 
@@ -1019,8 +1019,8 @@ const group4_fwd_saltos = {
             nameZh: ["前直", "直体前空翻"],
             image: "./cards/cardimages/group04/4_601_180.png",
             video: {
-                src: "./cards/cardvideos/4_202_202_Aiko_Sugihara_JPN.mp4",
-                athlete: "202 Aiko Sugihara",
+                src: "./cards/cardvideos/4_202_Aiko_Sugihara_JPN.mp4",
+                athlete: "Aiko Sugihara",
                 country: "JPN"
             },
             tags: ["fwd"]
@@ -1033,8 +1033,8 @@ const group4_fwd_saltos = {
             nameZh: ["前直180", "直体前空翻转体180°"],
             image: "./cards/cardimages/group04/4_202.png",
             video: {
-                src: "./cards/cardvideos/4_202_202_Aiko_Sugihara_JPN.mp4",
-                athlete: "202 Aiko Sugihara",
+                src: "./cards/cardvideos/4_202_Aiko_Sugihara_JPN.mp4",
+                athlete: "Aiko Sugihara",
                 country: "JPN"
             },
             tags: ["fwd"] 
@@ -1047,8 +1047,8 @@ const group4_fwd_saltos = {
             nameZh: ["前直360", "直体前空翻转体360°"],
             image: "./cards/cardimages/group04/4_302_540.png",
             video: {
-                src: "./cards/cardvideos/4_302_360_302_360_Ana_Barbosu_ROU.mp4",
-                athlete: "302 360 Ana Barbosu",
+                src: "./cards/cardvideos/4_302_360_Ana_Barbosu_ROU.mp4",
+                athlete: "Ana Barbosu",
                 country: "ROU"
             },
             tags: ["fwd", "cr2"]
@@ -1061,8 +1061,8 @@ const group4_fwd_saltos = {
             nameZh: ["前直540", "直体前空翻转体540°"],
             image: "./cards/cardimages/group04/4_302_540.png",
             video: {
-                src: "./cards/cardvideos/4_302_540_302_540_Qiu_Qiyuan_CHN.mp4",
-                athlete: "302 540 Qiu Qiyuan",
+                src: "./cards/cardvideos/4_302_540_Qiu_Qiyuan_CHN.mp4",
+                athlete: "Qiu Qiyuan",
                 country: "CHN"
             },
             tags: ["fwd", "cr2"]
@@ -1086,8 +1086,8 @@ const group4_fwd_saltos = {
             nameZh: ["前直900", "直体前空翻转体900°", "Cojocar", "科诺卡鲁"],
             image: "./cards/cardimages/group04/4_502.png",
             video: {
-                src: "./cards/cardvideos/4_502_502_Ruby_Evans_GBR.mp4",
-                athlete: "502 Ruby Evans",
+                src: "./cards/cardvideos/4_502_Ruby_Evans_GBR.mp4",
+                athlete: "Ruby Evans",
                 country: "GBR"
             },
             tags: ["fwd", "cr2"]
@@ -1173,8 +1173,8 @@ const group4_fwd_saltos = {
             nameZh: ["阿团两周", "阿拉伯前团两周", "阿拉伯团身前空翻两周", "Andreasen", "Jentsch", "安德列亚森", "詹奇"],
             image: "./cards/cardimages/group04/4_505.png",
             video: {
-                src: "./cards/cardvideos/4_505_505_Julia_Soares_BRA.mp4",
-                athlete: "505 Julia Soares",
+                src: "./cards/cardvideos/4_505_Julia_Soares_BRA.mp4",
+                athlete: "Julia Soares",
                 country: "BRA"
             },
             tags: ["fwd", "cr3"] 
@@ -1281,8 +1281,8 @@ const group5_bwd_saltos = {
             nameZh: ["后直540", "直体后空翻转体540°"],
             image: "./cards/cardimages/group05/5_301_540.png",
             video: {
-                src: "./cards/cardvideos/5_301_540_301_540_Shang_Chunsong_CHN.mp4",
-                athlete: "301 540 Shang Chunsong",
+                src: "./cards/cardvideos/5_301_540_Shang_Chunsong_CHN.mp4",
+                athlete: "Shang Chunsong",
                 country: "CHN"
             },
             tags: ["bwd", "cr2"]
@@ -1295,8 +1295,8 @@ const group5_bwd_saltos = {
             nameZh: ["后直720", "直体后空翻转体720°"],
             image: "./cards/cardimages/group05/5_301_540.png",
             video: {
-                src: "./cards/cardvideos/5_301_720_301_720_Qiu_Qiyuan_CHN.mp4",
-                athlete: "301 720 Qiu Qiyuan",
+                src: "./cards/cardvideos/5_301_720_Qiu_Qiyuan_CHN.mp4",
+                athlete: "Qiu Qiyuan",
                 country: "CHN"
             },
             tags: ["bwd", "cr2"]
@@ -1309,8 +1309,8 @@ const group5_bwd_saltos = {
             nameZh: ["后直900", "直体后空翻转体900°"],
             image: "./cards/cardimages/group05/5_401.png",
             video: {
-                src: "./cards/cardvideos/5_401_401_Cheng_Fei_CHN.mp4",
-                athlete: "401 Cheng Fei",
+                src: "./cards/cardvideos/5_401_Cheng_Fei_CHN.mp4",
+                athlete: "Cheng Fei",
                 country: "CHN"
             },
             tags: ["bwd", "cr2"]
@@ -1323,8 +1323,8 @@ const group5_bwd_saltos = {
             nameZh: ["后直1080", "直体后空翻转体1080°"],
             image: "./cards/cardimages/group05/5_501.png",
             video: {
-                src: "./cards/cardvideos/5_501_501_Cheng_Fei_CHN.mp4",
-                athlete: "501 Cheng Fei",
+                src: "./cards/cardvideos/5_501_Cheng_Fei_CHN.mp4",
+                athlete: "Cheng Fei",
                 country: "CHN"
             },
             tags: ["bwd", "cr2"]
@@ -1337,8 +1337,8 @@ const group5_bwd_saltos = {
             nameZh: ["后直1260", "直体后空翻转体1260°"],
             image: "./cards/cardimages/group05/5_601.png",
             video: {
-                src: "./cards/cardvideos/5_601_601_Mao_Yi_CHN.mp4",
-                athlete: "601 Mao Yi",
+                src: "./cards/cardvideos/5_601_Mao_Yi_CHN.mp4",
+                athlete: "Mao Yi",
                 country: "CHN"
             },
             tags: ["bwd", "cr2"]
@@ -1356,8 +1356,8 @@ const group5_bwd_saltos = {
             nameZh: ["后团两周", "团身后空翻两周", "Kim", "金淑琼"],
             image: "./cards/cardimages/group05/5_402_tuck.png",
             video: {
-                src: "./cards/cardvideos/5_402_tuck_402_Tuck_Zhou_Yaqin_CHN.mp4",
-                athlete: "402 Tuck Zhou Yaqin",
+                src: "./cards/cardvideos/5_402_tuck_Zhou_Yaqin_CHN.mp4",
+                athlete: "Zhou Yaqin",
                 country: "CHN"
             }, 
             tags: ["bwd", "cr3"] // ⚠️ 满足双周，打上cr3
@@ -1371,8 +1371,8 @@ const group5_bwd_saltos = {
             nameZh: ["后屈两周", "屈体后空翻两周", "Kim", "金淑琼"],
             image: "./cards/cardimages/group05/5_402_tuck.png",
             video: {
-                src: "./cards/cardvideos/5_402_pike_402_Pike_Qin_Xinyi_CHN.mp4",
-                athlete: "402 Pike Qin Xinyi",
+                src: "./cards/cardvideos/5_402_pike_Qin_Xinyi_CHN.mp4",
+                athlete: "Qin Xinyi",
                 country: "CHN"
             }, 
             tags: ["bwd", "cr3"]
@@ -1386,8 +1386,8 @@ const group5_bwd_saltos = {
             nameZh: ["团身旋", "后团360旋", "后团360炫", "团身后空翻两周转体360°", "Mukhina", "穆欣娜"],
             image: "./cards/cardimages/group05/5_502_tuck360.png",
             video: {
-                src: "./cards/cardvideos/5_502_tuck360_502_Tuck360_Flavia_Saraiva_BRA.mp4",
-                athlete: "502 Tuck360 Flavia Saraiva",
+                src: "./cards/cardvideos/5_502_tuck360_Flavia_Saraiva_BRA.mp4",
+                athlete: "Flavia Saraiva",
                 country: "BRA"
             },
             tags: ["bwd", "cr2", "cr3"] // ⚠️ 双周带360度转体，同时满足cr2和cr3
@@ -1401,8 +1401,8 @@ const group5_bwd_saltos = {
             nameZh: ["屈体旋", "后屈360旋", "后屈360炫", "屈体后空翻两周转体360°", "Oliveira", "奥利维拉"],
             image: "./cards/cardimages/group05/5_502_tuck360.png",
             video: {
-                src: "./cards/cardvideos/5_502_pike360_502_Pike360_Huang_Qiushuang_CHN.mp4",
-                athlete: "502 Pike360 Huang Qiushuang",
+                src: "./cards/cardvideos/5_502_pike360_Huang_Qiushuang_CHN.mp4",
+                athlete: "Huang Qiushuang",
                 country: "CHN"
             },
             tags: ["bwd", "cr2", "cr3"]
@@ -1426,8 +1426,8 @@ const group5_bwd_saltos = {
             nameZh: ["水炫","后团720旋", "后团720炫", "团身后空翻两周转体720°", "Silivas", "希里瓦斯"],
             image: "./cards/cardimages/group05/5_802.png",
             video: {
-                src: "./cards/cardvideos/5_802_802_Simone_Biles_USA.mp4",
-                athlete: "802 Simone Biles",
+                src: "./cards/cardvideos/5_802_Simone_Biles_USA.mp4",
+                athlete: "Simone Biles",
                 country: "USA"
             },
             tags: ["bwd", "cr2", "cr3"]
@@ -1441,8 +1441,8 @@ const group5_bwd_saltos = {
             nameZh: ["后团1080旋", "后团1080炫", "团身后空翻两周转体1080°", "Biles", "拜尔斯"],
             image: "./cards/cardimages/group05/5_1002.png",
             video: {
-                src: "./cards/cardvideos/5_1002_1002_Simone_Biles_USA.mp4",
-                athlete: "1002 Simone Biles",
+                src: "./cards/cardvideos/5_1002_Simone_Biles_USA.mp4",
+                athlete: "Simone Biles",
                 country: "USA"
             },
             tags: ["bwd", "cr2", "cr3"]
@@ -1459,8 +1459,8 @@ const group5_bwd_saltos = {
             nameZh: ["后直两周", "直体后空翻两周"],
             image: "./cards/cardimages/group05/5_603.png",
             video: {
-                src: "./cards/cardvideos/5_603_603_Anna_Ppavlova_RUS.mp4",
-                athlete: "603 Anna Ppavlova",
+                src: "./cards/cardvideos/5_603_Anna_Ppavlova_RUS.mp4",
+                athlete: "Anna Ppavlova",
                 country: "RUS"
             },
             tags: ["bwd", "cr3"]
@@ -1474,8 +1474,8 @@ const group5_bwd_saltos = {
             nameZh: ["后直两周180", "直体后空翻两周转体180°", "Biles", "拜尔斯"],
             image: "./cards/cardimages/group05/5_703.png",
             video: {
-                src: "./cards/cardvideos/5_703_703_Simone_Biles_USA.mp4",
-                athlete: "703 Simone Biles",
+                src: "./cards/cardvideos/5_703_Simone_Biles_USA.mp4",
+                athlete: "Simone Biles",
                 country: "USA"
             },
             tags: ["bwd", "cr3"] 
@@ -1489,8 +1489,8 @@ const group5_bwd_saltos = {
             nameZh: ["直炫","直体旋", "后直360旋", "后直360炫", "直体后空翻两周转体360°", "Chusovitina", "Tuzhikova", "丘索维金娜", "图吉科娃"],
             image: "./cards/cardimages/group05/5_803.png",
             video: {
-                src: "./cards/cardvideos/5_803_803_Sae_Miyakawa_JPN.mp4",
-                athlete: "803 Sae Miyakawa",
+                src: "./cards/cardvideos/5_803_Sae_Miyakawa_JPN.mp4",
+                athlete: "Sae Miyakawa",
                 country: "JPN"
             },
             tags: ["bwd", "cr2", "cr3"]

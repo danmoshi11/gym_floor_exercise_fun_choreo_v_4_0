@@ -20,6 +20,7 @@ const SupabaseEngine = {
 
         this.client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         console.log("✅ Supabase 云端引擎初始化成功！");
+        window._supabaseClient = this.client;  // 暴露到全局，方便调试
         
         // 初始化成功后，立马激活刷新右上角的昵称按钮
         this.updateUserStatusUI();
@@ -330,6 +331,122 @@ const SupabaseEngine = {
                 this.renderLeaderboard();
             }
         }, 300000);
+    },
+
+    // ==========================================
+    // 🎬 动作视频管理功能
+    // ==========================================
+    
+    // 获取某个动作的所有视频
+    getSkillVideos: async function(skillId) {
+        if (!this.client) return [];
+        
+        try {
+            const { data, error } = await this.client
+                .from('skill_videos')
+                .select('*')
+                .eq('skill_id', skillId)
+                .order('slot_index', { ascending: true });
+            
+            if (error) throw error;
+            return data || [];
+        } catch (err) {
+            console.error('获取动作视频失败:', err);
+            return [];
+        }
+    },
+    
+    // 获取所有动作的视频数量（用于卡片显示徽章）
+    getAllSkillVideoCounts: async function() {
+        if (!this.client) {
+            console.warn('[视频] Supabase 未初始化');
+            return {};
+        }
+        
+        try {
+            console.log('[视频] 从 Supabase 读取所有视频...');
+            const { data, error } = await this.client
+                .from('skill_videos')
+                .select('skill_id, slot_index');
+            
+            if (error) throw error;
+            
+            const counts = {};
+            (data || []).forEach(item => {
+                if (!counts[item.skill_id]) counts[item.skill_id] = 0;
+                counts[item.skill_id]++;
+            });
+            
+            console.log('[视频] Supabase 中共有', (data || []).length, '个视频，涉及动作:', Object.keys(counts).length);
+            console.log('[视频] 详细计数:', counts);
+            return counts;
+        } catch (err) {
+            console.error('[视频] 获取失败:', err);
+            return {};
+        }
+    },
+    
+    // 上传视频到 Supabase Storage 并保存元数据
+    uploadSkillVideo: async function(skillId, slotIndex, file, athlete, country, uploadedBy) {
+        if (!this.client) {
+            throw new Error('Supabase 未连接');
+        }
+        
+        try {
+            // 1. 先检查该槽位是否已被占用
+            const existingVideos = await this.getSkillVideos(skillId);
+            const occupiedSlots = existingVideos.map(v => v.slot_index);
+            
+            if (occupiedSlots.includes(slotIndex)) {
+                throw new Error(`槽位 ${slotIndex + 1} 已被占用！`);
+            }
+            
+            // 2. 上传文件到 Storage
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${skillId.replace(/\./g, '_')}_${slotIndex}_${Date.now()}.${fileExt}`;
+            const filePath = `skill-videos/${fileName}`;
+            
+            const { error: uploadError } = await this.client.storage
+                .from('skill-videos')
+                .upload(filePath, file, {
+                    cacheControl: '3600',
+                    upsert: false
+                });
+            
+            if (uploadError) throw uploadError;
+            
+            // 3. 获取公开 URL
+            const { data: { publicUrl } } = this.client.storage
+                .from('skill-videos')
+                .getPublicUrl(filePath);
+            
+            // 4. 保存元数据到数据库
+            const { error: insertError } = await this.client
+                .from('skill_videos')
+                .insert([{
+                    skill_id: skillId,
+                    slot_index: slotIndex,
+                    video_url: publicUrl,
+                    athlete_name: athlete,
+                    country_code: country,
+                    uploaded_by: uploadedBy
+                }]);
+            
+            if (insertError) throw insertError;
+            
+            return { success: true, publicUrl };
+        } catch (err) {
+            console.error('上传视频失败:', err);
+            throw err;
+        }
+    },
+    
+    // 获取某个动作的可用槽位
+    getAvailableSlots: async function(skillId) {
+        const videos = await this.getSkillVideos(skillId);
+        const usedSlots = videos.map(v => v.slot_index);
+        const available = [0, 1].filter(s => !usedSlots.includes(s));
+        return available;
     }
 };
 
@@ -337,5 +454,14 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         SupabaseEngine.init();
         SupabaseEngine.startAutoRefresh();
+        
+        // ✅ Supabase 初始化完成后，重新渲染一次字典来更新视频徽章
+        // 因为第一次 renderDictionary() 在 Supabase 初始化前已经执行完了
+        setTimeout(async () => {
+            if (typeof AppController !== 'undefined' && typeof skillsData !== 'undefined') {
+                console.log('[视频] Supabase 已就绪，重新渲染字典卡片更新徽章...');
+                await AppController.renderDictionary(skillsData);
+            }
+        }, 500);
     }, 200);
 });

@@ -22,14 +22,22 @@ const Config = {
         // 图片限制：10MB
         imageMaxSize: 10 * 1024 * 1024,
 
-        // 视频限制：50MB
-        videoMaxSize: 50 * 1024 * 1024,
+        // 视频限制：5MB，20秒
+        videoMaxSize: 10 * 1024 * 1024,
+        videoMaxDuration: 20, // 秒
 
         // 音乐云端上传限制：9MB
         musicCloudMaxSize: 9 * 1024 * 1024,
 
         // 音乐本地上传限制：50MB（无大小限制，保留此参数以备将来使用）
         musicLocalMaxSize: 50 * 1024 * 1024
+    },
+    
+    // ==========================================
+    // 🎬 已有的 Admin 视频信息（槽位1）
+    // ==========================================
+    adminVideos: {
+        // 格式: "动作ID": { athlete: "...", country: "...", filename: "..." }
     },
 
     // 其他配置

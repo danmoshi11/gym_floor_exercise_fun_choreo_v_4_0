@@ -1008,6 +1008,26 @@
         </div>
     </div>
 
+    <!-- 🔐 上传密码验证弹窗 -->
+    <div id="uploadPasswordModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[270] flex items-center justify-center hidden">
+        <div class="bg-white p-8 rounded-[2rem] shadow-2xl max-w-sm w-full border border-slate-100 mx-4">
+            <button onclick="closeUploadPasswordModal()" class="float-right text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
+            <div class="text-center">
+                <div class="text-5xl mb-4">🔐</div>
+                <h2 class="text-2xl font-black text-slate-800 mb-2">上传验证</h2>
+                <p class="text-slate-500 text-sm mb-6">请输入上传密码以继续</p>
+                
+                <input type="password" id="uploadPasswordInput" placeholder="请输入密码" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-center text-lg font-bold focus:outline-none focus:ring-2 focus:ring-blue-300" onkeyup="if(event.keyCode===13) verifyUploadPassword()">
+                
+                <button onclick="verifyUploadPassword()" class="w-full mt-4 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-bold py-3.5 rounded-xl shadow-md transition-all">
+                    验证并上传
+                </button>
+                
+                <div id="uploadPasswordResult" class="mt-4 text-sm"></div>
+            </div>
+        </div>
+    </div>
+
     <div id="playbackOptionsModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-[260]">
         <div class="bg-white rounded-xl shadow-2xl w-11/12 max-w-md p-6 transform transition-all">
             <h3 class="text-xl font-bold mb-4 text-slate-800 border-b pb-2">请选择模拟裁判模式</h3>
