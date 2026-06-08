@@ -60,8 +60,8 @@ const group1_leaps = {
             nameZh: ["剪交360", "剪交跳转体360°(成单脚/双脚落)", "高吉安"],
             image: "./cards/cardimages/group01/1_402.png",
             video: {
-                src: "./cards/cardvideos/1_402_tour_Ana_Barbosu_ROU.mp4",
-                athlete: "Ana Barbosu",
+                src: "./cards/cardvideos/1_402_tour_402_Tour_Ana_Barbosu_ROU.mp4",
+                athlete: "402 Tour Ana Barbosu",
                 country: "ROU"
             }
         }
@@ -192,7 +192,7 @@ const group1_leaps = {
             value: "0.20",
             nameEn: "Split Jump with ½ turn (180°)",
             nameZh: ["劈叉180", "纵劈叉跳转体180°"],
-            image: "./cards/cardimages/group01/1_207.png"
+            image: "./cards/cardimages/group01/1_207_2.png"
         },
         {
             id: "1.307",
@@ -229,7 +229,7 @@ const group1_leaps = {
             value: "0.10",
             nameEn: "Hop with 1/1 turn (360°) to straddle and land in front lying support",
             nameZh: ["小跳转体360成俯撑", "小跳转体360°成分腿屈体平行成俯撑落"],
-            image: "./cards/cardimages/group01/1_108b.png"
+            image: "./cards/cardimages/group01/1_108_2.png"
         },
         {
             id: "1.208",
@@ -237,7 +237,7 @@ const group1_leaps = {
             value: "0.20",
             nameEn: "Straddle pike (both legs above horizontal), or side split jump with 1/1 turn (360°) landing in front lying support",
             nameZh: ["分腿屈体360成俯撑", "分腿屈体跳(双腿高于水平)转体360°成俯撑落", "横劈叉跳转体360°成俯撑落"],
-            image: "./cards/cardimages/group01/1_208b.png"
+            image: "./cards/cardimages/group01/1_208.png"
         },
         {
             id: "1.208b",
@@ -245,7 +245,7 @@ const group1_leaps = {
             value: "0.20",
             nameEn: "Hop with 1½ turn (540°) in horizontal plane to land in front lying support",
             nameZh: ["小跳转体540成俯撑", "小跳转体540°平行成俯撑落"],
-            image: "./cards/cardimages/group01/1_208b.png"
+            image: "./cards/cardimages/group01/1_208_2.png"
         }
     ],
 
@@ -257,7 +257,7 @@ const group1_leaps = {
             value: "0.10",
             nameEn: "Stag jump",
             nameZh: ["鹿跳"],
-            image: "./cards/cardimages/group01/1_109.png"
+            image: "./cards/cardimages/group01/1_109_2.png"
         },
         {
             id: "1.109b",
@@ -265,7 +265,7 @@ const group1_leaps = {
             value: "0.10",
             nameEn: "Stag jump with ½ turn (180°)",
             nameZh: ["鹿跳180", "鹿跳转体180°"],
-            image: "./cards/cardimages/group01/1_109b.png"
+            image: "./cards/cardimages/group01/1_109_3.png"
         },
         {
             id: "1.109c",
@@ -273,7 +273,7 @@ const group1_leaps = {
             value: "0.10",
             nameEn: "Sissone (leg separation 180° on the diagonal/45° to the floor) take off two feet, land on one foot",
             nameZh: ["西松跳", "西松跳(劈叉180°、倾斜45°)"],
-            image: "./cards/cardimages/group01/1_109c.png"
+            image: "./cards/cardimages/group01/1_109_4.png"
         },
         {
             id: "1.209",
@@ -281,7 +281,7 @@ const group1_leaps = {
             value: "0.20",
             nameEn: "Sissone to ring position (rear foot at head height, body arched and head dropped bwd, 180° separation of legs), to land on one foot",
             nameZh: ["西松结环", "西松结环(后脚位于头高，身体背弓，头向后仰，劈叉180°)成单脚落"],
-            image: "./cards/cardimages/group01/1_209b.png"
+            image: "./cards/cardimages/group01/1_209_1.png"
         },
         {
             id: "1.209b",
@@ -289,7 +289,7 @@ const group1_leaps = {
             value: "0.20",
             nameEn: "Stag ring jump (rear foot at head height, body arched and head dropped bwd)",
             nameZh: ["鹿结环", "鹿结环(后脚位于头高、身体后屈且头后仰、劈叉180°)"],
-            image: "./cards/cardimages/group01/1_209c.png"
+            image: "./cards/cardimages/group01/1_209_2.png"
         },
         {
             id: "1.209c",
@@ -297,7 +297,7 @@ const group1_leaps = {
             value: "0.20",
             nameEn: "Split jump to ring position (180° separation of legs) to land on both feet",
             nameZh: ["劈叉结环", "劈叉结环(劈叉180°)成双脚落"],
-            image: "./cards/cardimages/group01/1_209c.png"
+            image: "./cards/cardimages/group01/1_209_3.png"
         },
         {
             id: "1.209d",
@@ -305,7 +305,7 @@ const group1_leaps = {
             value: "0.20",
             nameEn: "Split jump to ring position with ½ turn (180°) to land on both feet",
             nameZh: ["劈叉结环180", "劈叉结环转体180°成双脚落"],
-            image: "./cards/cardimages/group01/1_209d.png"
+            image: "./cards/cardimages/group01/1_209_4.png"
         },
         {
             id: "1.309",
@@ -313,7 +313,7 @@ const group1_leaps = {
             value: "0.30",
             nameEn: "Split ring leap (180° separation of legs)",
             nameZh: ["跨结环", "跨结环(劈叉180°)"],
-            image: "./cards/cardimages/group01/1_309b.png",
+            image: "./cards/cardimages/group01/1_309_1.png",
             video: {
                 src: "./cards/cardvideos/1_309_309_Maiana_Prat_FRA.mp4",
                 athlete: "309 Maiana Prat",
@@ -327,7 +327,7 @@ const group1_leaps = {
             nameEn: "Split jump to ring position with 1/1 turn (360°)",
             namedAfter: "Jurkowska-Kowalska 尤尔科夫斯卡-科瓦尔斯卡",
             nameZh: ["劈叉结环360", "劈叉结环转体360°", "Jurkowska-Kowalska", "尤尔科夫斯卡-科瓦尔斯卡"],
-            image: "./cards/cardimages/group01/1_309b.png",
+            image: "./cards/cardimages/group01/1_309_2.png",
             video: {
                 src: "./cards/cardvideos/1_309b_309b_Ke_Qinqin_CHN.mp4",
                 athlete: "309b Ke Qinqin",
@@ -341,7 +341,7 @@ const group1_leaps = {
             nameEn: "Tour jeté, to ring position with additional ½ turn (180°)",
             namedAfter: "Ferrari 费拉里",
             nameZh: ["剪交结环180", "剪交结环转体180°", "Ferrari", "费拉里"],
-            image: "./cards/cardimages/group01/1_409.png"
+            image: "./cards/cardimages/group01/1_409_1.png"
         },
         {
             id: "1.409b",
@@ -350,7 +350,7 @@ const group1_leaps = {
             nameEn: "Split leap to ring position with ½ turn (180°)",
             namedAfter: "Ting 丁华恬",
             nameZh: ["跨结环180", "跨结环转体180°", "Ting", "丁华恬"],
-            image: "./cards/cardimages/group01/1_409b.png"
+            image: "./cards/cardimages/group01/1_409_2.png"
         }
     ],
 
@@ -382,7 +382,7 @@ const group1_leaps = {
             value: "0.10",
             nameEn: "Leap with alternate leg change (knees above horizontal) (Cat leap)",
             nameZh: ["猫跳","交换腿半脚跳", "交换腿半脚跳(双膝依次高于水平)"],
-            image: "./cards/cardimages/group01/1_111.png"
+            image: "./cards/cardimages/group01/1_111_1.png"
         },
         {
             id: "1.111b",
@@ -390,7 +390,7 @@ const group1_leaps = {
             value: "0.10",
             nameEn: "Scissors leap forward (legs above horizontal)",
             nameZh: ["剪刀跳", "向前剪刀跳(双腿依次高于水平)"],
-            image: "./cards/cardimages/group01/1_111b.png",
+            image: "./cards/cardimages/group01/1_111_2.png",
             video: {
                 src: "./cards/cardvideos/1_111b_111b_111b_Ana_Barbosu_ROU.mp4",
                 athlete: "111b 111b Ana Barbosu",
@@ -423,7 +423,7 @@ const group1_leaps = {
             value: "0.10",
             nameEn: "Hop with ½ turn (180°) to land in arabesque with free leg above horizontal (Fouetté hop)",
             nameZh: ["弗沃泰跳转180", "弗沃泰跳转体180°成阿拉贝斯落(自由腿高于水平)"],
-            image: "./cards/cardimages/group01/1_112.png"
+            image: "./cards/cardimages/group01/1_112_1.png"
         },
         {
             id: "1.112b",
@@ -431,7 +431,7 @@ const group1_leaps = {
             value: "0.10",
             nameEn: "Hop with ½ turn (180°) free leg extended at horizontal throughout",
             nameZh: ["直角跳180", "自由腿全程伸展高于水平小(直角)跳转体180°"],
-            image: "./cards/cardimages/group01/1_112b.png"
+            image: "./cards/cardimages/group01/1_112_2.png"
         },
         {
             id: "1.212",
@@ -459,7 +459,7 @@ const group1_leaps = {
             value: "0.30",
             nameEn: "Tuck hop or jump with 2/1 turn (720°)",
             nameZh: ["团跳720", "团身小跳转体720°", "团身双脚跳转体720°"],
-            image: "./cards/cardimages/group01/1_313.png"
+            image: "./cards/cardimages/group01/1_313_1.png"
         },
         {
             id: "1.313b",
@@ -467,7 +467,7 @@ const group1_leaps = {
             value: "0.30",
             nameEn: "Tuck hop or jump with 2/1 turn (720°) also landing in front lying support",
             nameZh: ["团跳720成俯撑", "团身小跳转体720°成俯撑落", "团身双脚跳转体720°成俯撑落"],
-            image: "./cards/cardimages/group01/1_313b.png"
+            image: "./cards/cardimages/group01/1_313_2.png"
         }
     ],
 
@@ -487,7 +487,7 @@ const group1_leaps = {
             value: "0.20",
             nameEn: "Wolf hop or jump with 1/1 turn (360°)",
             nameZh: ["狼跳360", "狼小跳转体360°", "狼双脚跳转体360°"],
-            image: "./cards/cardimages/group01/1_214.png"
+            image: "./cards/cardimages/group01/1_214_1.png"
         },
         {
             id: "1.214b",
@@ -495,7 +495,7 @@ const group1_leaps = {
             value: "0.20",
             nameEn: "Wolf hop or jump with 1/1 turn (360°) landing in front lying support",
             nameZh: ["狼跳360成俯撑", "狼小跳转体360°成俯撑落", "狼双脚跳转体360°成俯撑落"],
-            image: "./cards/cardimages/group01/1_214b.png"
+            image: "./cards/cardimages/group01/1_214_2.png"
         },
         {
             id: "1.514",
@@ -660,7 +660,7 @@ const group2_turns = {
             nameEn: "2/1 turn (720°) in back attitude (thigh of free leg at horizontal throughout turn)",
             namedAfter: "Semenova 塞梅诺娃",
             nameZh: ["阿提丢720", "阿提丢立转720°", "Semenova", "塞梅诺娃"],
-            image: "./cards/cardimages/group02/2_404.png",
+            image: "./cards/cardimages/group02/2_404_1.png",
             tags: []
         },
         {
@@ -670,7 +670,7 @@ const group2_turns = {
             nameEn: "2/1 turn (720°) with free leg held with both hands bwd/upward throughout turn",
             namedAfter: "Berar 贝拉尔",
             nameZh: ["后扳腿720", "自由腿全程后上举、手抱自由腿(后扳腿)立转360°", "Berar", "贝拉尔"],
-            image: "./cards/cardimages/group02/2_404b.png",
+            image: "./cards/cardimages/group02/2_404_2.png",
             tags: []
         }
     ],
@@ -839,7 +839,7 @@ const group3_hand_supports = {
             value: "0.10",
             nameEn: "Handspring fwd, take-off from one leg or Flyspring fwd, take-off from both legs - with or without hecht phase before hand support - landing optional",
             nameZh: ["前手翻", "手撑前无鱼跃阶段单脚起跳前手翻，落下成任意姿势", "手撑有无鱼跃阶段单脚起跳前手翻，落下成任意姿势", "手撑前有鱼跃阶段双脚起跳前手翻，落下成任意姿势", "手撑前有鱼跃阶段双脚起跳前手翻，落下成任意姿势"],
-            image: "./cards/cardimages/group03/3_105.png",
+            image: "./cards/cardimages/group03/3_105_1.png",
             tags: []
         },
         {
@@ -848,7 +848,7 @@ const group3_hand_supports = {
             value: "0.10",
             nameEn: "Jump bwd with ½ twist (180°) to handspring fwd - landing optional",
             nameZh: ["后跳转体180成前手翻", "后跳转体180°成前手翻，落下成任意姿势"],
-            image: "./cards/cardimages/group03/3_105b.png",
+            image: "./cards/cardimages/group03/3_105_2.png",
             tags: []
         },
         {
@@ -884,7 +884,7 @@ const group3_hand_supports = {
             value: "0.10",
             nameEn: "All flic-flac and gainer flic-flac variations, also with support of one arm",
             nameZh: ["小翻","后手翻", "单臂后手翻", "踢腿后手翻", "单臂踢腿后手翻"],
-            image: "./cards/cardimages/group03/3_107.png",
+            image: "./cards/cardimages/group03/3_107_1.png",
             tags: []
         },
         {
@@ -894,7 +894,7 @@ const group3_hand_supports = {
             nameEn: "Arabian (bwd take-off) with ¼ twist (90°) - free (aerial) cartwheel - continuing with ¼ twist (90°) to front lying support",
             namedAfter: "Tsavdaridou 查瓦里杜",
             nameZh: ["阿拉伯手翻成俯撑","阿拉伯后手翻转体90成俯撑", "阿拉伯(后跳)转体90°，挺身侧空翻转体90°成俯撑落", "Tsavdaridou", "查瓦里杜"],
-            image: "./cards/cardimages/group03/3_107b.png",
+            image: "./cards/cardimages/group03/3_107_2.png",
             tags: []
         },
         {
@@ -923,7 +923,7 @@ const group4_fwd_saltos = {
             value: "0.10",
             nameEn: "Salto fwd tucked",
             nameZh: ["前团", "团身前空翻"],
-            image: "./cards/cardimages/group04/4_101_pike.png",
+            image: "./cards/cardimages/group04/4_101.png",
             video: {
                 src: "./cards/cardvideos/4_101_tuck_101_Tuck_Qiu_Qiyuan_CHN.mp4",
                 athlete: "101 Tuck Qiu Qiyuan",
@@ -937,7 +937,7 @@ const group4_fwd_saltos = {
             value: "0.10",
             nameEn: "Salto fwd piked",
             nameZh: ["前屈", "屈体前空翻"],
-            image: "./cards/cardimages/group04/4_101_pike.png",
+            image: "./cards/cardimages/group04/4_101.png",
             tags: ["fwd"]
         },
         {
@@ -946,7 +946,7 @@ const group4_fwd_saltos = {
             value: "0.20",
             nameEn: "Salto fwd tucked with 1/1 twist (360°)",
             nameZh: ["前团360", "团身前空翻转体360°"],
-            image: "./cards/cardimages/group04/4_201_360tuck.png",
+            image: "./cards/cardimages/group04/4_201.png",
             tags: ["fwd", "cr2"] // ⚠️ 满足360度转体，打上cr2
         },
         {
@@ -955,7 +955,7 @@ const group4_fwd_saltos = {
             value: "0.20",
             nameEn: "Salto fwd tucked with ½ twist (180°)",
             nameZh: ["前团180", "团身前空翻转体180°"],
-            image: "./cards/cardimages/group04/4_201_360tuck.png",
+            image: "./cards/cardimages/group04/4_201.png",
             tags: ["fwd"]
         },
         {
@@ -964,7 +964,7 @@ const group4_fwd_saltos = {
             value: "0.20",
             nameEn: "Salto fwd piked with ½ twist (180°)",
             nameZh: ["前屈180", "屈体前空翻转体180°"],
-            image: "./cards/cardimages/group04/4_201_360tuck.png",
+            image: "./cards/cardimages/group04/4_201.png",
             tags: ["fwd"]
         },
         {
@@ -989,7 +989,7 @@ const group4_fwd_saltos = {
             nameEn: "Double salto fwd tucked with ½ twist (180°)",
             namedAfter: "Podkopayeva 波德科帕耶娃",
             nameZh: ["前团两周180", "前团180旋", "团身前空翻两周转体180°", "Podkopayeva", "波德科帕耶娃"],
-            image: "./cards/cardimages/group04/4_601_pike.png",
+            image: "./cards/cardimages/group04/4_601_1.png",
             video: {
                 src: "./cards/cardvideos/4_601_180_601_180_Brooklyn_Moors_CAN.mp4",
                 athlete: "601 180 Brooklyn Moors",
@@ -1004,7 +1004,7 @@ const group4_fwd_saltos = {
             nameEn: "Double salto fwd piked",
             namedAfter: "Dowell 道威尔",
             nameZh: ["前屈两周", "屈体前空翻两周", "Dowell", "道威尔"],
-            image: "./cards/cardimages/group04/4_601_180.png",
+            image: "./cards/cardimages/group04/4_601_2.png",
             tags: ["fwd", "cr3"]
         }
     ],
@@ -1017,7 +1017,7 @@ const group4_fwd_saltos = {
             value: "0.20",
             nameEn: "Salto fwd stretched",
             nameZh: ["前直", "直体前空翻"],
-            image: "./cards/cardimages/group04/4_601_180.png",
+            image: "./cards/cardimages/group04/4_102.png",
             video: {
                 src: "./cards/cardvideos/4_202_202_Aiko_Sugihara_JPN.mp4",
                 athlete: "202 Aiko Sugihara",
@@ -1045,7 +1045,7 @@ const group4_fwd_saltos = {
             value: "0.30",
             nameEn: "Salto fwd stretched with 1/1 twist (360°)",
             nameZh: ["前直360", "直体前空翻转体360°"],
-            image: "./cards/cardimages/group04/4_302_540.png",
+            image: "./cards/cardimages/group04/4_302.png",
             video: {
                 src: "./cards/cardvideos/4_302_360_302_360_Ana_Barbosu_ROU.mp4",
                 athlete: "302 360 Ana Barbosu",
@@ -1059,7 +1059,7 @@ const group4_fwd_saltos = {
             value: "0.30",
             nameEn: "Salto fwd stretched with 1½ twist (540°)",
             nameZh: ["前直540", "直体前空翻转体540°"],
-            image: "./cards/cardimages/group04/4_302_540.png",
+            image: "./cards/cardimages/group04/4_302.png",
             video: {
                 src: "./cards/cardvideos/4_302_540_302_540_Qiu_Qiyuan_CHN.mp4",
                 athlete: "302 540 Qiu Qiyuan",
@@ -1134,7 +1134,7 @@ const group4_fwd_saltos = {
             value: "0.10",
             nameEn: "Salto swd tucked",
             nameZh: ["侧团", "单脚/双脚起跳的团身侧空翻"],
-            image: "./cards/cardimages/group04/4_105_tuck.png",
+            image: "./cards/cardimages/group04/4_105.png",
             tags: [] 
         },
         {
@@ -1143,7 +1143,7 @@ const group4_fwd_saltos = {
             value: "0.10",
             nameEn: "Salto swd piked",
             nameZh: ["侧屈", "单脚/双脚起跳的屈体侧空翻"],
-            image: "./cards/cardimages/group04/4_105_tuck.png",
+            image: "./cards/cardimages/group04/4_105.png",
             tags: [] 
         },
         {
@@ -1152,7 +1152,7 @@ const group4_fwd_saltos = {
             value: "0.20",
             nameEn: "Arabian salto tucked",
             nameZh: ["阿团", "阿拉伯前团", "阿拉伯团身前空翻"],
-            image: "./cards/cardimages/group04/4_205_tuck.png",
+            image: "./cards/cardimages/group04/4_205.png",
             tags: ["fwd"] 
         },
         {
@@ -1161,7 +1161,7 @@ const group4_fwd_saltos = {
             value: "0.20",
             nameEn: "Arabian salto piked",
             nameZh: ["阿屈", "阿拉伯前屈", "阿拉伯屈体前空翻"],
-            image: "./cards/cardimages/group04/4_205_tuck.png",
+            image: "./cards/cardimages/group04/4_205.png",
             tags: ["fwd"] 
         },
         {
@@ -1225,7 +1225,7 @@ const group5_bwd_saltos = {
             value: "0.10",
             nameEn: "Salto bwd stretched",
             nameZh: ["后直", "直体后空翻"],
-            image: "./cards/cardimages/group05/5_101_layout.png",
+            image: "./cards/cardimages/group05/5_101.png",
             tags: ["bwd"]
         },
         {
@@ -1234,7 +1234,7 @@ const group5_bwd_saltos = {
             value: "0.10",
             nameEn: "Salto bwd piked",
             nameZh: ["后屈", "屈体后空翻"],
-            image: "./cards/cardimages/group05/5_101_layout.png",
+            image: "./cards/cardimages/group05/5_101.png",
             tags: ["bwd"]
         },
         {
@@ -1243,7 +1243,7 @@ const group5_bwd_saltos = {
             value: "0.10",
             nameEn: "Salto bwd tucked",
             nameZh: ["后团", "团身后空翻"],
-            image: "./cards/cardimages/group05/5_101_layout.png",
+            image: "./cards/cardimages/group05/5_101.png",
             tags: ["bwd"]
         },
         {
@@ -1252,7 +1252,7 @@ const group5_bwd_saltos = {
             value: "0.20",
             nameEn: "Salto bwd stretched with 1/1 twist (360°)",
             nameZh: ["后直360", "直体后空翻转体360°"],
-            image: "./cards/cardimages/group05/5_201_180.png",
+            image: "./cards/cardimages/group05/5_201.png",
             tags: ["bwd", "cr2"] // ⚠️ 满足360度转体，打上cr2
         },
         {
@@ -1261,7 +1261,7 @@ const group5_bwd_saltos = {
             value: "0.20",
             nameEn: "Salto bwd tucked with 1/1 twist (360°)",
             nameZh: ["后团360", "团身后空翻转体360°"],
-            image: "./cards/cardimages/group05/5_201_180.png",
+            image: "./cards/cardimages/group05/5_201.png",
             tags: ["bwd", "cr2"]
         },
         {
@@ -1270,7 +1270,7 @@ const group5_bwd_saltos = {
             value: "0.20",
             nameEn: "Salto bwd stretched with ½ twist (180°)",
             nameZh: ["后直180", "直体后空翻转体180°"],
-            image: "./cards/cardimages/group05/5_201_180.png",
+            image: "./cards/cardimages/group05/5_201.png",
             tags: ["bwd"]
         },
         {
@@ -1279,7 +1279,7 @@ const group5_bwd_saltos = {
             value: "0.30",
             nameEn: "Salto bwd stretched with 1½ twist (540°)",
             nameZh: ["后直540", "直体后空翻转体540°"],
-            image: "./cards/cardimages/group05/5_301_540.png",
+            image: "./cards/cardimages/group05/5_301.png",
             video: {
                 src: "./cards/cardvideos/5_301_540_301_540_Shang_Chunsong_CHN.mp4",
                 athlete: "301 540 Shang Chunsong",
@@ -1293,7 +1293,7 @@ const group5_bwd_saltos = {
             value: "0.30",
             nameEn: "Salto bwd stretched with 2/1 twist (720°)",
             nameZh: ["后直720", "直体后空翻转体720°"],
-            image: "./cards/cardimages/group05/5_301_540.png",
+            image: "./cards/cardimages/group05/5_301.png",
             video: {
                 src: "./cards/cardvideos/5_301_720_301_720_Qiu_Qiyuan_CHN.mp4",
                 athlete: "301 720 Qiu Qiyuan",
@@ -1354,7 +1354,7 @@ const group5_bwd_saltos = {
             nameEn: "Double salto bwd tucked",
             namedAfter: "Kim 金淑琼",
             nameZh: ["后团两周", "团身后空翻两周", "Kim", "金淑琼"],
-            image: "./cards/cardimages/group05/5_402_tuck.png",
+            image: "./cards/cardimages/group05/5_402.png",
             video: {
                 src: "./cards/cardvideos/5_402_tuck_402_Tuck_Zhou_Yaqin_CHN.mp4",
                 athlete: "402 Tuck Zhou Yaqin",
@@ -1369,7 +1369,7 @@ const group5_bwd_saltos = {
             nameEn: "Double salto bwd piked",
             namedAfter: "Kim 金淑琼",
             nameZh: ["后屈两周", "屈体后空翻两周", "Kim", "金淑琼"],
-            image: "./cards/cardimages/group05/5_402_tuck.png",
+            image: "./cards/cardimages/group05/5_402.png",
             video: {
                 src: "./cards/cardvideos/5_402_pike_402_Pike_Qin_Xinyi_CHN.mp4",
                 athlete: "402 Pike Qin Xinyi",
@@ -1384,7 +1384,7 @@ const group5_bwd_saltos = {
             nameEn: "Double salto bwd tucked with 1/1 twist (360°)",
             namedAfter: "Mukhina 穆欣娜",
             nameZh: ["团身旋", "后团360旋", "后团360炫", "团身后空翻两周转体360°", "Mukhina", "穆欣娜"],
-            image: "./cards/cardimages/group05/5_502_tuck360.png",
+            image: "./cards/cardimages/group05/5_502.png",
             video: {
                 src: "./cards/cardvideos/5_502_tuck360_502_Tuck360_Flavia_Saraiva_BRA.mp4",
                 athlete: "502 Tuck360 Flavia Saraiva",
@@ -1399,7 +1399,7 @@ const group5_bwd_saltos = {
             nameEn: "Double salto bwd piked with 1/1 twist (360°)",
             namedAfter: "Oliveira 奥利维拉",
             nameZh: ["屈体旋", "后屈360旋", "后屈360炫", "屈体后空翻两周转体360°", "Oliveira", "奥利维拉"],
-            image: "./cards/cardimages/group05/5_502_tuck360.png",
+            image: "./cards/cardimages/group05/5_502.png",
             video: {
                 src: "./cards/cardvideos/5_502_pike360_502_Pike360_Huang_Qiushuang_CHN.mp4",
                 athlete: "502 Pike360 Huang Qiushuang",

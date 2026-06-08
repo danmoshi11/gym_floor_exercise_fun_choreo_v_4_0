@@ -513,6 +513,7 @@ const AppController = {
     },
 
     // 新增方法：切换观赏模式的 UI 限制
+    // 新增方法：切换观赏模式的 UI 限制
     applyViewingMode: function(isViewing) {
         this.isViewingMode = isViewing;
         window.isViewingMode = isViewing; // 双重全局绑定确保万无一失
@@ -530,8 +531,9 @@ const AppController = {
         if (startBtn) {
             startBtn.innerHTML = isViewing ? '🍿 开始观赏成套' : '✅ 完成编排并计算最终成绩';
             if (isViewing) {
-                // 🟢 核心修复：点击底部「🍿 开始观赏成套」，不仅作为入口，更要接管点火！
+                // 🟢 核心修复：点击底部「🍿 开始观赏成套」，正式作为进入第三阶段的唯一点火标志！
                 startBtn.onclick = () => {
+                    // 检查当前成套是否拥有完结版的音乐对齐案底
                     if (window.currentRoutineData && window.currentRoutineData.placedActions && window.currentRoutineData.placedActions.length > 0) {
                         console.log("[状态机激活] 🍿 收到观赏指令，开启全自动多媒体卡点演示！");
                         
@@ -895,10 +897,12 @@ const AppController = {
         data.forEach(skill => {
             const isAcro = skill.id.startsWith('4.') || skill.id.startsWith('5.');
             const bgClass = isAcro ? 'bg-blue-50' : 'bg-green-50'; 
+            const hasVideo = skill.video && skill.video.length > 0;
             grid.innerHTML += `
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
-                    <div class="${bgClass} p-2 flex justify-center">
+                <div class="skill-card bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-all cursor-pointer hover:-translate-y-1" onclick="AppController.showSkillDetail('${skill.id}')">
+                    <div class="${bgClass} p-2 flex justify-center relative">
                         <img src="${skill.image}" class="h-24 object-contain mix-blend-multiply" alt="${skill.nameZh[0]}">
+                        ${hasVideo ? '<span class="absolute top-1 right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white text-xs">▶</span>' : ''}
                     </div>
                     <div class="p-3">
                         <div class="flex justify-between items-center mb-1">
@@ -910,6 +914,357 @@ const AppController = {
                 </div>
             `;
         });
+    },
+
+    showSkillDetail: function(skillId) {
+        const skill = skillsData.find(s => s.id === skillId);
+        if (!skill) return;
+
+        // 支持 video 对象格式: {src: "...", athlete: "xxx", country: "yyy"}
+        const videoData = skill.video;
+        const hasVideo = videoData && (typeof videoData === 'string' && videoData.length > 0) || (typeof videoData === 'object' && videoData.src);
+        const videoSrc = typeof videoData === 'object' ? videoData.src : videoData;
+        const videoAthlete = typeof videoData === 'object' ? videoData.athlete : '';
+        const videoCountry = typeof videoData === 'object' ? videoData.country : '';
+        
+        const hasNamedAfter = skill.namedAfter && skill.namedAfter.length > 0;
+        
+        const modalHtml = `
+            <div id="skillDetailModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4" onclick="if(event.target.id==='skillDetailModal')AppController.closeSkillDetail()">
+                <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[95vh] overflow-hidden">
+                    <!-- 头部 -->
+                    <div class="bg-gradient-to-r from-indigo-600 to-purple-600 px-5 py-3 flex items-center justify-between">
+                        <div>
+                            <h2 class="text-lg font-black text-white">${skill.nameZh[0]}</h2>
+                            <p class="text-indigo-100 text-xs mt-0.5">ID: ${skill.id}</p>
+                        </div>
+                        <button onclick="AppController.closeSkillDetail()" class="text-white/80 hover:text-white text-2xl">&times;</button>
+                    </div>
+                    
+                    <!-- 内容区 - 双列布局 -->
+                    <div class="p-4 overflow-y-auto max-h-[80vh]">
+                        <div class="grid grid-cols-2 gap-4">
+                            <!-- 左列 -->
+                            <div class="space-y-3">
+                                <!-- 封面图片 -->
+                                <div>
+                                    <div class="bg-gray-50 rounded-lg p-2 flex justify-center">
+                                        <img src="${skill.image}" class="max-h-36 object-contain" alt="${skill.nameZh[0]}" onerror="this.src='./images/placeholder.png'">
+                                    </div>
+                                </div>
+                                
+                                <!-- 基本信息 -->
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div class="bg-blue-50 rounded-lg p-2">
+                                        <span class="text-[10px] text-blue-500 font-bold">难度等级</span>
+                                        <p class="text-xl font-black text-blue-600">${skill.difficulty}</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- 动作名称 -->
+                                <div>
+                                    <h3 class="text-xs font-bold text-gray-500 mb-1">动作名称</h3>
+                                    <div class="bg-gray-50 rounded-lg p-2">
+                                        <p class="font-bold text-gray-800 text-sm">${skill.nameZh.join(' / ')}</p>
+                                        <p class="text-xs text-gray-500 mt-0.5 italic">${skill.nameEn}</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- 命名者 -->
+                                ${hasNamedAfter ? `
+                                <div>
+                                    <h3 class="text-xs font-bold text-gray-500 mb-1">命名者</h3>
+                                    <div class="bg-amber-50 rounded-lg p-2">
+                                        <p class="font-bold text-amber-700 text-sm">${skill.namedAfter}</p>
+                                    </div>
+                                </div>
+                                ` : ''}
+                            </div>
+                            
+                            <!-- 右列 -->
+                            <div class="space-y-3">
+                                <!-- 动作示例视频 -->
+                                ${hasVideo ? `
+                                <div>
+                                    <h3 class="text-xs font-bold text-gray-500 mb-1">动作示例</h3>
+                                    <div class="bg-gray-900 rounded-lg overflow-hidden relative group" id="videoContainer_${skill.id}">
+                                        <div class="aspect-video flex items-center justify-center" id="videoPlaceholder_${skill.id}">
+                                            <button onclick="AppController.loadVideo('${skill.id}', '${videoSrc}')" class="w-12 h-12 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center text-white transition-all hover:scale-110">
+                                                <span class="text-xl ml-1">▶</span>
+                                            </button>
+                                        </div>
+                                        <video id="videoPlayer_${skill.id}" class="w-full h-full hidden" controls playsinline poster="${skill.image}">
+                                            <source src="${videoSrc}" type="video/mp4">
+                                        </video>
+                                    </div>
+                                    ${videoAthlete || videoCountry ? `
+                                    <div class="mt-1 bg-gradient-to-r from-purple-50 to-indigo-50 rounded p-1.5 border border-purple-100">
+                                        <p class="text-[10px] font-bold text-purple-700 text-center">
+                                            Presented by: <span class="text-purple-900">${videoAthlete || '未知运动员'}</span>, <span class="text-indigo-600">${videoCountry || '未知国家'}</span>
+                                        </p>
+                                    </div>
+                                    ` : ''}
+                                    <p class="text-[10px] text-gray-400 mt-1 text-center">点击播放按钮加载动作示例</p>
+                                </div>
+                                ` : `
+                                <div>
+                                    <h3 class="text-xs font-bold text-gray-500 mb-1">动作示例</h3>
+                                    <div class="bg-gray-100 rounded-lg p-4 text-center">
+                                        <span class="text-2xl mb-1 block">📹</span>
+                                        <p class="text-gray-400 text-xs">暂无动作示例视频</p>
+                                    </div>
+                                </div>
+                                `}
+                                
+                                <!-- 标签信息 -->
+                                ${skill.tags && skill.tags.length > 0 ? `
+                                <div>
+                                    <h3 class="text-xs font-bold text-gray-500 mb-1">标签</h3>
+                                    <div class="flex flex-wrap gap-1">
+                                        ${skill.tags.map(tag => `
+                                            <span class="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-full">${this._getTagLabel(tag)}</span>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                                ` : ''}
+                                
+                                <!-- 评论区 -->
+                                <div>
+                                    <h3 class="text-xs font-bold text-gray-500 mb-1">评论区</h3>
+                                    <div class="bg-gray-50 rounded-lg p-2" id="commentsSection_${skill.id}">
+                                        <!-- 评论输入框 -->
+                                        <div class="mb-2">
+                                            <div class="flex gap-1.5">
+                                                <input type="text" id="commentInput_${skill.id}" placeholder="发表评论 (30字以内)" maxlength="30" class="flex-1 px-2 py-1.5 bg-white border border-gray-200 rounded text-xs focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100 outline-none">
+                                                <button onclick="AppController.submitComment('${skill.id}')" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded transition-colors">发送</button>
+                                            </div>
+                                        </div>
+                                        <!-- 评论列表 -->
+                                        <div id="commentsList_${skill.id}" class="space-y-1">
+                                            <p class="text-center text-gray-400 text-xs py-1">正在加载评论...</p>
+                                        </div>
+                                        <!-- 查看更多按钮 -->
+                                        <button id="loadMoreComments_${skill.id}" onclick="AppController.loadMoreComments('${skill.id}')" class="hidden w-full mt-1 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold text-[10px] rounded transition-colors">
+                                            查看更多评论
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 底部按钮 -->
+                    <div class="px-4 py-3 bg-gray-50 border-t border-gray-200 flex justify-end">
+                        <button onclick="AppController.closeSkillDetail()" class="px-5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-sm transition-colors">
+                            关闭
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        // 加载评论
+        this.loadComments(skillId);
+    },
+
+    closeSkillDetail: function() {
+        const modal = document.getElementById('skillDetailModal');
+        if (modal) {
+            // 停止视频播放
+            const video = modal.querySelector('video');
+            if (video) {
+                video.pause();
+                video.currentTime = 0;
+            }
+            modal.remove();
+        }
+    },
+
+    loadVideo: function(skillId, videoSrc) {
+        const placeholder = document.getElementById(`videoPlaceholder_${skillId}`);
+        const player = document.getElementById(`videoPlayer_${skillId}`);
+        
+        if (placeholder && player) {
+            placeholder.style.display = 'none';
+            player.style.display = 'block';
+            player.load();
+            player.play();
+        }
+    },
+
+    // ==========================================
+    // 💬 评论区功能 (基于 Supabase)
+    // ==========================================
+    
+    loadComments: async function(skillId) {
+        const commentsList = document.getElementById(`commentsList_${skillId}`);
+        const loadMoreBtn = document.getElementById(`loadMoreComments_${skillId}`);
+        
+        if (!commentsList) return;
+        
+        // 检查 Supabase 是否可用
+        if (!SupabaseEngine.client) {
+            commentsList.innerHTML = '<p class="text-center text-gray-400 text-sm py-2">评论功能暂未开启</p>';
+            return;
+        }
+        
+        try {
+            // 查询评论（按时间排序，最早评论在前）
+            const { data, error, count } = await SupabaseEngine.client
+                .from('skill_comments')
+                .select('*', { count: 'exact' })
+                .eq('skill_id', skillId)
+                .order('created_at', { ascending: true })
+                .limit(10);
+            
+            if (error) throw error;
+            
+            if (!data || data.length === 0) {
+                commentsList.innerHTML = '<p class="text-center text-gray-400 text-sm py-2">暂无评论，快来发表第一条吧！</p>';
+                return;
+            }
+            
+            // 显示评论（默认显示3条）
+            const displayCount = 3;
+            const hasMore = data.length > displayCount;
+            
+            commentsList.innerHTML = data.slice(0, displayCount).map(comment => `
+                <div class="bg-white rounded-lg p-2 border border-gray-100">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-xs font-bold text-indigo-600">${comment.username || '匿名用户'}</span>
+                        <span class="text-xs text-gray-400">${this._formatTime(comment.created_at)}</span>
+                    </div>
+                    <p class="text-sm text-gray-700">${comment.content}</p>
+                </div>
+            `).join('');
+            
+            // 存储剩余评论供"查看更多"使用
+            this._cachedComments = this._cachedComments || {};
+            this._cachedComments[skillId] = data.slice(displayCount);
+            
+            // 显示/隐藏"查看更多"按钮
+            if (loadMoreBtn) {
+                loadMoreBtn.classList.toggle('hidden', !hasMore);
+                if (hasMore) {
+                    loadMoreBtn.textContent = `查看更多评论 (${count - displayCount}条)`;
+                }
+            }
+            
+        } catch (err) {
+            console.error('加载评论失败:', err);
+            commentsList.innerHTML = '<p class="text-center text-red-400 text-sm py-2">加载评论失败</p>';
+        }
+    },
+
+    loadMoreComments: function(skillId) {
+        const commentsList = document.getElementById(`commentsList_${skillId}`);
+        const loadMoreBtn = document.getElementById(`loadMoreComments_${skillId}`);
+        
+        if (!commentsList || !this._cachedComments || !this._cachedComments[skillId]) return;
+        
+        const remainingComments = this._cachedComments[skillId];
+        
+        // 添加剩余评论
+        commentsList.innerHTML += remainingComments.map(comment => `
+            <div class="bg-white rounded-lg p-2 border border-gray-100">
+                <div class="flex justify-between items-center mb-1">
+                    <span class="text-xs font-bold text-indigo-600">${comment.username || '匿名用户'}</span>
+                    <span class="text-xs text-gray-400">${this._formatTime(comment.created_at)}</span>
+                </div>
+                <p class="text-sm text-gray-700">${comment.content}</p>
+            </div>
+        `).join('');
+        
+        // 隐藏"查看更多"按钮
+        if (loadMoreBtn) {
+            loadMoreBtn.classList.add('hidden');
+        }
+        
+        // 清除缓存
+        this._cachedComments[skillId] = [];
+    },
+
+    submitComment: async function(skillId) {
+        const input = document.getElementById(`commentInput_${skillId}`);
+        const content = input.value.trim();
+        
+        if (!content) {
+            ToastManager.show('warning', '请输入评论内容', '评论内容不能为空');
+            return;
+        }
+        
+        if (content.length > 30) {
+            ToastManager.show('warning', '评论过长', '评论内容不能超过30个字');
+            return;
+        }
+        
+        // 获取用户名
+        const username = localStorage.getItem('gymUsername') || '匿名用户';
+        
+        // 检查 Supabase 是否可用
+        if (!SupabaseEngine.client) {
+            ToastManager.show('error', '评论功能暂未开启', '请稍后再试');
+            return;
+        }
+        
+        try {
+            const { error } = await SupabaseEngine.client
+                .from('skill_comments')
+                .insert([
+                    {
+                        skill_id: skillId,
+                        username: username,
+                        content: content,
+                        created_at: new Date().toISOString()
+                    }
+                ]);
+            
+            if (error) throw error;
+            
+            // 清空输入框
+            input.value = '';
+            
+            // 刷新评论列表
+            this.loadComments(skillId);
+            
+            ToastManager.show('success', '评论成功', '您的评论已发布');
+            
+        } catch (err) {
+            console.error('提交评论失败:', err);
+            ToastManager.show('error', '评论失败', err.message);
+        }
+    },
+
+    _formatTime: function(timestamp) {
+        if (!timestamp) return '';
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diff = now - date;
+        
+        // 小于1分钟
+        if (diff < 60000) return '刚刚';
+        // 小于1小时
+        if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`;
+        // 小于24小时
+        if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`;
+        // 小于7天
+        if (diff < 604800000) return `${Math.floor(diff / 86400000)}天前`;
+        
+        // 超过7天显示日期
+        return `${date.getMonth() + 1}/${date.getDate()}`;
+    },
+
+    _getTagLabel: function(tag) {
+        const tagLabels = {
+            'cr1': 'CR1',
+            'cr2': 'CR2',
+            'cr3': 'CR3',
+            'fwd': '向前',
+            'bwd': '向后'
+        };
+        return tagLabels[tag] || tag.toUpperCase();
     },
 
     filterDictionary: function() {

@@ -135,9 +135,9 @@ const e_jury_deductions = [
   { "id": "sheep_jump_hip_ext_insufficient", "name": "羊跳展髋(小错)", "full_description": "羊跳: 展髋不足", "deduction": 0.1, "category": "leaps", "target_ids": ["1.206"] },
   { "id": "sheep_jump_bent_legs_insufficient", "name": "羊跳屈腿(小错)", "full_description": "羊跳: 屈腿不足≥90°", "deduction": 0.1, "category": "leaps", "target_ids": ["1.206"] },
 
-  { "id": "split_leap_swing_insufficient", "name": "交换腿前摆不够(小错)", "full_description": "交换腿/强森: 自由腿前摆少于45°", "deduction": 0.1, "category": "leaps", "target_ids": ["1.202", "1.302", "1.402", "1.204", "1.304", "1.404", "1.205", "1.305", "1.405"] },
-  { "id": "split_leap_leg_bent_small", "name": "交换腿前腿弯(小错)", "full_description": "交换腿/强森: 自由腿弯曲 (小错)", "deduction": 0.1, "category": "leaps", "target_ids": ["1.202", "1.302", "1.402", "1.204", "1.304", "1.404", "1.205", "1.305", "1.405"] },
-  { "id": "split_leap_leg_bent_med", "name": "交换腿前腿弯(中错)", "full_description": "交换腿/强森: 自由腿弯曲 (中错)", "deduction": 0.3, "category": "leaps", "target_ids": ["1.202", "1.302", "1.402", "1.204", "1.304", "1.404", "1.205", "1.305", "1.405"] },
+  { "id": "split_leap_swing_insufficient", "name": "交换腿前摆不够(小错)", "full_description": "交换腿/强森: 自由腿前摆少于45°", "deduction": 0.1, "category": "leaps", "target_ids": ["1.202", "1.302", "1.402","1.402-tour", "1.204", "1.304", "1.404", "1.205", "1.305", "1.405"] },
+  { "id": "split_leap_leg_bent_small", "name": "交换腿前腿弯(小错)", "full_description": "交换腿/强森: 自由腿弯曲 (小错)", "deduction": 0.1, "category": "leaps", "target_ids": ["1.202", "1.302", "1.402", "1.402-tour","1.204", "1.304", "1.404", "1.205", "1.305", "1.405"] },
+  { "id": "split_leap_leg_bent_med", "name": "交换腿前腿弯(中错)", "full_description": "交换腿/强森: 自由腿弯曲 (中错)", "deduction": 0.3, "category": "leaps", "target_ids": ["1.202", "1.302", "1.402","1.402-tour", "1.204", "1.304", "1.404", "1.205", "1.305", "1.405"] },
 
   { "id": "ring_arch_insufficient", "name": "各结环背弓(小错)", "full_description": "结环跳: 背弓姿势不足", "deduction": 0.1, "category": "leaps", "target_ids": ["1.209", "1.309", "1.409", "1.305", "1.405"] },
   { "id": "ring_front_leg_low_small", "name": "各结环前腿低(小错)", "full_description": "结环跳: 前腿低于水平", "deduction": 0.1, "category": "leaps", "target_ids": ["1.209", "1.309", "1.409", "1.305", "1.405"] },
