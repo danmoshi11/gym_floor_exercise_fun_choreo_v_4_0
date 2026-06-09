@@ -14,7 +14,7 @@ const Config = {
     coinCodes: {
         'woshineimuer': { coins: 99999, description: '无限金币密码' },
         'woyaojinbi': { coins: 10000, description: 'VIP专属礼包' },
-        'woshivip': { coins: 5000, description: '体操大师' }
+        'woshivip': { coins: 5000, description: '体操大师' },
         '66666': { coins: 66666, description: '临时应付一下8' }
     },
     
