@@ -1036,9 +1036,9 @@ const group4_fwd_saltos = {
             nameZh: ["前直180", "直体前空翻转体180°"],
             image: "./cards/cardimages/group04/4_202.png",
             video: {
-                src: "./cards/cardvideos/4_202_Aiko_Sugihara_JPN.mp4",
-                athlete: "Aiko Sugihara",
-                country: "JPN"
+                src: "./cards/cardvideos/4_202_Wang_Yan_CHN.mp4",
+                athlete: "Wang Yan",
+                country: "CHN"
             },
             tags: ["fwd"] 
         },
