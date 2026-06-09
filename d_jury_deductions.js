@@ -17,7 +17,7 @@ const d_jury_deductions = [
     "fault_condition": "未能维持直体（髋角屈>10°）", 
     "d_jury_actions": { "downgrade_to_other": true, "penalty": 0.1 },
     "description": "直降为屈 (-0.1)",
-    "target_ids": ["4.202", "4.302-360", "4.402", "4.502", "4.602", "5.101-layout", "5.201-360layout", "5.301-540", "5.401", "5.501"]
+    "target_ids": ["4.202", "4.202-180", "4.302-360", "4.402", "4.502", "4.602", "5.101-layout", "5.201-360layout", "5.301-540", "5.401", "5.501"]
   },
   { 
     "element_category": "直体两周空翻", 

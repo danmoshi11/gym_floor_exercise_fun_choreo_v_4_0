@@ -1029,7 +1029,7 @@ const group4_fwd_saltos = {
             tags: ["fwd"]
         },
         {
-            id: "4.202",
+            id: "4.202-180",
             difficulty: "B",
             value: "0.20",
             nameEn: "Salto fwd stretched, also with ½ twist (180°)",
