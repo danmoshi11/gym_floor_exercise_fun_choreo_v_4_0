@@ -262,8 +262,29 @@ window.ManualJurySystem = {
         
         try {
             const data = JSON.parse(decodeURIComponent(rawPayload));
-            this.appliedFaults[skillIndex].push(data);
-            this.currentDeductions += data.deduction;
+            
+            // ⚠️ 扣分上限检查：每个动作最多只能扣0.8分，超出部分自动截断
+            const currentSkillDeduction = this.appliedFaults[skillIndex].reduce((sum, f) => sum + f.deduction, 0);
+            const remainingCapacity = 0.8 - currentSkillDeduction;
+            
+            if (remainingCapacity <= 0) {
+                // 已达上限，不添加任何扣分
+                ToastManager.show('info', '扣分上限', '该动作扣分已达上限 0.8 分，无法继续添加。');
+                return;
+            }
+            
+            // 计算实际可添加的扣分（截断到剩余容量）
+            const actualDeduction = Math.min(data.deduction, remainingCapacity);
+            
+            // 如果需要截断，显示提醒
+            if (actualDeduction < data.deduction) {
+                ToastManager.show('info', '自动截断', `扣分已自动截断至 0.8 分上限，实际扣 ${actualDeduction.toFixed(1)} 分。`);
+            }
+            
+            // 添加扣分（使用截断后的值）
+            const adjustedData = { ...data, deduction: actualDeduction };
+            this.appliedFaults[skillIndex].push(adjustedData);
+            this.currentDeductions += actualDeduction;
             this.updateDropZoneUI(skillIndex);
             this.updateTotalUI();
         } catch (e) { console.error(e); }

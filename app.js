@@ -231,9 +231,25 @@ window.redeemCoinCode = function() {
         return;
     }
     
-    // 检查配置中的兑换码
-    if (typeof Config !== 'undefined' && Config.coinCodes && Config.coinCodes[code]) {
-        const coinCode = Config.coinCodes[code];
+    // 检查配置中的兑换码（大小写不敏感）
+    let matchedCode = null;
+    if (typeof Config !== 'undefined' && Config.coinCodes) {
+        // 先尝试精确匹配
+        if (Config.coinCodes[code]) {
+            matchedCode = code;
+        } else {
+            // 尝试大小写不敏感匹配
+            for (const key in Config.coinCodes) {
+                if (key.toUpperCase() === code) {
+                    matchedCode = key;
+                    break;
+                }
+            }
+        }
+    }
+    
+    if (matchedCode) {
+        const coinCode = Config.coinCodes[matchedCode];
         
         // 检查是否已经使用过（使用 localStorage 记录已使用的兑换码）
         const usedCodes = JSON.parse(localStorage.getItem('usedCoinCodes') || '[]');
@@ -1648,6 +1664,8 @@ const AppController = {
         const group = document.getElementById('groupFilter').value;
         const diff = document.getElementById('diffFilter').value;
         const filtered = skillsData.filter(skill => {
+            // 过滤掉幽灵动作（3.105、3.106、3.107），它们只在技巧串中显示
+            if (skill.isGhostable) return false;
             const matchName = skill.nameZh.join(" ").toLowerCase().includes(query) || skill.nameEn.toLowerCase().includes(query);
             const matchGroup = group === 'all' || skill.id.startsWith(group + '.');
             const matchDiff = diff === 'all' || skill.difficulty === diff;
@@ -1675,6 +1693,12 @@ const AppController = {
         const isEditing = track.skills && track.skills.length > 0;
         this.modal.skills = track.skills ? [...track.skills] : [];
         this.modal.connections = track.connections ? [...track.connections] : Array(Math.max(0, this.modal.skills.length - 1)).fill('direct');
+        
+        // 初始化出界状态数组：从已有动作中恢复出界状态
+        this.modal.oobStatus = this.modal.skills.map(skill => skill.oobStatus || 'none');
+        // 初始化出界脚数数组：从已有动作中恢复单脚/双脚状态
+        this.modal.oobFoot = this.modal.skills.map(skill => skill.oobFoot || 'single');
+        
         document.getElementById('skillModal').classList.remove('hidden');
         
         let availableSkills = [];
@@ -1683,7 +1707,17 @@ const AppController = {
         
         if (track.type === 'line') {
             title = `${prefix}技巧空翻串`;
-            availableSkills = skillsData.filter(s => /^[345]\./.test(s.id));
+            // 技巧串包含：第4组、第5组（空翻）、第1组（跳步，用于混合连接）、第3组的幽灵动作
+            // 按组排序：先显示第4组、第5组，然后是第1组
+            const group4 = skillsData.filter(s => s.id.startsWith('4.'));
+            const group5 = skillsData.filter(s => s.id.startsWith('5.'));
+            const group1 = skillsData.filter(s => s.id.startsWith('1.'));
+            const ghostSkills = skillsData.filter(s => s.isGhostable); // 3.105、3.106、3.107
+            availableSkills = [...group4, ...group5, ...ghostSkills, ...group1];
+        } else if (track.type === 'support') {
+            title = `${prefix}支撑动作`;
+            // 支撑动作：只显示第3组动作（不包括幽灵动作），支撑动作正常计算难度分
+            availableSkills = skillsData.filter(s => s.id.startsWith('3.') && !s.isGhostable);
         } else if (track.type === 'curve') {
             title = `${prefix}舞蹈跳步串`;
             availableSkills = skillsData.filter(s => s.id.startsWith('1.'));
@@ -1760,49 +1794,48 @@ const AppController = {
 
     generateRecommendations: function(trackType) {
         const bar = document.getElementById('recommendationBar');
-        bar.innerHTML = '';
+        let html = ''; // 🌟 使用字符串拼接，防止浏览器强行闭合未完成的 <div>
         
-        // 定义技巧类固定推荐列表（第一排）
+        // 定义技巧类固定推荐列表
         const fixedSkillRecommendations = [
             '前团', '前屈', '后团', '前直', '前直180', '前直360', '后直540'
         ];
         
         if (trackType === 'line') {
             // ════════════════════════════════════════════════════════════
-            // 第一排：固定推荐（每次都显示相同的动作）
+            // 第一排：固定推荐
             // ════════════════════════════════════════════════════════════
-            const fixedRow = document.createElement('div');
-            fixedRow.className = 'flex gap-2 overflow-x-auto no-scrollbar pb-2';
+            html += `
+                <div class="flex gap-2 overflow-x-auto no-scrollbar">
+            `;
             
             fixedSkillRecommendations.forEach(skillName => {
                 const skill = skillsData.find(s => s.nameZh.includes(skillName));
                 if (skill) {
-                    fixedRow.innerHTML += `
+                    html += `
                         <button onclick="AppController.addToCart('${skill.id}', '${skill.nameZh[0]}')" 
-                                class="flex-shrink-0 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 hover:border-amber-500 rounded-lg px-3 py-1.5 flex items-center gap-2 shadow-sm transition-all hover:shadow-md">
-                            <span class="text-xs font-bold text-amber-600">★</span>
-                            <span class="text-xs font-bold text-amber-700">${skill.difficulty}</span>
-                            <span class="text-sm text-gray-700">${skill.nameZh[0]}</span>
+                                class="shrink-0 w-auto inline-flex items-center gap-1.5 bg-white border border-blue-200 hover:border-blue-500 rounded-lg px-3 py-1.5 text-sm shadow-sm transition-colors">
+                            <span class="text-xs font-bold text-blue-600">${skill.difficulty}</span>
+                            <span class="text-gray-700">${skill.nameZh[0]}</span>
                         </button>
                     `;
                 }
             });
             
-            bar.appendChild(fixedRow);
+            html += `
+                </div>
+            `;
             
             // ════════════════════════════════════════════════════════════
-            // 第二排：智能随机推荐（根据已有技巧数量调整难度）
+            // 第二排：智能随机推荐
             // ════════════════════════════════════════════════════════════
-            const randomRow = document.createElement('div');
-            randomRow.className = 'flex gap-2 overflow-x-auto no-scrollbar';
+            html += `
+                <div class="flex gap-2 overflow-x-auto no-scrollbar">
+            `;
             
             let recs = [];
             const lineCount = canvasManager.tracks.filter(t => t.type === 'line').length;
             
-            // 智能推荐逻辑：
-            // - 第1条技巧串：推荐高难度动作 (F-J组)
-            // - 第2条技巧串：推荐中难度动作 (E-F组)  
-            // - 第3条及以后：推荐较低难度动作 (C-D组)
             if (lineCount === 1) {
                 recs = skillsData.filter(s => /^[45]\./.test(s.id) && ['D','E','F','G','H'].includes(s.difficulty));
             } else if (lineCount === 2) {
@@ -1811,32 +1844,38 @@ const AppController = {
                 recs = skillsData.filter(s => /^[45]\./.test(s.id) && ['C','D','E'].includes(s.difficulty));
             }
             
-            // 随机打乱并取前5个
-            recs.sort(() => 0.5 - Math.random()).slice(0, 5).forEach(skill => {
-                randomRow.innerHTML += `
+            recs.sort(() => 0.5 - Math.random()).slice(0, 6).forEach(skill => {
+                html += `
                     <button onclick="AppController.addToCart('${skill.id}', '${skill.nameZh[0]}')" 
-                            class="flex-shrink-0 bg-white border border-blue-200 hover:border-blue-500 rounded-lg px-3 py-1.5 flex items-center gap-2 shadow-sm transition-colors">
+                            class="shrink-0 w-auto inline-flex items-center gap-1.5 bg-white border border-blue-200 hover:border-blue-500 rounded-lg px-3 py-1.5 text-sm shadow-sm transition-colors">
                         <span class="text-xs font-bold text-blue-600">${skill.difficulty}</span>
-                        <span class="text-sm text-gray-700">${skill.nameZh[0]}</span>
+                        <span class="text-gray-700">${skill.nameZh[0]}</span>
                     </button>
                 `;
             });
             
-            bar.appendChild(randomRow);
+            html += `
+                </div>
+            `;
             
         } else if (trackType === 'curve') {
-            // 舞蹈动作：保持原来的随机推荐
+            html += `<div class="flex gap-2 overflow-x-auto no-scrollbar">`;
             let recs = skillsData.filter(s => s.id.startsWith('1.') && s.tags && s.tags.includes('cr1'));
             recs.sort(() => 0.5 - Math.random()).slice(0, 5).forEach(skill => {
-                bar.innerHTML += `<button onclick="AppController.addToCart('${skill.id}', '${skill.nameZh[0]}')" class="flex-shrink-0 bg-white border border-blue-200 hover:border-blue-500 rounded-lg px-3 py-1.5 flex items-center gap-2 shadow-sm transition-colors"><span class="text-xs font-bold text-blue-600">${skill.difficulty}</span><span class="text-sm text-gray-700">${skill.nameZh[0]}</span></button>`;
+                html += `<button onclick="AppController.addToCart('${skill.id}', '${skill.nameZh[0]}')" class="shrink-0 w-auto inline-flex items-center gap-1.5 bg-white border border-blue-200 hover:border-blue-500 rounded-lg px-3 py-1.5 text-sm shadow-sm transition-colors"><span class="text-xs font-bold text-blue-600">${skill.difficulty}</span><span class="text-gray-700">${skill.nameZh[0]}</span></button>`;
             });
+            html += `</div>`;
         } else {
-            // 连接动作：保持原来的随机推荐
+            html += `<div class="flex gap-2 overflow-x-auto no-scrollbar">`;
             let recs = skillsData.filter(s => s.id.startsWith('2.') && ['C','D','E'].includes(s.difficulty));
             recs.sort(() => 0.5 - Math.random()).slice(0, 5).forEach(skill => {
-                bar.innerHTML += `<button onclick="AppController.addToCart('${skill.id}', '${skill.nameZh[0]}')" class="flex-shrink-0 bg-white border border-blue-200 hover:border-blue-500 rounded-lg px-3 py-1.5 flex items-center gap-2 shadow-sm transition-colors"><span class="text-xs font-bold text-blue-600">${skill.difficulty}</span><span class="text-sm text-gray-700">${skill.nameZh[0]}</span></button>`;
+                html += `<button onclick="AppController.addToCart('${skill.id}', '${skill.nameZh[0]}')" class="shrink-0 w-auto inline-flex items-center gap-1.5 bg-white border border-blue-200 hover:border-blue-500 rounded-lg px-3 py-1.5 text-sm shadow-sm transition-colors"><span class="text-xs font-bold text-blue-600">${skill.difficulty}</span><span class="text-gray-700">${skill.nameZh[0]}</span></button>`;
             });
+            html += `</div>`;
         }
+        
+        // 🌟 最后一次性赋值，渲染正确的嵌套结构
+        bar.innerHTML = html;
     },
 
     renderModalList: function(skills) {
@@ -1866,8 +1905,53 @@ const AppController = {
         const fullSkillObj = skillsData.find(s => s.id === skillId && s.nameZh[0] === skillName);
         if (!fullSkillObj) return;
 
-        this.modal.skills.push(fullSkillObj);
-        if (this.modal.skills.length > 1) this.modal.connections.push('direct');
+        // 创建动作副本并标记是否为幽灵动作
+        const skillCopy = { ...fullSkillObj };
+        if (fullSkillObj.isGhostable) {
+            skillCopy.ghost = true; // ⭐ 标记为幽灵动作（只显示不计算）
+        }
+
+        // ⚠️ 检查独立动作（前挺、侧挺、侧团、侧屈）
+        if (fullSkillObj.isStandalone) {
+            // 如果已有其他动作，警告用户
+            if (this.modal.skills.length > 0) {
+                ToastManager.show('error', '无法添加', `${fullSkillObj.nameZh[0]}只能单独做，不能与其他动作构成连接！`);
+                return;
+            } else {
+                // 如果是第一个动作，提示用户
+                ToastManager.show('info', '提示', `${fullSkillObj.nameZh[0]}只能单独做，无法构成连接！`);
+            }
+        } else {
+            // 检查当前列表中是否有独立动作
+            const hasStandaloneSkill = this.modal.skills.some(s => s.isStandalone);
+            if (hasStandaloneSkill) {
+                ToastManager.show('error', '无法添加', '当前列表已有独立动作，不能再添加其他动作！');
+                return;
+            }
+        }
+
+        this.modal.skills.push(skillCopy);
+        
+        // 如果是直接连接后添加幽灵动作，自动转为间接连接并警告
+        if (this.modal.skills.length > 1 && skillCopy.ghost) {
+            this.modal.connections.push('indirect');
+            ToastManager.show('info', '已自动调整连接方式', '幽灵动作（踺子/小翻等）不能直接连接，已转为间接连接');
+        } else if (this.modal.skills.length > 1) {
+            this.modal.connections.push('direct');
+        }
+        
+        // 同步添加 oobStatus（默认为 'none'）
+        if (!this.modal.oobStatus) {
+            this.modal.oobStatus = [];
+        }
+        this.modal.oobStatus.push('none');
+        
+        // 同步添加 oobFoot（默认为 'single'）
+        if (!this.modal.oobFoot) {
+            this.modal.oobFoot = [];
+        }
+        this.modal.oobFoot.push('single');
+        
         this.updateCartUI();
         
         // 选完动作后自动清空搜索框
@@ -1884,6 +1968,39 @@ const AppController = {
             let connIndex = Math.max(0, index - 1);
             this.modal.connections.splice(connIndex, 1);
         }
+        // 同步删除 oobStatus
+        if (this.modal.oobStatus) {
+            this.modal.oobStatus.splice(index, 1);
+        }
+        // 同步删除 oobFoot
+        if (this.modal.oobFoot) {
+            this.modal.oobFoot.splice(index, 1);
+        }
+        this.updateCartUI();
+    },
+
+    setModalOOB: function(index, oobType) {
+        // 初始化 oobStatus 数组
+        if (!this.modal.oobStatus) {
+            this.modal.oobStatus = this.modal.skills.map(() => 'none');
+        }
+        // 初始化 oobFoot 数组（记录单脚/双脚出界）
+        if (!this.modal.oobFoot) {
+            this.modal.oobFoot = this.modal.skills.map(() => 'single');
+        }
+        
+        // 解析出界类型
+        if (oobType === 'none') {
+            this.modal.oobStatus[index] = 'none';
+            this.modal.oobFoot[index] = 'single';
+        } else if (oobType.startsWith('start_')) {
+            this.modal.oobStatus[index] = 'start';
+            this.modal.oobFoot[index] = oobType.split('_')[1]; // 'single' 或 'double'
+        } else if (oobType.startsWith('end_')) {
+            this.modal.oobStatus[index] = 'end';
+            this.modal.oobFoot[index] = oobType.split('_')[1]; // 'single' 或 'double'
+        }
+        
         this.updateCartUI();
     },
 
@@ -1900,18 +2017,41 @@ const AppController = {
             cart.innerHTML = '<span class="text-gray-400 text-sm">尚未选择动作...</span>';
             return;
         }
+        
+        // 初始化 oobStatus 数组
+        if (!this.modal.oobStatus) {
+            this.modal.oobStatus = this.modal.skills.map(() => 'none');
+        }
+        
         this.modal.skills.forEach((skill, index) => {
+            // 获取当前动作的出界状态和出界脚数（用于编辑模式显示已有状态）
+            const currentOOB = this.modal.oobStatus[index] || 'none';
+            const currentOOBFoot = this.modal.oobFoot ? this.modal.oobFoot[index] : 'single';
+            
+            // 出界状态标签（包含单脚/双脚信息，仅在编辑模式显示）
+            let oobBadge = '';
+            if (currentOOB !== 'none') {
+                if (currentOOB === 'start') {
+                    const footText = currentOOBFoot === 'double' ? '双脚' : '单脚';
+                    oobBadge = `<span class="text-[10px] bg-red-100 text-red-700 px-1 rounded ml-1 border border-red-200">${footText}起跳点出界</span>`;
+                } else if (currentOOB === 'end') {
+                    const footText = currentOOBFoot === 'double' ? '双脚' : '单脚';
+                    oobBadge = `<span class="text-[10px] bg-orange-100 text-orange-700 px-1 rounded ml-1 border border-orange-200">${footText}落脚点出界</span>`;
+                }
+            }
+            
             cart.innerHTML += `
                 <div class="flex items-center gap-1 bg-white px-3 py-1.5 rounded border border-gray-200 shadow-sm shrink-0">
                     <span class="text-xs font-bold text-blue-600">${skill.difficulty}</span>
                     <span class="text-sm text-gray-700">${skill.nameZh[0]}</span>
+                    ${oobBadge}
                     <button onclick="AppController.removeFromCart(${index})" class="text-red-400 hover:text-red-600 ml-1">&times;</button>
                 </div>`;
             if (index < this.modal.skills.length - 1) {
                 let isDirect = this.modal.connections[index] === 'direct';
                 let symbol = isDirect ? '+' : '++';
                 let colorClass = isDirect ? 'bg-blue-100 text-blue-600 border-blue-200 hover:bg-blue-200' : 'bg-orange-100 text-orange-600 border-orange-200 hover:bg-orange-200';
-                cart.innerHTML += `<button onclick="AppController.toggleConnection(${index})" class="px-2 py-0.5 text-xs font-black rounded border cursor-pointer transition-colors ${colorClass}">${symbol}</button>`;
+                cart.innerHTML += `<button onclick="AppController.toggleConnection(${index})" class="px-2 py-0.5 text-xs font-black rounded border cursor-pointer transition-colors ${colorClass} mt-2">${symbol}</button>`;
             }
         });
 
@@ -1921,12 +2061,26 @@ const AppController = {
         let modalTitleText = document.getElementById('modalTitle').innerText;
         let mockType = modalTitleText.includes('技巧') ? 'line' : (modalTitleText.includes('转体') ? 'point' : 'curve');
         
+        // 将出界状态应用到每个动作
+        let mockSkills = this.modal.skills.map((skill, index) => {
+            const oobType = this.modal.oobStatus[index] || 'none';
+            return {
+                ...skill,
+                oobStatus: oobType,
+                figInvalid: oobType === 'start' // 起跳点出界则无效
+            };
+        });
+        
+        // 检查是否有起跳点出界，如果有则 figNoCV
+        let hasStartOOB = this.modal.oobStatus.some(oob => oob === 'start');
+        
         // 封存为一个临时的虚拟 Track 镜像
         let mockTrack = {
             type: mockType,
-            skills: this.modal.skills,
+            skills: mockSkills,
             connections: this.modal.connections,
-            connectionType: 'direct'
+            connectionType: 'direct',
+            figNoCV: hasStartOOB // 如果有起跳点出界，CV不认可
         };
         
         // 扔给引擎单独跑一次
@@ -1939,17 +2093,237 @@ const AppController = {
                     🔥 连击达成 CV: +${estimatedCV.toFixed(1)}
                 </div>
             `;
+        } else if (hasStartOOB) {
+            // 如果有起跳点出界，显示红色提示
+            cart.innerHTML += `
+                <div class="text-xs font-black text-red-600 bg-red-50 border-2 border-red-300 px-2.5 py-1.5 rounded-lg shadow-sm ml-auto shrink-0 flex items-center gap-1">
+                    ⚠️ 起跳点出界 CV无效
+                </div>
+            `;
         }
     },
 
     confirmModal: function() {
+        // ⚠️ 不要先调用 closeModal()！因为 closeModal 会删除空的 track
+        // 我们需要先处理数据，最后再关闭弹窗
+        
+        // 检查是否需要弹出出界设置弹窗：
+        // 1. 路线被标记为出界（用户之前选择了"确实出界了"）
+        // 2. 已有出界状态的路线需要重新确认
+        const track = canvasManager.tracks.find(t => t.id === this.modal.currentTrackId);
+        const hasExistingOOB = this.modal.oobStatus && this.modal.oobStatus.some(oob => oob !== 'none');
+        const isOOBTrack = track && track.hasOOB;
+        
+        // 先关闭动作弹窗（但不删除 track，因为 skills 可能还没保存）
+        document.getElementById('skillModal').classList.add('hidden');
+        
+        if (isOOBTrack || hasExistingOOB) {
+            // 出界路线或已有出界状态，弹出出界设置弹窗
+            this.openOOBModal();
+        } else {
+            // 正常路线且没有出界状态，直接保存
+            this.saveTrackWithoutOOB();
+        }
+    },
+    
+    // 直接保存路线（不经过出界弹窗）
+    saveTrackWithoutOOB: function() {
         const track = canvasManager.tracks.find(t => t.id === this.modal.currentTrackId);
         if (track) {
-            track.skills = [...this.modal.skills];
-            track.connections = [...this.modal.connections]; 
+            // 保存动作和连接关系
+            track.skills = this.modal.skills.map(skill => ({ ...skill }));
+            track.connections = [...this.modal.connections];
+            track.figNoCV = false;
             canvasManager.redraw();
         }
-        this.closeModal();
+        this.updateUIRoutineList();
+    },
+    
+    // 打开出界选择弹窗
+    openOOBModal: function() {
+        // 初始化出界状态（如果尚未初始化）
+        if (!this.modal.oobStatus) {
+            this.modal.oobStatus = this.modal.skills.map(() => 'none');
+        }
+        if (!this.modal.oobFoot) {
+            this.modal.oobFoot = this.modal.skills.map(() => 'single');
+        }
+        
+        document.getElementById('oobSettingsModal').classList.remove('hidden');
+        this.renderOOBModal();
+    },
+    
+    // 关闭出界选择弹窗
+    closeOOBModal: function() {
+        document.getElementById('oobSettingsModal').classList.add('hidden');
+    },
+    
+    // 渲染出界选择弹窗内容
+    renderOOBModal: function() {
+        const content = document.getElementById('oobSettingsContent');
+        let html = '';
+        
+        this.modal.skills.forEach((skill, index) => {
+            const currentOOB = this.modal.oobStatus[index] || 'none';
+            const currentOOBFoot = this.modal.oobFoot[index] || 'single';
+            
+            html += `
+                <div class="mb-4 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="font-bold text-gray-800">动作 ${index + 1}: ${skill.nameZh[0]}</span>
+                        <span class="text-xs font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded">${skill.difficulty}</span>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="AppController.setOOBForSkill(${index}, 'none')" 
+                                class="text-xs px-2 py-1 rounded transition-colors ${currentOOB === 'none' ? 'bg-gray-200 text-gray-700' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}"
+                                title="起跳点和落脚点都在界内">正常</button>
+                        <button onclick="AppController.setOOBForSkill(${index}, 'start_single')" 
+                                class="text-xs px-2 py-1 rounded transition-colors ${currentOOB === 'start' && currentOOBFoot === 'single' ? 'bg-red-200 text-red-700' : 'bg-red-50 text-red-500 hover:bg-red-100'}"
+                                title="单脚起跳点出界：不认定难度，不认CV">单脚起跳</button>
+                        <button onclick="AppController.setOOBForSkill(${index}, 'start_double')" 
+                                class="text-xs px-2 py-1 rounded transition-colors ${currentOOB === 'start' && currentOOBFoot === 'double' ? 'bg-red-300 text-red-800' : 'bg-red-50 text-red-500 hover:bg-red-100'}"
+                                title="双脚起跳点出界：不认定难度，不认CV">双脚起跳</button>
+                        <button onclick="AppController.setOOBForSkill(${index}, 'end_single')" 
+                                class="text-xs px-2 py-1 rounded transition-colors ${currentOOB === 'end' && currentOOBFoot === 'single' ? 'bg-orange-200 text-orange-700' : 'bg-orange-50 text-orange-500 hover:bg-orange-100'}"
+                                title="单脚落脚点出界：认定难度，认CV，扣0.1分">单脚落脚</button>
+                        <button onclick="AppController.setOOBForSkill(${index}, 'end_double')" 
+                                class="text-xs px-2 py-1 rounded transition-colors ${currentOOB === 'end' && currentOOBFoot === 'double' ? 'bg-orange-300 text-orange-800' : 'bg-orange-50 text-orange-500 hover:bg-orange-100'}"
+                                title="双脚落脚点出界：认定难度，认CV，扣0.3分">双脚落脚</button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        content.innerHTML = html;
+        this.updateOOBModalCV();
+    },
+    
+    // 设置单个动作的出界状态
+    setOOBForSkill: function(index, oobType) {
+        if (!this.modal.oobStatus) {
+            this.modal.oobStatus = this.modal.skills.map(() => 'none');
+        }
+        if (!this.modal.oobFoot) {
+            this.modal.oobFoot = this.modal.skills.map(() => 'single');
+        }
+        
+        if (oobType === 'none') {
+            this.modal.oobStatus[index] = 'none';
+            this.modal.oobFoot[index] = 'single';
+        } else if (oobType.startsWith('start_')) {
+            this.modal.oobStatus[index] = 'start';
+            this.modal.oobFoot[index] = oobType.split('_')[1];
+        } else if (oobType.startsWith('end_')) {
+            this.modal.oobStatus[index] = 'end';
+            this.modal.oobFoot[index] = oobType.split('_')[1];
+        }
+        
+        this.renderOOBModal();
+    },
+    
+    // 更新出界弹窗中的CV显示
+    updateOOBModalCV: function() {
+        const display = document.getElementById('oobSettingsCVDisplay');
+        
+        let modalTitleText = '技巧'; // 默认是技巧串
+        let mockType = 'line';
+        
+        // 将出界状态应用到每个动作
+        let mockSkills = this.modal.skills.map((skill, index) => {
+            const oobType = this.modal.oobStatus[index] || 'none';
+            return {
+                ...skill,
+                oobStatus: oobType,
+                figInvalid: oobType === 'start' // 起跳点出界则无效
+            };
+        });
+        
+        // 检查是否有起跳点出界，如果有则 figNoCV
+        let hasStartOOB = this.modal.oobStatus.some(oob => oob === 'start');
+        // 检查是否有独立动作（前挺、侧挺、侧团、侧屈）
+        let hasStandalone = this.modal.skills.some(s => s.isStandalone);
+        
+        // 封存为一个临时的虚拟 Track 镜像
+        let mockTrack = {
+            type: mockType,
+            skills: mockSkills,
+            connections: this.modal.connections,
+            connectionType: 'direct',
+            figNoCV: hasStartOOB || hasStandalone // 起跳点出界或有独立动作，CV不认可
+        };
+        
+        // 扔给引擎单独跑一次
+        let estimatedCV = ChoreographyEngine.calculateCV([mockTrack]);
+        
+        if (estimatedCV > 0) {
+            display.innerHTML = `
+                <div class="text-sm font-black text-green-600 bg-green-50 border-2 border-green-300 px-3 py-2 rounded-lg inline-block">
+                    🔥 连击达成 CV: +${estimatedCV.toFixed(1)}
+                </div>
+            `;
+        } else if (hasStandalone) {
+            display.innerHTML = `
+                <div class="text-sm font-black text-red-600 bg-red-50 border-2 border-red-300 px-3 py-2 rounded-lg inline-block">
+                    ⚠️ 包含独立动作（前挺/侧挺/侧团/侧屈），CV无效
+                </div>
+            `;
+        } else if (hasStartOOB) {
+            display.innerHTML = `
+                <div class="text-sm font-black text-red-600 bg-red-50 border-2 border-red-300 px-3 py-2 rounded-lg inline-block">
+                    ⚠️ 有起跳点出界，CV无效
+                </div>
+            `;
+        } else {
+            display.innerHTML = `
+                <div class="text-sm text-gray-500">
+                    当前 CV: +0.0（需要符合连接规则才能获得加分）
+                </div>
+            `;
+        }
+    },
+    
+    // 确认出界设置并保存
+    confirmOOBModal: function() {
+        const track = canvasManager.tracks.find(t => t.id === this.modal.currentTrackId);
+        if (track) {
+            // 保存动作和连接关系（深度拷贝，确保每个动作都是独立对象）
+            track.skills = this.modal.skills.map((skill, index) => {
+                const skillCopy = { ...skill };
+                const oobType = this.modal.oobStatus[index];
+                const oobFoot = this.modal.oobFoot[index];
+                
+                // 根据出界类型设置属性
+                if (oobType && oobType !== 'none') {
+                    skillCopy.oobStatus = oobType;
+                    skillCopy.oobFoot = oobFoot;
+                    if (oobType === 'start') {
+                        skillCopy.figInvalid = true; // 跳点出界：不认定难度
+                    } else if (oobType === 'end') {
+                        skillCopy.figInvalid = false; // 落脚点出界：认定难度
+                        skillCopy.hasOOB = true; // 标记有出界，用于扣分
+                    }
+                } else {
+                    skillCopy.oobStatus = null;
+                    skillCopy.figInvalid = false;
+                    skillCopy.hasOOB = false;
+                    skillCopy.oobFoot = null;
+                }
+                
+                return skillCopy;
+            });
+            track.connections = [...this.modal.connections];
+            
+            // CV判定逻辑
+            // 1. 起跳点出界 → CV无效
+            // 2. 有独立动作（前挺、侧挺、侧团、侧屈）→ CV无效
+            const hasStartOOB = this.modal.oobStatus.some(oob => oob === 'start');
+            const hasStandalone = this.modal.skills.some(s => s.isStandalone);
+            track.figNoCV = hasStartOOB || hasStandalone;
+            
+            canvasManager.redraw();
+        }
+        
+        this.closeOOBModal();
         this.updateUIRoutineList(); 
     },
 
@@ -2026,12 +2400,39 @@ const AppController = {
             // 2. 动作渲染区 (完整保留你原有的下方悬挂扣分红框逻辑)
             // ==========================================
             const skillsText = track.skills.map((s, skillIndex) => {
+                // 出界状态显示
+                let oobIndicator = '';
+                if (s.oobStatus === 'single_out') {
+                    oobIndicator = '<span class="text-[10px] bg-yellow-100 text-yellow-700 px-1 rounded ml-1 border border-yellow-200">单脚出界</span>';
+                } else if (s.oobStatus === 'double_out') {
+                    oobIndicator = '<span class="text-[10px] bg-red-100 text-red-700 px-1 rounded ml-1 border border-red-200">双脚出界</span>';
+                } else if (s.oobStatus === 'start_out') {
+                    oobIndicator = '<span class="text-[10px] bg-orange-100 text-orange-700 px-1 rounded ml-1 border border-orange-200">起点出界</span>';
+                }
+                
                 let skillHtml = `
                     <span class="group relative inline-flex items-center hover:bg-gray-200 px-1 rounded transition-colors ${isViewing ? '' : 'cursor-pointer'}">
-                        <span class="font-bold text-gray-800">${s.nameZh[0]}</span> 
-                        <span class="text-[10px] bg-gray-200 group-hover:bg-gray-300 px-1 rounded ml-1">${s.difficulty}</span>
+                        <span class="font-bold ${s.figInvalid ? 'text-gray-400 line-through' : 'text-gray-800'}">${s.nameZh[0]}</span> 
+                        <span class="text-[10px] ${s.figInvalid ? 'bg-gray-100 text-gray-400' : 'bg-gray-200 group-hover:bg-gray-300'} px-1 rounded ml-1">${s.difficulty}</span>
+                        ${oobIndicator}
                         <button onclick="event.stopPropagation(); AppController.removeSkillFromTrack('${track.id}', ${skillIndex})" class="hidden group-hover:flex absolute -top-1.5 -right-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full w-4 h-4 text-[10px] items-center justify-center shadow z-10 ${hideControls}">&times;</button>
                     </span>`;
+                
+                // 出界设置按钮
+                if (!isViewing) {
+                    skillHtml += `
+                        <div class="mt-1 flex gap-1 ${hideControls}">
+                            <button onclick="event.stopPropagation(); AppController.setSkillOOB('${track.id}', ${skillIndex}, 'single')" 
+                                    class="text-[9px] bg-yellow-50 text-yellow-600 px-1.5 py-0.5 rounded hover:bg-yellow-100 transition-colors"
+                                    title="单脚出界：当前动作无效，后续可继续，CV可认可">单脚</button>
+                            <button onclick="event.stopPropagation(); AppController.setSkillOOB('${track.id}', ${skillIndex}, 'double')" 
+                                    class="text-[9px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded hover:bg-red-100 transition-colors"
+                                    title="双脚出界：当前及后续动作无效，CV不认可">双脚</button>
+                            <button onclick="event.stopPropagation(); AppController.clearSkillOOB('${track.id}', ${skillIndex})" 
+                                    class="text-[9px] bg-gray-50 text-gray-600 px-1.5 py-0.5 rounded hover:bg-gray-100 transition-colors"
+                                    title="清除出界标记">清除</button>
+                        </div>`;
+                }
                 
                 let faultsForThisSkill = (track.manualDeductions || []).filter(f => f.skillIdx === skillIndex);
                 
@@ -2105,6 +2506,57 @@ const AppController = {
             if (track.skills.length === 0) this.deleteTrack(trackId);
             else { canvasManager.redraw(); this.updateUIRoutineList(); }
         }
+    },
+
+    // ==========================================
+    // ✨ 动作级别出界判定
+    // ==========================================
+    setSkillOOB: function(trackId, skillIndex, oobType) {
+        const track = canvasManager.tracks.find(t => t.id === trackId);
+        if (!track) return;
+        
+        const oobStatus = oobType === 'single' ? 'single_out' : 'double_out';
+        
+        // 使用 ChoreographyEngine 的出界判定逻辑
+        if (typeof ChoreographyEngine !== 'undefined') {
+            ChoreographyEngine.setSkillOOB(track, skillIndex, oobStatus);
+        } else {
+            // 备用逻辑
+            const skill = track.skills[skillIndex];
+            skill.oobStatus = oobStatus;
+            
+            if (oobStatus === 'double_out') {
+                for (let i = skillIndex; i < track.skills.length; i++) {
+                    track.skills[i].oobStatus = 'double_out';
+                    track.skills[i].figInvalid = true;
+                }
+                track.figNoCV = true;
+            } else {
+                skill.figInvalid = true;
+            }
+        }
+        
+        this.updateUIRoutineList();
+    },
+    
+    clearSkillOOB: function(trackId, skillIndex) {
+        const track = canvasManager.tracks.find(t => t.id === trackId);
+        if (!track) return;
+        
+        // 清除单个动作的出界状态
+        const skill = track.skills[skillIndex];
+        if (skill) {
+            skill.oobStatus = null;
+            skill.figInvalid = false;
+        }
+        
+        // 检查是否还需要保持 figNoCV
+        const hasDoubleOut = track.skills.some(s => s.oobStatus === 'double_out');
+        if (!hasDoubleOut) {
+            track.figNoCV = false;
+        }
+        
+        this.updateUIRoutineList();
     },
 
     runScoringEngine: function() {
@@ -3337,9 +3789,15 @@ const AppController = {
         document.getElementById('oobModal').classList.add('hidden');
         if (!track) return;
 
-        if (choice === 'single') track.nd = -0.1;
-        else if (choice === 'double') track.nd = -0.3;
-        else if (choice === 'snap') {
+        if (choice === 'oob') {
+            // 标记这条线出界，等待用户为每个动作设置具体出界类型
+            track.hasOOB = true;
+            track.nd = 0; // 出界扣分现在按动作单独计算
+        } else if (choice === 'single') {
+            track.nd = -0.1;
+        } else if (choice === 'double') {
+            track.nd = -0.3;
+        } else if (choice === 'snap') {
             const marginX = canvasManager.canvas.width / 14 + 1;
             const marginY = canvasManager.canvas.height / 14 + 1;
             track.points = track.points.map(p => ({

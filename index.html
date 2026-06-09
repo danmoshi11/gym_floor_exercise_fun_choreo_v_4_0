@@ -217,9 +217,9 @@
         <div class="relative z-20 max-w-lg w-full mx-6 p-10 md:p-14 rounded-[2.5rem] bg-white/0 border border-white/20 shadow-2xl text-white text-center backdrop-blur-none">
             
             <div onclick="document.getElementById('changelogModal').classList.remove('hidden')" 
-                 class="absolute -top-8 -right-8 w-28 h-28 bg-gradient-to-tr from-pink-500 via-rose-500 to-amber-400 starburst-badge flex items-center justify-center cursor-pointer shadow-2xl animate-heartbeat z-50 opacity-80 hover:opacity-100 transition-opacity">
+                 class="absolute -top-8 -right-8 w-28 h-28 bg-gradient-to-tr from-pink-400 via-pink-500 to-rose-500 starburst-badge flex items-center justify-center cursor-pointer shadow-2xl animate-heartbeat z-50 opacity-80 hover:opacity-100 transition-opacity">
                 <div class="text-center transform -rotate-12 mt-1">
-                    <div class="text-white font-black text-base leading-none drop-shadow-md">V 3.0</div>
+                    <div class="text-white font-black text-base leading-none drop-shadow-md">V 4.0</div>
                     <div class="text-yellow-100 font-bold text-xs leading-tight mt-0.5">更新日志</div>
                 </div>
             </div>
@@ -363,6 +363,7 @@
                     <div class="flex items-center gap-1 overflow-x-auto no-scrollbar w-full">
                         <button onclick="setTool('line')" id="tool-line" class="px-4 py-2 rounded-lg text-sm font-bold bg-blue-600 text-white shadow-sm transition-all shrink-0">📏 技巧</button>
                         <button onclick="setTool('curve')" id="tool-curve" class="px-4 py-2 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-100 transition-all shrink-0">〰️ 跳步</button>
+                        <button onclick="setTool('support')" id="tool-support" class="px-4 py-2 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-100 transition-all shrink-0">🤸 支撑</button>
                         <button onclick="setTool('point')" id="tool-point" class="px-4 py-2 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-100 transition-all shrink-0">📍 转体</button>
                         <button onclick="setTool('move')" id="tool-move" class="px-4 py-2 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-100 transition-all shrink-0">🤚 拖拽</button>
                         <div class="w-px h-5 bg-slate-300 mx-1 shrink-0"></div>
@@ -953,14 +954,31 @@
                 <button onclick="closeModal()" class="text-slate-400 hover:text-red-500 text-2xl font-bold transition-colors">&times;</button>
             </div>
             <div class="p-3 bg-white border-b border-slate-100 z-10 shadow-sm">
-                <div id="recommendationBar" class="flex gap-2 overflow-x-auto no-scrollbar pb-2 mb-2"></div>
+                <div id="recommendationBar" class="flex flex-col gap-2 pb-2 mb-2"></div>
                 <div id="modalDiffFilterBar" class="flex gap-1.5 overflow-x-auto no-scrollbar pb-2 mb-2"></div>
                 <input type="text" id="modalSearch" placeholder="搜索动作名称..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-100 outline-none transition-all">
             </div>
-            <div id="modalSkillList" class="flex-1 overflow-y-auto p-4 grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50"></div>
+            <div id="modalSkillList" class="flex-1 overflow-y-auto p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 bg-slate-50"></div>
             <div class="p-4 border-t border-slate-200 bg-white">
                 <div id="modalCurrentQueue" class="flex items-center gap-2 overflow-x-auto min-h-[30px] mb-4"></div>
                 <button id="modalConfirmBtn" onclick="confirmModalSelection()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition-colors shadow-md">写入画板</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 出界状态设置弹窗（选完动作后显示） -->
+    <div id="oobSettingsModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[270] flex items-center justify-center hidden transition-opacity">
+        <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-200">
+            <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 id="oobSettingsModalTitle" class="text-xl font-black text-slate-800">🏃 设置出界状态</h3>
+                <button onclick="AppController.closeOOBModal()" class="text-slate-400 hover:text-red-500 text-2xl font-bold transition-colors">&times;</button>
+            </div>
+            <div class="p-4 overflow-y-auto" id="oobSettingsContent">
+                <!-- 动态内容 -->
+            </div>
+            <div class="p-4 border-t border-slate-100 bg-white">
+                <div id="oobSettingsCVDisplay" class="text-center mb-3"></div>
+                <button id="oobSettingsConfirmBtn" onclick="AppController.confirmOOBModal()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-colors shadow-md">确认出界设置</button>
             </div>
         </div>
     </div>
@@ -1123,10 +1141,9 @@
     <div id="oobModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[260] flex items-center justify-center hidden">
         <div class="bg-white p-6 rounded-3xl shadow-2xl max-w-sm w-full border-t-8 border-red-500">
             <h2 class="text-xl font-black text-slate-800 mb-2">⚠️ 检测到路线出界</h2>
-            <p class="text-slate-500 text-sm mb-6">刚刚绘制的动作路线超出了有效比赛区域。本串属于什么情况？</p>
+            <p class="text-slate-500 text-sm mb-6">刚刚绘制的动作路线超出了有效比赛区域。</p>
             <div class="space-y-3">
-                <button onclick="handleOOBChoice('single')" class="w-full bg-red-50 text-red-700 font-bold py-3 rounded-xl hover:bg-red-100 flex justify-between px-4 transition-colors"><span>单脚出界</span> <span>ND -0.1</span></button>
-                <button onclick="handleOOBChoice('double')" class="w-full bg-red-100 text-red-800 font-bold py-3 rounded-xl hover:bg-red-200 flex justify-between px-4 transition-colors"><span>双脚/身体出界</span> <span>ND -0.3</span></button>
+                <button onclick="handleOOBChoice('oob')" class="w-full bg-red-50 text-red-700 font-bold py-3 rounded-xl hover:bg-red-100 flex justify-between px-4 transition-colors"><span>确实出界了</span> <span>后续可逐动作设置</span></button>
                 <button onclick="handleOOBChoice('snap')" class="w-full bg-slate-100 text-slate-700 font-bold py-3 rounded-xl hover:bg-slate-200 text-left px-4 transition-colors">只是手抖画歪了 (撤销出界)</button>
             </div>
         </div>
@@ -1148,12 +1165,41 @@
         <div class="p-6 overflow-y-auto no-scrollbar relative bg-slate-50/50">
             <div class="absolute left-9 top-6 bottom-6 w-0.5 bg-slate-200"></div>
             
-                <div class="relative pl-10 mb-8">
+            <div class="relative pl-10 mb-8">
                     <div class="absolute left-[2.5px] top-1.5 w-3 h-3 bg-indigo-600 rounded-full ring-4 ring-indigo-50"></div>
                     <div class="flex items-baseline gap-2">
-                        <span class="font-extrabold text-slate-900 text-base">Version 3.2.0</span>
+                        <span class="font-extrabold text-slate-900 text-base">Version 4.0.0</span>
                         <span class="text-[10px] font-bold bg-green-50 text-green-600 px-1.5 py-0.5 rounded border border-green-200">当前版本</span>
                     </div>
+                    <div class="text-xs text-slate-400 mb-2 font-medium">裁判打分与视频审核系统全面升级</div>
+                    <ul class="text-xs text-slate-600 space-y-1 list-disc pl-4 font-normal">
+                        <li><span class="text-indigo-600 font-bold">裁判打分与 E分系统全面升级</span></li>
+                        <li class="pl-4">- E分历史记录弹窗 (showEScoreHistoryModal)，支持查看当前成套历史打过的所有 E分记录</li>
+                        <li class="pl-4">- 支持对 E分记录进行重命名 (renameEScoreRecord)，方便用户/裁判进行备注和区分</li>
+                        <li class="pl-4">- 扣分详情查看面板 (viewEScoreDetails)，直观展示最终E分、每一项的扣分明细以及摔倒统计</li>
+                        <li class="pl-4">- 打印 E分扣分清单功能 (printEScoreDetails)，一键生成美观的 HTML 报表以供连接打印机输出</li>
+                        <li class="pl-4">- 全局艺术与编排总评面板 (showArtistryPanel)，在路线演示结束后全屏弹出</li>
+                        <li class="pl-4">- 引入扣分上限机制，每个动作最多只能扣 0.8 分，拖拽扣分卡片超出时会自动截断</li>
+                        <li class="pl-4">- 进入手动裁判打分模式时自动禁用"完成编排并亮相"按钮，防止流程冲突</li>
+                        <li><span class="text-indigo-600 font-bold">工作台与草稿纸管理优化</span></li>
+                        <li class="pl-4">- 新建草稿纸时弹出选项面板 (showNewRoutineOptions)，支持选择"新建空白成套"或"从历史记录导入"</li>
+                        <li class="pl-4">- 完善历史记录导入逻辑 (restoreGlobalState)，完美恢复成套的全部上下文</li>
+                        <li><span class="text-indigo-600 font-bold">视频审核后台系统上线</span></li>
+                        <li class="pl-4">- admin.html 页面，为运营/管理员提供专属的视频审核控制台</li>
+                        <li class="pl-4">- server.py，为视频审核后台提供基于 Python 的轻量级后端 API</li>
+                        <li><span class="text-indigo-600 font-bold">数据库 (Supabase) 升级与修复</span></li>
+                        <li class="pl-4">- 动作视频表 SQL (skill_videos.sql)，支持绑定具体动作 ID 与双槽位视频映射</li>
+                        <li class="pl-4">- 动作评论表 SQL (skill_comments.sql)，为后续社交互动功能铺垫</li>
+                        <li class="pl-4">- 修复初始化时 RLS Policy 重复创建导致报错的历史遗留问题</li>
+                        <li><span class="text-indigo-600 font-bold">其他细节与修复</span></li>
+                        <li class="pl-4">- 重构观赏模式下的点火逻辑，支持音乐对齐案底检测与多媒体卡点系统</li>
+                        <li class="pl-4">- ToastManager 加入了对金币掉落(coin)状态的专属 UI 适配</li>
+                    </ul>
+                </div>
+
+                <div class="relative pl-10 mb-8">
+                    <div class="absolute left-[2.5px] top-1.5 w-3 h-3 bg-indigo-500 rounded-full ring-4 ring-indigo-50"></div>
+                    <div class="font-extrabold text-slate-800 text-base">Version 3.2.0</div>
                     <div class="text-xs text-slate-400 mb-2 font-medium">云端生态与安全校验模块</div>
                     <ul class="text-xs text-slate-600 space-y-1 list-disc pl-4 font-normal">
                         <li>接入 Supabase 数据库，实现全球成套排行与勋章冲榜系统</li>

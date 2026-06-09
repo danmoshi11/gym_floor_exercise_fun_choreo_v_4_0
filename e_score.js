@@ -184,19 +184,36 @@ const ExecutionEngine = {
         // ==================================================
         // 核心玄学 B：计算最终摔倒概率 (保留了你修改的数值)
         // ==================================================
-        let fallProbability = 0.05; 
-        if (currentBrand === 'taishan') fallProbability += 0.03; 
-        if (tags.includes('fall')) fallProbability += 0.05; 
-        if (tags.includes('stable')) fallProbability = Math.max(0.01, fallProbability - 0.03); 
+        
+        // 技巧串摔倒概率（受场地因素影响）
+        let lineFallProbability = 0.05; 
+        if (currentBrand === 'taishan') lineFallProbability += 0.03; 
+        if (tags.includes('fall')) lineFallProbability += 0.05; 
+        if (tags.includes('stable')) lineFallProbability = Math.max(0.01, lineFallProbability - 0.03); 
 
         // 【新增】超负荷摔倒惩罚：如果难度超了常用难度 0.4 以上，额外增加 5% 摔倒率！
         if (deltaD > 0.4) {
-            fallProbability += 0.05; 
+            lineFallProbability += 0.05; 
         }
 
+        // 跳步和舞蹈摔倒概率（不受场地因素影响，只受选手属性影响，基础概率 3%）
+        let nonLineFallProbability = 0.03;
+        if (tags.includes('fall')) nonLineFallProbability += 0.05;
+        if (tags.includes('stable')) nonLineFallProbability = Math.max(0.005, nonLineFallProbability - 0.02);
+
         tracks.forEach(track => {
-            if (track.type === 'line' && track.skills && track.skills.length > 0) {
-                if (Math.random() < fallProbability) {
+            if (track.skills && track.skills.length > 0) {
+                let currentFallProbability = 0;
+                
+                if (track.type === 'line') {
+                    // 技巧串：使用完整的摔倒概率
+                    currentFallProbability = lineFallProbability;
+                } else if (track.type === 'point' || track.type === 'curve') {
+                    // 跳步和舞蹈：使用较低的摔倒概率，不受场地因素影响
+                    currentFallProbability = nonLineFallProbability;
+                }
+                
+                if (currentFallProbability > 0 && Math.random() < currentFallProbability) {
                     report.fallCount++;
                     report.fallDeduction += 1.0; 
                     report.fallTrackIds.push(track.id); 

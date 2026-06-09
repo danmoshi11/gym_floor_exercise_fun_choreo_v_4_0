@@ -216,7 +216,8 @@ const canvasManager = {
         this.tempPath = [pos];
         this.dragDist = 0; 
 
-        if (this.currentTool === 'point') {
+        // 支撑工具和转体工具一样，都是点击创建点
+        if (this.currentTool === 'point' || this.currentTool === 'support') {
             this.isDrawing = false;
             let hit = this.findHitTrack(pos);
             if (hit) {
@@ -321,7 +322,8 @@ const canvasManager = {
 
     finishPath: function() {
         if (this.tempPath.length < 1) return;
-        if (this.currentTool !== 'point' && this.tempPath.length < 2) {
+        // 支撑工具和转体工具一样，只需要一个点就能创建轨迹
+        if (this.currentTool !== 'point' && this.currentTool !== 'support' && this.tempPath.length < 2) {
             this.tempPath = [];
             this.redraw();
             return;
@@ -1115,8 +1117,8 @@ window.addEventListener('DOMContentLoaded', () => setTimeout(() => canvasManager
 
 window.setTool = function(tool) {
     canvasManager.setTool(tool);
-    // 【修改点】在这里把 'move' 也注册进去，才能响应按钮的高亮激活状态
-    ['line', 'curve', 'point', 'transit', 'move'].forEach(t => {
+    // 【修改点】在这里把 'move' 和 'support' 也注册进去，才能响应按钮的高亮激活状态
+    ['line', 'curve', 'support', 'point', 'transit', 'move'].forEach(t => {
         const btn = document.getElementById(`tool-${t}`);
         if(btn) btn.className = (t === tool) ? 
             "px-4 py-2 rounded-lg text-sm font-bold bg-blue-500 text-white shadow transition-colors" : 

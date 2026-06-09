@@ -840,7 +840,8 @@ const group3_hand_supports = {
             nameEn: "Handspring fwd, take-off from one leg or Flyspring fwd, take-off from both legs - with or without hecht phase before hand support - landing optional",
             nameZh: ["前手翻", "手撑前无鱼跃阶段单脚起跳前手翻，落下成任意姿势", "手撑有无鱼跃阶段单脚起跳前手翻，落下成任意姿势", "手撑前有鱼跃阶段双脚起跳前手翻，落下成任意姿势", "手撑前有鱼跃阶段双脚起跳前手翻，落下成任意姿势"],
             image: "./cards/cardimages/group03/3_105.png",
-            tags: []
+            tags: [],
+            isGhostable: true  // ⭐ 可作为幽灵动作（技巧串中只显示不计算）
         },
         {
             id: "3.105b",
@@ -870,9 +871,10 @@ const group3_hand_supports = {
             difficulty: "A",
             value: "0.10",
             nameEn: "Round-off",
-            nameZh: ["踺子"],
+            nameZh: ["踺子","毽子"],
             image: "./cards/cardimages/group03/3_106.png",
-            tags: []
+            tags: [],
+            isGhostable: true  // ⭐ 可作为幽灵动作（技巧串中只显示不计算）
         }
     ],
 
@@ -885,7 +887,8 @@ const group3_hand_supports = {
             nameEn: "All flic-flac and gainer flic-flac variations, also with support of one arm",
             nameZh: ["小翻","后手翻", "单臂后手翻", "踢腿后手翻", "单臂踢腿后手翻"],
             image: "./cards/cardimages/group03/3_107.png",
-            tags: []
+            tags: [],
+            isGhostable: true  // ⭐ 可作为幽灵动作（技巧串中只显示不计算）
         },
         {
             id: "3.107b",
@@ -1113,7 +1116,8 @@ const group4_fwd_saltos = {
             nameEn: "Free (aerial) walkover fwd",
             nameZh: ["前挺", "挺身前空翻"],
             image: "./cards/cardimages/group04/4_103.png",
-            tags: []
+            tags: [],
+            isStandalone: true // ⭐ 只能单独做，不能和其他动作构成连接
         },
         {
             id: "4.104",
@@ -1122,7 +1126,8 @@ const group4_fwd_saltos = {
             nameEn: "Free (aerial) cartwheel or free (aerial) round-off",
             nameZh: ["侧挺", "挺身侧空翻", "无手撑的踺子"],
             image: "./cards/cardimages/group04/4_104.png",
-            tags: []
+            tags: [],
+            isStandalone: true // ⭐ 只能单独做，不能和其他动作构成连接
         }
     ],
 
@@ -1135,7 +1140,8 @@ const group4_fwd_saltos = {
             nameEn: "Salto swd tucked",
             nameZh: ["侧团", "单脚/双脚起跳的团身侧空翻"],
             image: "./cards/cardimages/group04/4_105_tuck.png",
-            tags: [] 
+            tags: [],
+            isStandalone: true // ⭐ 只能单独做，不能和其他动作构成连接
         },
         {
             id: "4.105-pike",
@@ -1144,7 +1150,8 @@ const group4_fwd_saltos = {
             nameEn: "Salto swd piked",
             nameZh: ["侧屈", "单脚/双脚起跳的屈体侧空翻"],
             image: "./cards/cardimages/group04/4_105_tuck.png",
-            tags: [] 
+            tags: [],
+            isStandalone: true // ⭐ 只能单独做，不能和其他动作构成连接
         },
         {
             id: "4.205-tuck",

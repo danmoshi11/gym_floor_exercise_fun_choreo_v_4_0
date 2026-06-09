@@ -15,7 +15,7 @@ const Config = {
         'woshineimuer': { coins: 99999, description: '无限金币密码' },
         'woyaojinbi': { coins: 10000, description: 'VIP专属礼包' },
         'woshivip': { coins: 5000, description: '体操大师' },
-        '66666': { coins: 66666, description: '临时应付一下8' }
+        '66666': { coins: 6666, description: '先将就用一下8' }
     },
     
     // 文件大小限制配置
@@ -114,5 +114,31 @@ const Config = {
         ],
         // 导演时间轴 - 调整顺序：先显示gallery图片，给视频缓冲多一点时间
         sequence: ['video', 'video', 'video', 'gallery', 'gallery', 'gallery', 'classic', 'classic', 'classic']
+    },
+
+    // ==========================================
+    // 🎴 动作卡片媒体路径配置
+    // ==========================================
+    skillMedia: {
+        // 图片基础路径
+        imageBasePath: './cards/cardimages/',
+        
+        // 视频基础路径（如果有动作演示视频）
+        videoBasePath: './cards/videos/',
+        
+        // 图片文件格式
+        imageFormat: '.png',
+        
+        // 视频文件格式
+        videoFormat: '.mp4',
+        
+        // 各组图片路径映射
+        groupPaths: {
+            '1': 'group01/',  // 第1组：体操跳步
+            '2': 'group02/',  // 第2组：转体
+            '3': 'group03/',  // 第3组：技巧
+            '4': 'group04/',  // 第4组：技巧
+            '5': 'group05/'   // 第5组：技巧
+        }
     }
 };

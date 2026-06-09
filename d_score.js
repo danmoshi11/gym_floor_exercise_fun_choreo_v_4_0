@@ -12,8 +12,11 @@ const ChoreographyEngine = {
             
             const dJuryDemands = (track.manualDeductions || []).filter(d => d.isDScore);
             // 提取各种 D裁 封锁状态
+            // 注意：figNoCV 可能已经被出界判定设置为 true，需要保留
+            const existingFigNoCV = track.figNoCV; // 保存出界判定设置的值
             track.figNoDV = dJuryDemands.some(d => d.rawAction?.no_dv);
-            track.figNoCV = dJuryDemands.some(d => d.rawAction?.no_cv);
+            // 只有当 D裁 明确设置 no_cv 或出界判定已设置 figNoCV 时，才为 true
+            track.figNoCV = existingFigNoCV || dJuryDemands.some(d => d.rawAction?.no_cv);
             track.figNoCR = dJuryDemands.some(d => d.rawAction?.no_cr);
             track.figNoDMT = dJuryDemands.some(d => d.rawAction?.no_dismount_bonus);
             track.figDowngradeCount = dJuryDemands.filter(d => d.rawAction?.downgrade_to_other).length;
@@ -56,19 +59,21 @@ const ChoreographyEngine = {
             if (isAcroLine) {
                 acroLinesCount++;
                 
-                // ⚠️ 新增：检查技巧串起始点是否出界
+                // ⚠️ 检查技巧串起始点是否出界（整个串无效）
                 if (track.points && track.points.length > 0) {
                     const startPoint = track.points[0];
-                    // 边界判定：距离边缘小于 1/14 画布尺寸视为出界
-                    const marginX = 600 / 14; // 标准画布宽度的边界
-                    const marginY = 400 / 14; // 标准画布高度的边界
+                    const marginX = 600 / 14;
+                    const marginY = 400 / 14;
                     const isOutOfBounds = startPoint.x < marginX || startPoint.x > 600 - marginX || 
                                          startPoint.y < marginY || startPoint.y > 400 - marginY;
                     
                     if (isOutOfBounds) {
                         report.warnings.push(`⛔ 第 ${acroLinesCount} 串技巧起始点出界，该串所有动作不计入难度！`);
-                        track.skills.forEach(s => s.figInvalid = true);
-                        return; // 跳过这条出界的技巧串
+                        track.skills.forEach(s => {
+                            s.figInvalid = true;
+                            s.oobStatus = 'start_out'; // 起始点出界
+                        });
+                        return;
                     }
                 }
                 
@@ -77,12 +82,14 @@ const ChoreographyEngine = {
             }
 
             track.skills.forEach(skill => {
-                if (skill.figInvalid || track.figNoCR) return;
+                // ⭐ 跳过幽灵动作（3.105、3.106、3.107），它们只显示不参与难度计算
+                if (skill.figInvalid || track.figNoCR || skill.ghost) return;
                 let isDance = skill.id.startsWith('1.') || skill.id.startsWith('2.');
                 let isTuckTurn = skill.nameZh.join().includes("蹲转");
                 let canCountDV = true;
 
                 if (isAcroLine && acroLinesCount > 4) canCountDV = false;
+                // ⭐ 幽灵动作不计入重复检测，所以检查重复前先排除幽灵动作
                 if (seenIds.has(skill.id)) {
                     canCountDV = false;
                     report.warnings.push(`⚠️ 动作 [${skill.nameZh[0]}] 重复，只计入第一次 DV。`);
@@ -215,18 +222,50 @@ const ChoreographyEngine = {
             
             let trackCv = 0; // ✨【核心新增】：设立单串 CV 计数器
             
-            if (track.skills.length >= 2) {
-                // 遍历每个技巧串里相邻的两个动作间隙
-                for (let i = 0; i < track.skills.length - 1; i++) {
-                    let s1 = track.skills[i];
-                    let s2 = track.skills[i+1];
+            // ⭐ 过滤掉幽灵动作（3.105、3.106、3.107），它们只显示不参与CV计算
+            // 同时保留连接关系，用于正确判断间接连接
+            const validSkills = [];
+            const validConnections = [];
+            
+            track.skills.forEach((skill, index) => {
+                if (!skill.ghost) {
+                    validSkills.push(skill);
+                    // 保留当前动作与下一个非幽灵动作之间的连接类型
+                    if (index < track.skills.length - 1) {
+                        // 找到下一个非幽灵动作
+                        let nextNonGhostIndex = index + 1;
+                        while (nextNonGhostIndex < track.skills.length && 
+                               track.skills[nextNonGhostIndex].ghost) {
+                            nextNonGhostIndex++;
+                        }
+                        // 如果找到了下一个非幽灵动作，记录连接类型（取第一个连接符）
+                        if (nextNonGhostIndex < track.skills.length) {
+                            let connIndex = index;
+                            // 如果当前是幽灵动作之后，找到第一个非幽灵动作的连接
+                            while (connIndex < track.skills.length - 1 && 
+                                   track.skills[connIndex].ghost) {
+                                connIndex++;
+                            }
+                            if (connIndex < track.skills.length - 1) {
+                                validConnections.push(track.connections[connIndex] || 'direct');
+                            }
+                        }
+                    }
+                }
+            });
+            
+            if (validSkills.length >= 2) {
+                // 遍历每个技巧串里相邻的两个动作间隙（跳过幽灵动作）
+                for (let i = 0; i < validSkills.length - 1; i++) {
+                    let s1 = validSkills[i];
+                    let s2 = validSkills[i+1];
                     let v1 = getVal(s1.difficulty);
                     let v2 = getVal(s2.difficulty);
                     
                     // 读取当前颗粒度连接符 (如果没选则默认 direct)
                     let currentConnectType = 'direct';
-                    if (track.connections && track.connections[i]) {
-                        currentConnectType = track.connections[i];
+                    if (validConnections[i]) {
+                        currentConnectType = validConnections[i];
                     } else if (track.connectionType) {
                         currentConnectType = track.connectionType;
                     }
@@ -269,9 +308,9 @@ const ChoreographyEngine = {
                                 let matched3Skill = false;
                                 
                                 if (i >= 1) {
-                                    let s0 = track.skills[i-1];
+                                    let s0 = validSkills[i-1];
                                     let type0 = s0.id.startsWith('2.') ? 'turn' : (s0.id.startsWith('1.') ? 'dance' : 'acro');
-                                    let prevConnectType = (track.connections && track.connections[i-1]) ? track.connections[i-1] : (track.connectionType || 'direct');
+                                    let prevConnectType = validConnections[i-1] || (track.connectionType || 'direct');
                                     
                                     if (type0 === 'acro' && prevConnectType === 'direct') {
                                         let v0 = getVal(s0.difficulty);
@@ -322,5 +361,65 @@ const ChoreographyEngine = {
             cvScore += track.cvValue;
         });
         return parseFloat(cvScore.toFixed(2));
+    },
+
+    // ==========================================
+    // ✨ 动作级别出界判定系统
+    // ==========================================
+    // oobStatus 取值:
+    //   null/undefined: 正常
+    //   'start_out': 起始点出界（整个串无效）
+    //   'single_out': 单脚出界（当前动作无效，后续可继续）
+    //   'double_out': 双脚出界（当前及后续动作无效）
+    
+    // 设置单个动作的出界状态
+    setSkillOOB: function(track, skillIndex, oobType) {
+        if (!track.skills || track.skills.length <= skillIndex) return;
+        
+        const skill = track.skills[skillIndex];
+        skill.oobStatus = oobType;
+        
+        // 根据出界类型设置影响范围
+        if (oobType === 'double_out') {
+            // 双脚出界：当前及后续所有动作无效
+            for (let i = skillIndex; i < track.skills.length; i++) {
+                track.skills[i].oobStatus = 'double_out';
+                track.skills[i].figInvalid = true;
+            }
+            // 双脚出界时 CV 不认可
+            track.figNoCV = true;
+        } else if (oobType === 'single_out') {
+            // 单脚出界：仅当前动作无效，后续可继续
+            skill.figInvalid = true;
+            // 单脚出界时 CV 仍可认可
+        }
+    },
+    
+    // 获取动作是否有效（考虑出界状态）
+    isSkillValid: function(skill) {
+        if (!skill) return false;
+        if (skill.figInvalid) return false;
+        if (skill.oobStatus === 'start_out' || 
+            skill.oobStatus === 'double_out' ||
+            skill.oobStatus === 'single_out') {
+            return false;
+        }
+        return true;
+    },
+    
+    // 检查技巧串的CV是否有效（考虑出界情况）
+    isCVValid: function(track) {
+        if (track.figNoCV) return false;
+        if (!track.skills || track.skills.length < 2) return true;
+        
+        // 检查是否有双脚出界的情况
+        const hasDoubleOut = track.skills.some(s => s.oobStatus === 'double_out');
+        if (hasDoubleOut) return false;
+        
+        // 检查是否有起始点出界
+        const hasStartOut = track.skills.some(s => s.oobStatus === 'start_out');
+        if (hasStartOut) return false;
+        
+        return true;
     }
 };
