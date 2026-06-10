@@ -62,10 +62,12 @@ const ChoreographyEngine = {
                 // ⚠️ 检查技巧串起始点是否出界（整个串无效）
                 if (track.points && track.points.length > 0) {
                     const startPoint = track.points[0];
-                    const marginX = 600 / 14;
-                    const marginY = 400 / 14;
-                    const isOutOfBounds = startPoint.x < marginX || startPoint.x > 600 - marginX || 
-                                         startPoint.y < marginY || startPoint.y > 400 - marginY;
+                    // 使用实际画布尺寸计算边界，避免硬编码导致的判定不一致
+                    const canvas = typeof canvasManager !== 'undefined' && canvasManager.canvas ? canvasManager.canvas : { width: 600, height: 400 };
+                    const marginX = canvas.width / 14;
+                    const marginY = canvas.height / 14;
+                    const isOutOfBounds = startPoint.x < marginX || startPoint.x > canvas.width - marginX || 
+                                         startPoint.y < marginY || startPoint.y > canvas.height - marginY;
                     
                     if (isOutOfBounds) {
                         report.warnings.push(`⛔ 第 ${acroLinesCount} 串技巧起始点出界，该串所有动作不计入难度！`);

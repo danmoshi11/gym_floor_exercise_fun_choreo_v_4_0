@@ -1160,7 +1160,12 @@ const group4_fwd_saltos = {
             nameEn: "Arabian salto tucked",
             nameZh: ["阿团", "阿拉伯前团", "阿拉伯团身前空翻"],
             image: "./cards/cardimages/group04/4_205_tuck.png",
-            tags: ["fwd"] 
+            tags: ["fwd"],
+            video: {
+                src: "./cards/cardvideos/4_205_tuck_Amalia_Ghigoarta_ROU.mp4",
+                athlete: "Amalia Ghigoarta",
+                country: "ROU"
+            }
         },
         {
             id: "4.205-pike",
@@ -1467,7 +1472,7 @@ const group5_bwd_saltos = {
             image: "./cards/cardimages/group05/5_603.png",
             video: {
                 src: "./cards/cardvideos/5_603_Anna_Ppavlova_RUS.mp4",
-                athlete: "Anna Ppavlova",
+                athlete: "Anna Pavlova",
                 country: "RUS"
             },
             tags: ["bwd", "cr3"]

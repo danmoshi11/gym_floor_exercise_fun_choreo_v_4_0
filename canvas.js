@@ -293,6 +293,14 @@ const canvasManager = {
             const marginY = this.canvas.height / 14; 
             let isOOB = this.draggingTrack.points.some(p => p.x < marginX || p.x > this.canvas.width - marginX || p.y < marginY || p.y > this.canvas.height - marginY);
             
+            // 🐛 调试日志：打印拖拽后的出界检测详情
+            console.log('🔄 [拖拽OOB检测] 拖拽结束后检测');
+            console.log('   - track ID:', this.draggingTrack.id);
+            console.log('   - 边界阈值 marginX:', marginX, ', marginY:', marginY);
+            console.log('   - 路径点:', JSON.stringify(this.draggingTrack.points));
+            console.log('   - isOOB:', isOOB);
+            console.log('   - 当前 nd 值:', this.draggingTrack.nd);
+            
             if (isOOB && this.draggingTrack.type !== 'transit') {
                 window.pendingOOBTrack = this.draggingTrack;
                 document.getElementById('oobModal').classList.remove('hidden');
@@ -342,6 +350,17 @@ const canvasManager = {
         const marginX = this.canvas.width / 14; 
         const marginY = this.canvas.height / 14; 
         let isOOB = this.tempPath.some(p => p.x < marginX || p.x > this.canvas.width - marginX || p.y < marginY || p.y > this.canvas.height - marginY);
+
+        // 🐛 调试日志：打印出界检测详情
+        if (isOOB) {
+            console.log('🔴 [OOB检测] 新画线条被判定出界！');
+            console.log('   - 画布尺寸:', this.canvas.width + 'x' + this.canvas.height);
+            console.log('   - 边界阈值 marginX:', marginX, ', marginY:', marginY);
+            console.log('   - 路径点:', JSON.stringify(this.tempPath));
+            console.log('   - 出界的点:', this.tempPath.filter(p => p.x < marginX || p.x > this.canvas.width - marginX || p.y < marginY || p.y > this.canvas.height - marginY));
+        } else {
+            console.log('🟢 [OOB检测] 新画线条在界内');
+        }
 
         let trackColor = this.currentTool === 'transit' ? '#9ca3af' : this.morandiColors[this.tracks.length % this.morandiColors.length];
         

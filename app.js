@@ -1101,13 +1101,8 @@ const AppController = {
             if (slotVideo) {
                 videoContentHtml += `
                     <div id="videoTabContent_${skill.id}_${i}" class="${isActive ? '' : 'hidden'}">
-                        <div class="bg-gray-900 rounded-lg overflow-hidden relative group" id="videoContainer_${skill.id}_${i}">
-                            <div class="aspect-video flex items-center justify-center" id="videoPlaceholder_${skill.id}_${i}">
-                                <button onclick="AppController.loadVideoSlot('${skill.id}', ${i}, '${slotVideo.src}')" class="w-12 h-12 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center text-white transition-all hover:scale-110">
-                                    <span class="text-xl ml-1">▶</span>
-                                </button>
-                            </div>
-                            <video id="videoPlayer_${skill.id}_${i}" class="w-full h-full hidden" controls playsinline poster="${skill.image}">
+                        <div class="bg-gray-900 rounded-lg overflow-hidden" id="videoContainer_${skill.id}_${i}">
+                            <video id="videoPlayer_${skill.id}_${i}" class="w-full aspect-video" controls playsinline poster="${skill.image}">
                                 <source src="${slotVideo.src}" type="video/mp4">
                             </video>
                         </div>
@@ -1866,8 +1861,9 @@ const AppController = {
             });
             html += `</div>`;
         } else {
+            // 支撑动作（第三组）推荐
             html += `<div class="flex gap-2 overflow-x-auto no-scrollbar">`;
-            let recs = skillsData.filter(s => s.id.startsWith('2.') && ['C','D','E'].includes(s.difficulty));
+            let recs = skillsData.filter(s => s.id.startsWith('3.') && ['C','D','E'].includes(s.difficulty));
             recs.sort(() => 0.5 - Math.random()).slice(0, 5).forEach(skill => {
                 html += `<button onclick="AppController.addToCart('${skill.id}', '${skill.nameZh[0]}')" class="shrink-0 w-auto inline-flex items-center gap-1.5 bg-white border border-blue-200 hover:border-blue-500 rounded-lg px-3 py-1.5 text-sm shadow-sm transition-colors"><span class="text-xs font-bold text-blue-600">${skill.difficulty}</span><span class="text-gray-700">${skill.nameZh[0]}</span></button>`;
             });
@@ -2455,6 +2451,15 @@ const AppController = {
             
             let icon = track.type === 'line' ? '📏' : (track.type === 'curve' ? '〰️' : '📍'); 
             let ndWarning = track.nd < 0 ? `<span class="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-bold ml-2 shadow-sm border border-red-200 shrink-0">出界 ${track.nd}</span>` : ''; 
+            
+            // 🐛 调试日志：打印每个 track 的 nd 值
+            if (track.nd < 0) {
+                console.log('⚠️ [UI显示] 检测到出界警告');
+                console.log('   - track ID:', track.id);
+                console.log('   - track.nd:', track.nd);
+                console.log('   - track.skills:', JSON.stringify(track.skills));
+            }
+            
             validCount += track.skills.length; 
 
             // ==========================================
